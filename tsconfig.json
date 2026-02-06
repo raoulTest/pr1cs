@@ -1,0 +1,3 @@
+{
+  "extends": "@microhack/config/tsconfig.base.json"
+}
