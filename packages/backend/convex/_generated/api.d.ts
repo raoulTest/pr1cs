@@ -9,9 +9,34 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as bookings_internal from "../bookings/internal.js";
+import type * as bookings_mutations from "../bookings/mutations.js";
+import type * as bookings_queries from "../bookings/queries.js";
+import type * as carriers_mutations from "../carriers/mutations.js";
+import type * as carriers_queries from "../carriers/queries.js";
+import type * as config_mutations from "../config/mutations.js";
+import type * as config_queries from "../config/queries.js";
+import type * as crons from "../crons.js";
+import type * as gates_mutations from "../gates/mutations.js";
+import type * as gates_queries from "../gates/queries.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as http from "../http.js";
+import type * as lib_capacity from "../lib/capacity.js";
+import type * as lib_permissions from "../lib/permissions.js";
+import type * as lib_validators from "../lib/validators.js";
+import type * as notifications_internal from "../notifications/internal.js";
+import type * as notifications_mutations from "../notifications/mutations.js";
+import type * as notifications_queries from "../notifications/queries.js";
 import type * as privateData from "../privateData.js";
+import type * as scheduled from "../scheduled.js";
+import type * as terminals_mutations from "../terminals/mutations.js";
+import type * as terminals_queries from "../terminals/queries.js";
+import type * as timeSlots_mutations from "../timeSlots/mutations.js";
+import type * as timeSlots_queries from "../timeSlots/queries.js";
+import type * as trucks_mutations from "../trucks/mutations.js";
+import type * as trucks_queries from "../trucks/queries.js";
+import type * as users_mutations from "../users/mutations.js";
+import type * as users_queries from "../users/queries.js";
 
 import type {
   ApiFromModules,
@@ -21,9 +46,34 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  "bookings/internal": typeof bookings_internal;
+  "bookings/mutations": typeof bookings_mutations;
+  "bookings/queries": typeof bookings_queries;
+  "carriers/mutations": typeof carriers_mutations;
+  "carriers/queries": typeof carriers_queries;
+  "config/mutations": typeof config_mutations;
+  "config/queries": typeof config_queries;
+  crons: typeof crons;
+  "gates/mutations": typeof gates_mutations;
+  "gates/queries": typeof gates_queries;
   healthCheck: typeof healthCheck;
   http: typeof http;
+  "lib/capacity": typeof lib_capacity;
+  "lib/permissions": typeof lib_permissions;
+  "lib/validators": typeof lib_validators;
+  "notifications/internal": typeof notifications_internal;
+  "notifications/mutations": typeof notifications_mutations;
+  "notifications/queries": typeof notifications_queries;
   privateData: typeof privateData;
+  scheduled: typeof scheduled;
+  "terminals/mutations": typeof terminals_mutations;
+  "terminals/queries": typeof terminals_queries;
+  "timeSlots/mutations": typeof timeSlots_mutations;
+  "timeSlots/queries": typeof timeSlots_queries;
+  "trucks/mutations": typeof trucks_mutations;
+  "trucks/queries": typeof trucks_queries;
+  "users/mutations": typeof users_mutations;
+  "users/queries": typeof users_queries;
 }>;
 
 /**
