@@ -35,6 +35,7 @@ export type PermissionContext = QueryCtx | MutationCtx;
 /**
  * Get the currently authenticated user with their APCS role and carrier association
  * Throws if not authenticated
+ * Note: Role is now read from Better Auth user table, not userProfiles
  */
 export async function getAuthenticatedUser(
   ctx: PermissionContext
@@ -50,17 +51,17 @@ export async function getAuthenticatedUser(
     });
   }
 
-  // Get extended profile
-  const profile = await ctx.db
-    .query("userProfiles")
-    .withIndex("by_user", (q) => q.eq("userId", authUser._id))
-    .unique();
+  // Role now comes from Better Auth user table
+  // Map "user" role to null (no APCS privileges)
+  const betterAuthRole = (authUser as unknown as { role: string }).role;
+  const apcsRole: ApcsRole | null = 
+    betterAuthRole === "user" ? null : (betterAuthRole as ApcsRole);
 
   // Get carrier association if applicable
   let carrierCompanyId: Id<"carrierCompanies"> | null = null;
   let isCompanyAdmin = false;
 
-  if (profile?.apcsRole === "carrier") {
+  if (apcsRole === "carrier") {
     const carrierUser = await ctx.db
       .query("carrierUsers")
       .withIndex("by_user", (q) => q.eq("userId", authUser._id))
@@ -76,7 +77,7 @@ export async function getAuthenticatedUser(
     userId: authUser._id as unknown as string,
     email: authUser.email,
     name: authUser.name,
-    apcsRole: profile?.apcsRole ?? null,
+    apcsRole,
     carrierCompanyId,
     isCompanyAdmin,
   };

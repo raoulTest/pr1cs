@@ -9,10 +9,18 @@ import {
   requireRole,
 } from "../lib/permissions";
 import {
-  apcsRoleValidator,
   languageValidator,
   notificationChannelValidator,
 } from "../lib/validators";
+import { authComponent, createAuth } from "../auth";
+
+/** Role validator for Better Auth roles */
+const betterAuthRoleValidator = v.union(
+  v.literal("port_admin"),
+  v.literal("terminal_operator"),
+  v.literal("carrier"),
+  v.literal("user")
+);
 
 /**
  * Create or update user profile (self-service for preferences)
@@ -51,10 +59,9 @@ export const updateMyProfile = mutation({
       return existing._id;
     }
 
-    // Create new profile
+    // Create new profile (shouldn't normally happen as trigger creates it)
     return await ctx.db.insert("userProfiles", {
       userId: user.userId,
-      apcsRole: undefined, // Role must be set by admin
       preferredLanguage: args.preferredLanguage ?? "en",
       notificationChannel: args.notificationChannel ?? "in_app",
       phone: args.phone,
@@ -65,43 +72,31 @@ export const updateMyProfile = mutation({
 });
 
 /**
- * Set user's APCS role (admin only)
+ * Set user's role (admin only)
+ * Uses Better Auth admin plugin to update role in the user table
  */
 export const setRole = mutation({
   args: {
     userId: v.string(),
-    apcsRole: apcsRoleValidator,
+    role: betterAuthRoleValidator,
   },
-  returns: v.id("userProfiles"),
+  returns: v.null(),
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
     requireRole(user, ["port_admin"]);
 
-    const now = Date.now();
+    // Use Better Auth admin API to set user role
+    // Cast to any because our custom roles are configured in the admin plugin
+    const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
+    await auth.api.setRole({
+      body: {
+        userId: args.userId,
+        role: args.role as string,
+      },
+      headers,
+    } as any);
 
-    // Check if profile exists
-    const existing = await ctx.db
-      .query("userProfiles")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .unique();
-
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        apcsRole: args.apcsRole,
-        updatedAt: now,
-      });
-      return existing._id;
-    }
-
-    // Create new profile with role
-    return await ctx.db.insert("userProfiles", {
-      userId: args.userId,
-      apcsRole: args.apcsRole,
-      preferredLanguage: "en",
-      notificationChannel: "in_app",
-      createdAt: now,
-      updatedAt: now,
-    });
+    return null;
   },
 });
 
@@ -118,13 +113,17 @@ export const assignOperatorToTerminals = mutation({
     const user = await getAuthenticatedUser(ctx);
     requireRole(user, ["port_admin"]);
 
-    // Verify user has terminal_operator role
-    const profile = await ctx.db
-      .query("userProfiles")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .unique();
-
-    if (!profile || profile.apcsRole !== "terminal_operator") {
+    // Verify user has terminal_operator role by checking Better Auth user
+    const targetUser = await authComponent.getAnyUserById(ctx, args.userId);
+    if (!targetUser) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "User not found",
+      });
+    }
+    
+    const targetRole = (targetUser as unknown as { role: string }).role;
+    if (targetRole !== "terminal_operator") {
       throw new ConvexError({
         code: "INVALID_STATE",
         message: "User must have terminal_operator role to be assigned to terminals",

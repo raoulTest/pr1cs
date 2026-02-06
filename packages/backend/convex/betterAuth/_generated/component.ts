@@ -39,7 +39,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   emailVerified: boolean;
                   image?: null | string;
                   name: string;
-                  role: "admin" | "user";
+                  role: "port_admin" | "terminal_operator" | "carrier";
                   updatedAt: number;
                   userId?: null | string;
                 };
@@ -572,7 +572,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   emailVerified?: boolean;
                   image?: null | string;
                   name?: string;
-                  role?: "admin" | "user";
+                  role?: "port_admin" | "terminal_operator" | "carrier";
                   updatedAt?: number;
                   userId?: null | string;
                 };
@@ -815,7 +815,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   emailVerified?: boolean;
                   image?: null | string;
                   name?: string;
-                  role?: "admin" | "user";
+                  role?: "port_admin" | "terminal_operator" | "carrier";
                   updatedAt?: number;
                   userId?: null | string;
                 };

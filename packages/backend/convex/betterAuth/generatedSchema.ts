@@ -20,7 +20,11 @@ export const tables = {
     createdAt: v.number(),
     updatedAt: v.number(),
     userId: v.optional(v.union(v.null(), v.string())),
-    role: v.union(v.literal("admin"), v.literal("user")),
+    role: v.union(
+      v.literal("port_admin"),
+      v.literal("terminal_operator"),
+      v.literal("carrier"),
+    ),
     banned: v.optional(v.union(v.null(), v.boolean())),
     banReason: v.optional(v.union(v.null(), v.string())),
     banExpires: v.optional(v.union(v.null(), v.number())),

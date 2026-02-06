@@ -1,10 +1,18 @@
-import { Link } from "@tanstack/react-router";
+import { Link, type LinkProps } from "@tanstack/react-router";
 
 export default function Header() {
-  const links = [
+  const links: { to: LinkProps["to"]; label: string }[] = [
     { to: "/", label: "Home" },
     { to: "/dashboard", label: "Dashboard" },
-  ] as const;
+    { to: "/convex-showcase", label: "Convex Features" },
+  ];
+
+  const adminLinks: { to: LinkProps["to"]; label: string }[] = [
+    { to: "/admin/carriers", label: "Carriers" },
+    { to: "/admin/terminals", label: "Terminals" },
+    { to: "/admin/gates", label: "Gates" },
+    { to: "/admin/trucks", label: "Trucks" },
+  ];
 
   return (
     <div>
@@ -12,7 +20,15 @@ export default function Header() {
         <nav className="flex gap-4 text-lg">
           {links.map(({ to, label }) => {
             return (
-              <Link key={to} to={to}>
+              <Link key={String(to)} to={to}>
+                {label}
+              </Link>
+            );
+          })}
+          <span className="text-muted-foreground">|</span>
+          {adminLinks.map(({ to, label }) => {
+            return (
+              <Link key={String(to)} to={to} className="text-sm">
                 {label}
               </Link>
             );

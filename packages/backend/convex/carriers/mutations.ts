@@ -11,7 +11,11 @@ import {
   isPortAdmin,
   isCarrier,
 } from "../lib/permissions";
-import { languageValidator, notificationChannelValidator } from "../lib/validators";
+import {
+  languageValidator,
+  notificationChannelValidator,
+} from "../lib/validators";
+import { authComponent, createAuth } from "../auth";
 
 /**
  * Create a new carrier company (admin only)
@@ -134,7 +138,18 @@ export const selfRegister = mutation({
       isActive: true,
     });
 
-    // Set user's APCS role to carrier
+    // Set user's role to carrier via Better Auth
+    const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
+    // Cast to any because our custom roles are configured in the admin plugin
+    await (auth.api.setRole as any)({
+      body: {
+        userId: user.userId,
+        role: "carrier",
+      },
+      headers,
+    });
+
+    // Update profile preferences if exists
     const profile = await ctx.db
       .query("userProfiles")
       .withIndex("by_user", (q) => q.eq("userId", user.userId))
@@ -142,16 +157,9 @@ export const selfRegister = mutation({
 
     if (profile) {
       await ctx.db.patch(profile._id, {
-        apcsRole: "carrier",
-        updatedAt: now,
-      });
-    } else {
-      await ctx.db.insert("userProfiles", {
-        userId: user.userId,
-        apcsRole: "carrier",
-        preferredLanguage: args.preferredLanguage ?? "en",
-        notificationChannel: args.notificationChannel ?? "both",
-        createdAt: now,
+        preferredLanguage: args.preferredLanguage ?? profile.preferredLanguage,
+        notificationChannel:
+          args.notificationChannel ?? profile.notificationChannel,
         updatedAt: now,
       });
     }
@@ -197,7 +205,7 @@ export const update = mutation({
 
     const { carrierCompanyId, ...updates } = args;
     const cleanUpdates = Object.fromEntries(
-      Object.entries(updates).filter(([_, v]) => v !== undefined)
+      Object.entries(updates).filter(([_, v]) => v !== undefined),
     );
 
     if (Object.keys(cleanUpdates).length > 0) {
@@ -271,27 +279,16 @@ export const inviteUser = mutation({
       isActive: true,
     });
 
-    // Set user's APCS role to carrier
-    const profile = await ctx.db
-      .query("userProfiles")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .unique();
-
-    if (profile) {
-      await ctx.db.patch(profile._id, {
-        apcsRole: "carrier",
-        updatedAt: now,
-      });
-    } else {
-      await ctx.db.insert("userProfiles", {
+    // Set user's role to carrier via Better Auth admin API
+    // Cast to any because our custom roles are configured in the admin plugin
+    const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
+    await auth.api.setRole({
+      body: {
         userId: args.userId,
-        apcsRole: "carrier",
-        preferredLanguage: "en",
-        notificationChannel: "in_app",
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
+        role: "carrier",
+      },
+      headers,
+    } as any);
 
     return carrierUserId;
   },
@@ -322,7 +319,7 @@ export const removeUser = mutation({
       const admins = await ctx.db
         .query("carrierUsers")
         .withIndex("by_company_and_active", (q) =>
-          q.eq("carrierCompanyId", args.carrierCompanyId).eq("isActive", true)
+          q.eq("carrierCompanyId", args.carrierCompanyId).eq("isActive", true),
         )
         .collect();
 
@@ -375,7 +372,7 @@ export const setUserAdmin = mutation({
       const admins = await ctx.db
         .query("carrierUsers")
         .withIndex("by_company_and_active", (q) =>
-          q.eq("carrierCompanyId", args.carrierCompanyId).eq("isActive", true)
+          q.eq("carrierCompanyId", args.carrierCompanyId).eq("isActive", true),
         )
         .collect();
 

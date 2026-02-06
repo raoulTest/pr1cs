@@ -10,7 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ConvexShowcaseRouteImport } from './routes/convex-showcase'
+import { Route as AiBookingRouteImport } from './routes/ai-booking'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminTrucksRouteImport } from './routes/admin/trucks'
+import { Route as AdminTerminalsRouteImport } from './routes/admin/terminals'
+import { Route as AdminGatesRouteImport } from './routes/admin/gates'
+import { Route as AdminCarriersRouteImport } from './routes/admin/carriers'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const DashboardRoute = DashboardRouteImport.update({
@@ -18,9 +24,39 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConvexShowcaseRoute = ConvexShowcaseRouteImport.update({
+  id: '/convex-showcase',
+  path: '/convex-showcase',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiBookingRoute = AiBookingRouteImport.update({
+  id: '/ai-booking',
+  path: '/ai-booking',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTrucksRoute = AdminTrucksRouteImport.update({
+  id: '/admin/trucks',
+  path: '/admin/trucks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminTerminalsRoute = AdminTerminalsRouteImport.update({
+  id: '/admin/terminals',
+  path: '/admin/terminals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminGatesRoute = AdminGatesRouteImport.update({
+  id: '/admin/gates',
+  path: '/admin/gates',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminCarriersRoute = AdminCarriersRouteImport.update({
+  id: '/admin/carriers',
+  path: '/admin/carriers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -31,31 +67,83 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ai-booking': typeof AiBookingRoute
+  '/convex-showcase': typeof ConvexShowcaseRoute
   '/dashboard': typeof DashboardRoute
+  '/admin/carriers': typeof AdminCarriersRoute
+  '/admin/gates': typeof AdminGatesRoute
+  '/admin/terminals': typeof AdminTerminalsRoute
+  '/admin/trucks': typeof AdminTrucksRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ai-booking': typeof AiBookingRoute
+  '/convex-showcase': typeof ConvexShowcaseRoute
   '/dashboard': typeof DashboardRoute
+  '/admin/carriers': typeof AdminCarriersRoute
+  '/admin/gates': typeof AdminGatesRoute
+  '/admin/terminals': typeof AdminTerminalsRoute
+  '/admin/trucks': typeof AdminTrucksRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ai-booking': typeof AiBookingRoute
+  '/convex-showcase': typeof ConvexShowcaseRoute
   '/dashboard': typeof DashboardRoute
+  '/admin/carriers': typeof AdminCarriersRoute
+  '/admin/gates': typeof AdminGatesRoute
+  '/admin/terminals': typeof AdminTerminalsRoute
+  '/admin/trucks': typeof AdminTrucksRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/ai-booking'
+    | '/convex-showcase'
+    | '/dashboard'
+    | '/admin/carriers'
+    | '/admin/gates'
+    | '/admin/terminals'
+    | '/admin/trucks'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/api/auth/$'
-  id: '__root__' | '/' | '/dashboard' | '/api/auth/$'
+  to:
+    | '/'
+    | '/ai-booking'
+    | '/convex-showcase'
+    | '/dashboard'
+    | '/admin/carriers'
+    | '/admin/gates'
+    | '/admin/terminals'
+    | '/admin/trucks'
+    | '/api/auth/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/ai-booking'
+    | '/convex-showcase'
+    | '/dashboard'
+    | '/admin/carriers'
+    | '/admin/gates'
+    | '/admin/terminals'
+    | '/admin/trucks'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AiBookingRoute: typeof AiBookingRoute
+  ConvexShowcaseRoute: typeof ConvexShowcaseRoute
   DashboardRoute: typeof DashboardRoute
+  AdminCarriersRoute: typeof AdminCarriersRoute
+  AdminGatesRoute: typeof AdminGatesRoute
+  AdminTerminalsRoute: typeof AdminTerminalsRoute
+  AdminTrucksRoute: typeof AdminTrucksRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -68,11 +156,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/convex-showcase': {
+      id: '/convex-showcase'
+      path: '/convex-showcase'
+      fullPath: '/convex-showcase'
+      preLoaderRoute: typeof ConvexShowcaseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-booking': {
+      id: '/ai-booking'
+      path: '/ai-booking'
+      fullPath: '/ai-booking'
+      preLoaderRoute: typeof AiBookingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/trucks': {
+      id: '/admin/trucks'
+      path: '/admin/trucks'
+      fullPath: '/admin/trucks'
+      preLoaderRoute: typeof AdminTrucksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/terminals': {
+      id: '/admin/terminals'
+      path: '/admin/terminals'
+      fullPath: '/admin/terminals'
+      preLoaderRoute: typeof AdminTerminalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/gates': {
+      id: '/admin/gates'
+      path: '/admin/gates'
+      fullPath: '/admin/gates'
+      preLoaderRoute: typeof AdminGatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/carriers': {
+      id: '/admin/carriers'
+      path: '/admin/carriers'
+      fullPath: '/admin/carriers'
+      preLoaderRoute: typeof AdminCarriersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -87,7 +217,13 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AiBookingRoute: AiBookingRoute,
+  ConvexShowcaseRoute: ConvexShowcaseRoute,
   DashboardRoute: DashboardRoute,
+  AdminCarriersRoute: AdminCarriersRoute,
+  AdminGatesRoute: AdminGatesRoute,
+  AdminTerminalsRoute: AdminTerminalsRoute,
+  AdminTrucksRoute: AdminTrucksRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

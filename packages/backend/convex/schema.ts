@@ -388,11 +388,10 @@ export default defineSchema({
   /**
    * UserProfiles - Extended user data beyond Better Auth
    * One-to-one with Better Auth user table
+   * Note: apcsRole is now stored in Better Auth user table, not here
    */
   userProfiles: defineTable({
     userId: v.string(), // Better Auth user ID
-    // APCS role (separate from Better Auth's admin/user role)
-    apcsRole: v.optional(apcsRoleValidator),
     // User preferences
     preferredLanguage: languageValidator,
     notificationChannel: notificationChannelValidator,
@@ -402,6 +401,5 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_user", ["userId"])
-    .index("by_role", ["apcsRole"]),
+    .index("by_user", ["userId"]),
 });

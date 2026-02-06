@@ -1,5 +1,9 @@
 import { expo } from "@better-auth/expo";
-import { createClient, type GenericCtx } from "@convex-dev/better-auth";
+import {
+  createClient,
+  type GenericCtx,
+  type AuthFunctions,
+} from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
 import { betterAuth, BetterAuthOptions } from "better-auth";
 import { createAccessControl } from "better-auth/plugins/access";
@@ -13,12 +17,15 @@ import { admin as adminPlugin } from "better-auth/plugins";
 import authSchema from "./betterAuth/schema";
 
 import type { DataModel } from "./_generated/dataModel";
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import { query } from "./_generated/server";
 import authConfig from "./auth.config";
 
 const siteUrl = process.env.SITE_URL!;
 const nativeAppUrl = process.env.NATIVE_APP_URL || "microhack://";
+
+// Required for triggers to work
+const authFunctions: AuthFunctions = internal.auth;
 
 export const authComponent = createClient<DataModel, typeof authSchema>(
   components.betterAuth,
@@ -26,9 +33,28 @@ export const authComponent = createClient<DataModel, typeof authSchema>(
     local: {
       schema: authSchema,
     },
+    authFunctions,
     verbose: false,
+    triggers: {
+      user: {
+        async onCreate(ctx, doc) {
+          // Auto-create userProfiles record for new users
+          const now = Date.now();
+          await ctx.db.insert("userProfiles", {
+            userId: doc._id,
+            preferredLanguage: "en",
+            notificationChannel: "in_app",
+            createdAt: now,
+            updatedAt: now,
+          });
+        },
+      },
+    },
   },
 );
+
+// Export trigger handlers for the component to use
+export const { onCreate, onUpdate, onDelete } = authComponent.triggersApi();
 
 const statement = {
   ...defaultStatements,
@@ -36,11 +62,13 @@ const statement = {
 
 export const ac = createAccessControl(statement);
 
-export const admin = ac.newRole({
+export const port_admin = ac.newRole({
   ...adminAc.statements,
 });
 
-export const user = defaultRoles.user;
+export const terminal_operator = defaultRoles.user;
+
+export const carrier = defaultRoles.user;
 
 export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
   return {
@@ -61,8 +89,8 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
     user: {
       additionalFields: {
         role: {
-          type: ["admin", "user"],
-          defaultValue: "user",
+          type: ["port_admin", "terminal_operator", "carrier"],
+          defaultValue: "carrier",
           input: false,
         },
       },
@@ -74,11 +102,12 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
         jwksRotateOnTokenGenerationError: true,
       }),
       adminPlugin({
-        adminRoles: ["admin"],
+        adminRoles: ["port_admin"],
         ac: ac,
         roles: {
-          admin,
-          user,
+          port_admin,
+          terminal_operator,
+          carrier,
         },
       }),
     ],
