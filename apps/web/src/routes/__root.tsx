@@ -71,7 +71,7 @@ function RootDocument() {
       authClient={authClient}
       initialToken={context.token}
     >
-      <html lang="en" className="dark">
+      <html lang="en" className="light">
         <head>
           <HeadContent />
         </head>
