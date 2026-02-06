@@ -1,5 +1,10 @@
 /**
  * Time Slot Mutations
+ * 
+ * Updated for new schema:
+ * - Time slots are terminal-level (not gate-level)
+ * - Uses terminalId instead of gateId
+ * - Uses by_terminal_and_date index
  */
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
@@ -21,7 +26,9 @@ function timesOverlap(
 ): boolean {
   // Convert HH:mm to minutes for comparison
   const toMinutes = (time: string) => {
-    const [h, m] = time.split(":").map(Number);
+    const parts = time.split(":");
+    const h = parseInt(parts[0] ?? "0", 10);
+    const m = parseInt(parts[1] ?? "0", 10);
     return h * 60 + m;
   };
 
@@ -43,15 +50,16 @@ function isValidTimeFormat(time: string): boolean {
 }
 
 /**
- * Create a new time slot
+ * Create a new time slot (terminal-level)
  */
 export const create = mutation({
   args: {
-    gateId: v.id("gates"),
+    terminalId: v.id("terminals"),
     date: v.string(), // YYYY-MM-DD
     startTime: v.string(), // HH:mm
     endTime: v.string(), // HH:mm
     maxCapacity: v.number(),
+    autoValidationThreshold: v.optional(v.number()), // 0-100, percentage for auto-validation
   },
   returns: v.id("timeSlots"),
   handler: async (ctx, args) => {
@@ -62,7 +70,7 @@ export const create = mutation({
     if (!isValidTimeFormat(args.startTime) || !isValidTimeFormat(args.endTime)) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
-        message: "Time must be in HH:mm format (24-hour)",
+        message: "Le format de l'heure doit etre HH:mm (24 heures)",
       });
     }
 
@@ -70,25 +78,25 @@ export const create = mutation({
     if (args.startTime >= args.endTime) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
-        message: "End time must be after start time",
+        message: "L'heure de fin doit etre apres l'heure de debut",
       });
     }
 
-    // Get gate and verify access
-    const gate = await ctx.db.get(args.gateId);
-    if (!gate) {
+    // Get terminal and verify access
+    const terminal = await ctx.db.get(args.terminalId);
+    if (!terminal) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Gate not found",
+        message: "Terminal introuvable",
       });
     }
 
-    await requireTerminalAccess(ctx, user, gate.terminalId);
+    await requireTerminalAccess(ctx, user, args.terminalId);
 
-    if (!gate.isActive) {
+    if (!terminal.isActive) {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: "Cannot create time slots for inactive gate",
+        message: "Impossible de creer des creneaux pour un terminal inactif",
       });
     }
 
@@ -96,15 +104,25 @@ export const create = mutation({
     if (args.maxCapacity < 1) {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
-        message: "Max capacity must be at least 1",
+        message: "La capacite maximale doit etre d'au moins 1",
       });
     }
 
-    // Check for overlapping slots on the same gate and date
+    // Validate auto-validation threshold if provided
+    if (args.autoValidationThreshold !== undefined) {
+      if (args.autoValidationThreshold < 0 || args.autoValidationThreshold > 100) {
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: "Le seuil de validation automatique doit etre entre 0 et 100",
+        });
+      }
+    }
+
+    // Check for overlapping slots on the same terminal and date
     const existingSlots = await ctx.db
       .query("timeSlots")
-      .withIndex("by_gate_and_date", (q) =>
-        q.eq("gateId", args.gateId).eq("date", args.date)
+      .withIndex("by_terminal_and_date", (q) =>
+        q.eq("terminalId", args.terminalId).eq("date", args.date)
       )
       .collect();
 
@@ -120,19 +138,20 @@ export const create = mutation({
       ) {
         throw new ConvexError({
           code: "OVERLAP",
-          message: `Time slot overlaps with existing slot ${existing.startTime}-${existing.endTime}`,
+          message: `Le creneau chevauche un creneau existant ${existing.startTime}-${existing.endTime}`,
         });
       }
     }
 
     const now = Date.now();
     return await ctx.db.insert("timeSlots", {
-      gateId: args.gateId,
+      terminalId: args.terminalId,
       date: args.date,
       startTime: args.startTime,
       endTime: args.endTime,
       maxCapacity: args.maxCapacity,
       currentBookings: 0,
+      autoValidationThreshold: args.autoValidationThreshold,
       isActive: true,
       createdAt: now,
       updatedAt: now,
@@ -142,11 +161,11 @@ export const create = mutation({
 });
 
 /**
- * Bulk create time slots for a date range
+ * Bulk create time slots for a date range (terminal-level)
  */
 export const bulkCreate = mutation({
   args: {
-    gateId: v.id("gates"),
+    terminalId: v.id("terminals"),
     startDate: v.string(), // YYYY-MM-DD
     endDate: v.string(), // YYYY-MM-DD
     slots: v.array(
@@ -156,6 +175,7 @@ export const bulkCreate = mutation({
         maxCapacity: v.number(),
       })
     ),
+    autoValidationThreshold: v.optional(v.number()), // Applied to all slots
     skipExisting: v.optional(v.boolean()), // Skip dates that already have slots
   },
   returns: v.object({
@@ -166,20 +186,20 @@ export const bulkCreate = mutation({
     const user = await getAuthenticatedUser(ctx);
     requireRole(user, ["port_admin", "terminal_operator"]);
 
-    const gate = await ctx.db.get(args.gateId);
-    if (!gate) {
+    const terminal = await ctx.db.get(args.terminalId);
+    if (!terminal) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Gate not found",
+        message: "Terminal introuvable",
       });
     }
 
-    await requireTerminalAccess(ctx, user, gate.terminalId);
+    await requireTerminalAccess(ctx, user, args.terminalId);
 
-    if (!gate.isActive) {
+    if (!terminal.isActive) {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: "Cannot create time slots for inactive gate",
+        message: "Impossible de creer des creneaux pour un terminal inactif",
       });
     }
 
@@ -188,19 +208,19 @@ export const bulkCreate = mutation({
       if (!isValidTimeFormat(slot.startTime) || !isValidTimeFormat(slot.endTime)) {
         throw new ConvexError({
           code: "VALIDATION_ERROR",
-          message: "Time must be in HH:mm format (24-hour)",
+          message: "Le format de l'heure doit etre HH:mm (24 heures)",
         });
       }
       if (slot.startTime >= slot.endTime) {
         throw new ConvexError({
           code: "VALIDATION_ERROR",
-          message: "End time must be after start time",
+          message: "L'heure de fin doit etre apres l'heure de debut",
         });
       }
       if (slot.maxCapacity < 1) {
         throw new ConvexError({
           code: "VALIDATION_ERROR",
-          message: "Max capacity must be at least 1",
+          message: "La capacite maximale doit etre d'au moins 1",
         });
       }
     }
@@ -208,17 +228,21 @@ export const bulkCreate = mutation({
     // Check for overlapping templates
     for (let i = 0; i < args.slots.length; i++) {
       for (let j = i + 1; j < args.slots.length; j++) {
+        const slotI = args.slots[i];
+        const slotJ = args.slots[j];
         if (
+          slotI &&
+          slotJ &&
           timesOverlap(
-            args.slots[i].startTime,
-            args.slots[i].endTime,
-            args.slots[j].startTime,
-            args.slots[j].endTime
+            slotI.startTime,
+            slotI.endTime,
+            slotJ.startTime,
+            slotJ.endTime
           )
         ) {
           throw new ConvexError({
             code: "OVERLAP",
-            message: "Slot templates overlap with each other",
+            message: "Les modeles de creneaux se chevauchent",
           });
         }
       }
@@ -230,7 +254,10 @@ export const bulkCreate = mutation({
     const end = new Date(args.endDate);
 
     while (current <= end) {
-      dates.push(current.toISOString().split("T")[0]);
+      const dateStr = current.toISOString().split("T")[0];
+      if (dateStr) {
+        dates.push(dateStr);
+      }
       current.setDate(current.getDate() + 1);
     }
 
@@ -243,8 +270,8 @@ export const bulkCreate = mutation({
       if (args.skipExisting) {
         const existingSlots = await ctx.db
           .query("timeSlots")
-          .withIndex("by_gate_and_date", (q) =>
-            q.eq("gateId", args.gateId).eq("date", date)
+          .withIndex("by_terminal_and_date", (q) =>
+            q.eq("terminalId", args.terminalId).eq("date", date)
           )
           .first();
 
@@ -257,12 +284,13 @@ export const bulkCreate = mutation({
       // Create slots for this date
       for (const slotTemplate of args.slots) {
         await ctx.db.insert("timeSlots", {
-          gateId: args.gateId,
+          terminalId: args.terminalId,
           date,
           startTime: slotTemplate.startTime,
           endTime: slotTemplate.endTime,
           maxCapacity: slotTemplate.maxCapacity,
           currentBookings: 0,
+          autoValidationThreshold: args.autoValidationThreshold,
           isActive: true,
           createdAt: now,
           updatedAt: now,
@@ -283,6 +311,7 @@ export const update = mutation({
   args: {
     timeSlotId: v.id("timeSlots"),
     maxCapacity: v.optional(v.number()),
+    autoValidationThreshold: v.optional(v.number()),
     isActive: v.optional(v.boolean()),
   },
   returns: v.null(),
@@ -294,33 +323,35 @@ export const update = mutation({
     if (!slot) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Time slot not found",
+        message: "Creneau introuvable",
       });
     }
 
-    const gate = await ctx.db.get(slot.gateId);
-    if (!gate) {
-      throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Gate not found",
-      });
-    }
-
-    await requireTerminalAccess(ctx, user, gate.terminalId);
+    await requireTerminalAccess(ctx, user, slot.terminalId);
 
     // Validate capacity if changing
     if (args.maxCapacity !== undefined) {
       if (args.maxCapacity < 1) {
         throw new ConvexError({
           code: "VALIDATION_ERROR",
-          message: "Max capacity must be at least 1",
+          message: "La capacite maximale doit etre d'au moins 1",
         });
       }
       // Can't reduce capacity below current bookings
       if (args.maxCapacity < slot.currentBookings) {
         throw new ConvexError({
           code: "VALIDATION_ERROR",
-          message: `Cannot reduce capacity below current bookings (${slot.currentBookings})`,
+          message: `Impossible de reduire la capacite en dessous des reservations actuelles (${slot.currentBookings})`,
+        });
+      }
+    }
+
+    // Validate auto-validation threshold if provided
+    if (args.autoValidationThreshold !== undefined) {
+      if (args.autoValidationThreshold < 0 || args.autoValidationThreshold > 100) {
+        throw new ConvexError({
+          code: "VALIDATION_ERROR",
+          message: "Le seuil de validation automatique doit etre entre 0 et 100",
         });
       }
     }
@@ -329,12 +360,15 @@ export const update = mutation({
     if (args.maxCapacity !== undefined) {
       updates.maxCapacity = args.maxCapacity;
     }
+    if (args.autoValidationThreshold !== undefined) {
+      updates.autoValidationThreshold = args.autoValidationThreshold;
+    }
     if (args.isActive !== undefined) {
       // Can't deactivate slot with bookings
       if (!args.isActive && slot.currentBookings > 0) {
         throw new ConvexError({
           code: "INVALID_STATE",
-          message: "Cannot deactivate time slot with active bookings",
+          message: "Impossible de desactiver un creneau avec des reservations actives",
         });
       }
       updates.isActive = args.isActive;
@@ -359,31 +393,39 @@ export const remove = mutation({
     if (!slot) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Time slot not found",
+        message: "Creneau introuvable",
       });
     }
 
-    const gate = await ctx.db.get(slot.gateId);
-    if (!gate) {
-      throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Gate not found",
-      });
-    }
+    await requireTerminalAccess(ctx, user, slot.terminalId);
 
-    await requireTerminalAccess(ctx, user, gate.terminalId);
-
-    // Check for any bookings (even cancelled)
-    const booking = await ctx.db
+    // Check if there are any bookings for this terminal on this date/time
+    // Since bookings use preferredDate/preferredTimeStart/preferredTimeEnd now,
+    // we need to check if any bookings overlap with this slot
+    const bookings = await ctx.db
       .query("bookings")
-      .withIndex("by_time_slot", (q) => q.eq("timeSlotId", args.timeSlotId))
-      .first();
+      .withIndex("by_terminal_and_date", (q) =>
+        q.eq("terminalId", slot.terminalId).eq("preferredDate", slot.date)
+      )
+      .collect();
 
-    if (booking) {
+    // Check for overlapping bookings
+    const overlappingBooking = bookings.find(
+      (b) =>
+        b.status !== "cancelled" &&
+        timesOverlap(
+          slot.startTime,
+          slot.endTime,
+          b.preferredTimeStart,
+          b.preferredTimeEnd
+        )
+    );
+
+    if (overlappingBooking) {
       throw new ConvexError({
         code: "INVALID_STATE",
         message:
-          "Cannot delete time slot with bookings. Deactivate it instead.",
+          "Impossible de supprimer un creneau avec des reservations. Desactivez-le a la place.",
       });
     }
 

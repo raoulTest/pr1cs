@@ -13,6 +13,7 @@ import { truckTypeValidator, truckClassValidator } from "../lib/validators";
 
 /**
  * Create a new gate
+ * Note: Capacity is now at terminal level, gates are just entry points
  */
 export const create = mutation({
   args: {
@@ -20,7 +21,6 @@ export const create = mutation({
     name: v.string(),
     code: v.string(),
     description: v.optional(v.string()),
-    defaultCapacity: v.number(),
     allowedTruckTypes: v.array(truckTypeValidator),
     allowedTruckClasses: v.array(truckClassValidator),
   },
@@ -35,13 +35,13 @@ export const create = mutation({
     if (!terminal) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Terminal not found",
+        message: "Terminal introuvable",
       });
     }
     if (!terminal.isActive) {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: "Cannot add gates to inactive terminal",
+        message: "Impossible d'ajouter des portes à un terminal inactif",
       });
     }
 
@@ -54,15 +54,7 @@ export const create = mutation({
     if (existing) {
       throw new ConvexError({
         code: "DUPLICATE",
-        message: `Gate with code ${args.code} already exists`,
-      });
-    }
-
-    // Validate capacity
-    if (args.defaultCapacity < 1) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: "Default capacity must be at least 1",
+        message: `Une porte avec le code ${args.code} existe déjà`,
       });
     }
 
@@ -72,7 +64,6 @@ export const create = mutation({
       name: args.name,
       code: args.code,
       description: args.description,
-      defaultCapacity: args.defaultCapacity,
       allowedTruckTypes: args.allowedTruckTypes,
       allowedTruckClasses: args.allowedTruckClasses,
       isActive: true,
@@ -85,13 +76,13 @@ export const create = mutation({
 
 /**
  * Update a gate
+ * Note: Capacity is now at terminal level, not gate level
  */
 export const update = mutation({
   args: {
     gateId: v.id("gates"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
-    defaultCapacity: v.optional(v.number()),
     allowedTruckTypes: v.optional(v.array(truckTypeValidator)),
     allowedTruckClasses: v.optional(v.array(truckClassValidator)),
     isActive: v.optional(v.boolean()),
@@ -105,19 +96,11 @@ export const update = mutation({
     if (!gate) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Gate not found",
+        message: "Porte introuvable",
       });
     }
 
     await requireTerminalAccess(ctx, user, gate.terminalId);
-
-    // Validate capacity if provided
-    if (args.defaultCapacity !== undefined && args.defaultCapacity < 1) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: "Default capacity must be at least 1",
-      });
-    }
 
     const { gateId, ...updates } = args;
     const cleanUpdates = Object.fromEntries(
@@ -149,25 +132,23 @@ export const deactivate = mutation({
     if (!gate) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Gate not found",
+        message: "Porte introuvable",
       });
     }
 
     await requireTerminalAccess(ctx, user, gate.terminalId);
 
-    // Check for pending bookings at this gate
-    const pendingBooking = await ctx.db
+    // Check for pending or confirmed bookings at this gate
+    const activeBooking = await ctx.db
       .query("bookings")
-      .withIndex("by_gate_and_status", (q) =>
-        q.eq("gateId", args.gateId).eq("status", "pending")
-      )
+      .withIndex("by_gate", (q) => q.eq("gateId", args.gateId))
       .first();
 
-    if (pendingBooking) {
+    if (activeBooking && (activeBooking.status === "pending" || activeBooking.status === "confirmed")) {
       throw new ConvexError({
         code: "INVALID_STATE",
         message:
-          "Cannot deactivate gate with pending bookings. Please cancel or reassign pending bookings first.",
+          "Impossible de désactiver une porte avec des réservations en cours. Veuillez d'abord annuler ou réaffecter les réservations.",
       });
     }
 
@@ -194,7 +175,7 @@ export const reactivate = mutation({
     if (!gate) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Gate not found",
+        message: "Porte introuvable",
       });
     }
 
@@ -205,7 +186,7 @@ export const reactivate = mutation({
     if (!terminal?.isActive) {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: "Cannot reactivate gate on inactive terminal",
+        message: "Impossible de réactiver une porte sur un terminal inactif",
       });
     }
 

@@ -40,6 +40,38 @@ export const truckTypeValidator = v.union(
   v.literal("general")
 );
 
+/** Container type (ISO standard classifications) */
+export const containerTypeValidator = v.union(
+  v.literal("dry"), // Standard dry container
+  v.literal("reefer"), // Refrigerated
+  v.literal("open_top"), // Open top
+  v.literal("flat_rack"), // Flat rack
+  v.literal("tank"), // Tank container
+  v.literal("hazardous") // Hazardous materials
+);
+
+/** Container dimensions (ISO standard) */
+export const containerDimensionsValidator = v.union(
+  v.literal("20ft"), // 20' standard
+  v.literal("40ft"), // 40' standard
+  v.literal("40ft_hc"), // 40' high cube
+  v.literal("45ft") // 45' high cube
+);
+
+/** Container weight class */
+export const containerWeightClassValidator = v.union(
+  v.literal("light"), // < 10 tons
+  v.literal("medium"), // 10-20 tons
+  v.literal("heavy"), // 20-30 tons
+  v.literal("super_heavy") // > 30 tons
+);
+
+/** Container operation type */
+export const containerOperationValidator = v.union(
+  v.literal("pick_up"), // Carrier picks up from terminal
+  v.literal("drop_off") // Carrier drops off at terminal
+);
+
 /** Notification type */
 export const notificationTypeValidator = v.union(
   v.literal("booking_created"),
@@ -60,8 +92,8 @@ export const notificationChannelValidator = v.union(
   v.literal("both")
 );
 
-/** Language preference */
-export const languageValidator = v.union(v.literal("en"), v.literal("fr"));
+/** Language preference - French only */
+export const languageValidator = v.literal("fr");
 
 /** Booking history change types */
 export const bookingChangeTypeValidator = v.union(
@@ -71,6 +103,24 @@ export const bookingChangeTypeValidator = v.union(
   v.literal("truck_changed"),
   v.literal("driver_updated"),
   v.literal("details_updated")
+);
+
+/** Audit action types */
+export const auditActionValidator = v.union(
+  v.literal("query"),
+  v.literal("mutation"),
+  v.literal("ai_tool_call"),
+  v.literal("login"),
+  v.literal("logout"),
+  v.literal("failed_auth"),
+  v.literal("permission_denied")
+);
+
+/** Aggregation period */
+export const aggregationPeriodValidator = v.union(
+  v.literal("hourly"),
+  v.literal("daily"),
+  v.literal("weekly")
 );
 
 // ============================================================================
@@ -88,10 +138,23 @@ export default defineSchema({
    */
   terminals: defineTable({
     name: v.string(),
-    code: v.string(), // Unique terminal code (e.g., "TRM-001")
+    code: v.string(), // Unique terminal code (e.g., "TER1")
     address: v.optional(v.string()),
-    timezone: v.string(), // e.g., "America/New_York"
+    timezone: v.string(), // e.g., "Europe/Paris"
     isActive: v.boolean(),
+
+    // Terminal-wide capacity settings
+    defaultSlotCapacity: v.number(), // Default trucks per slot
+    autoValidationThreshold: v.number(), // 0-100 (percentage for auto-approval)
+
+    // Capacity alert thresholds
+    capacityAlertThresholds: v.array(v.number()), // e.g., [70, 85, 95]
+
+    // Operating hours
+    operatingHoursStart: v.string(), // e.g., "00:00"
+    operatingHoursEnd: v.string(), // e.g., "23:00"
+    slotDurationMinutes: v.number(), // e.g., 60
+
     createdAt: v.number(),
     updatedAt: v.number(),
     createdBy: v.string(), // Better Auth user ID (stored as string)
@@ -101,8 +164,9 @@ export default defineSchema({
     .index("by_created_by", ["createdBy"]),
 
   /**
-   * Gates - Entry points at terminals with capacity
+   * Gates - Entry points at terminals
    * Created by: port_admin or terminal_operator
+   * Note: Capacity is now at terminal level, gates are just for assignment
    */
   gates: defineTable({
     terminalId: v.id("terminals"),
@@ -110,8 +174,6 @@ export default defineSchema({
     code: v.string(), // e.g., "GATE-A1"
     description: v.optional(v.string()),
     isActive: v.boolean(),
-    // Default capacity (can be overridden per time slot)
-    defaultCapacity: v.number(),
     // Allowed truck types at this gate
     allowedTruckTypes: v.array(truckTypeValidator),
     // Allowed truck classes at this gate
@@ -125,28 +187,32 @@ export default defineSchema({
     .index("by_code", ["code"]),
 
   /**
-   * TimeSlots - Bookable time windows per gate
-   * Non-overlapping within the same gate
+   * TimeSlots - Bookable time windows per terminal
+   * Note: Slot records are ONLY created when a booking is made for that slot.
+   * Virtual slots (no bookings yet) are computed from terminal operating hours.
    */
   timeSlots: defineTable({
-    gateId: v.id("gates"),
+    // Terminal-level, not gate-level
+    terminalId: v.id("terminals"),
     // Date as YYYY-MM-DD string for easy indexing
     date: v.string(),
     startTime: v.string(), // HH:mm format (24h)
     endTime: v.string(), // HH:mm format (24h)
-    // Max trucks allowed in this slot (overrides gate default if set)
+    // Terminal capacity (truck count) - inherited from terminal.defaultSlotCapacity
     maxCapacity: v.number(),
-    // Calculated field - updated on booking changes
-    currentBookings: v.number(),
+    currentBookings: v.number(), // Confirmed + pending count
+    // Auto-validation threshold for this slot (override terminal default)
+    autoValidationThreshold: v.optional(v.number()), // 0-100%, null = use terminal default
+    // Slot can be disabled by operator
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
     createdBy: v.string(), // Better Auth user ID
   })
-    .index("by_gate", ["gateId"])
-    .index("by_gate_and_date", ["gateId", "date"])
+    .index("by_terminal", ["terminalId"])
+    .index("by_terminal_and_date", ["terminalId", "date"])
     .index("by_date", ["date"])
-    .index("by_gate_and_active", ["gateId", "isActive"]),
+    .index("by_terminal_and_active", ["terminalId", "isActive"]),
 
   // --------------------------------------------------------------------------
   // TERMINAL OPERATOR ASSIGNMENTS (Many-to-Many)
@@ -170,53 +236,65 @@ export default defineSchema({
     .index("by_user_and_terminal", ["userId", "terminalId"]),
 
   // --------------------------------------------------------------------------
-  // CARRIER COMPANIES & TRUCKS
+  // CONTAINERS (Pre-seeded, assigned to carriers)
   // --------------------------------------------------------------------------
 
   /**
-   * CarrierCompanies - Organizations that own trucks
-   * Created by: port_admin or self-registered
+   * Containers - Pre-seeded containers assigned to carriers
+   * Simulates external data source for demo purposes
    */
-  carrierCompanies: defineTable({
-    name: v.string(),
-    code: v.string(), // Unique company code
-    taxId: v.optional(v.string()), // Business registration number
-    address: v.optional(v.string()),
-    phone: v.optional(v.string()),
-    email: v.optional(v.string()),
-    isActive: v.boolean(),
-    // Notification preferences
-    preferredLanguage: languageValidator,
-    notificationChannel: notificationChannelValidator,
+  containers: defineTable({
+    // Ownership - Direct to carrier user (no company)
+    ownerId: v.string(), // Better Auth user ID (carrier role)
+
+    // ISO 6346 container identification
+    containerNumber: v.string(), // e.g., "MSCU1234567"
+
+    // Classification
+    containerType: containerTypeValidator,
+    dimensions: containerDimensionsValidator,
+    weightClass: containerWeightClassValidator,
+
+    // Operation details
+    operationType: containerOperationValidator,
+
+    // For pick_up: when container will be ready for collection
+    readyDate: v.optional(v.number()),
+    // For drop_off: expected departure date from terminal
+    departureDate: v.optional(v.number()),
+
+    // State
+    isEmpty: v.boolean(), // Empty vs loaded
+    isActive: v.boolean(), // Soft delete flag
+
+    // Booking association (undefined if not booked)
+    bookingId: v.optional(v.id("bookings")),
+
+    // Metadata
+    notes: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
-    createdBy: v.string(), // Better Auth user ID
   })
-    .index("by_code", ["code"])
-    .index("by_active", ["isActive"])
-    .index("by_name", ["name"]),
+    .index("by_owner", ["ownerId"])
+    .index("by_owner_and_active", ["ownerId", "isActive"])
+    .index("by_container_number", ["containerNumber"])
+    .index("by_operation", ["operationType"])
+    .index("by_booking", ["bookingId"])
+    .index("by_type", ["containerType"])
+    .index("by_owner_and_operation", ["ownerId", "operationType"]),
+
+  // --------------------------------------------------------------------------
+  // TRUCKS (Owned directly by carrier users)
+  // --------------------------------------------------------------------------
 
   /**
-   * CarrierUsers - Links Better Auth users to carrier companies
-   * A user with 'carrier' role belongs to exactly one company
-   */
-  carrierUsers: defineTable({
-    userId: v.string(), // Better Auth user ID
-    carrierCompanyId: v.id("carrierCompanies"),
-    isCompanyAdmin: v.boolean(), // Can manage company's trucks/bookings
-    joinedAt: v.number(),
-    invitedBy: v.optional(v.string()), // Optional for self-registered founders
-    isActive: v.boolean(),
-  })
-    .index("by_user", ["userId"])
-    .index("by_company", ["carrierCompanyId"])
-    .index("by_company_and_active", ["carrierCompanyId", "isActive"]),
-
-  /**
-   * Trucks - Vehicles owned by carrier companies
+   * Trucks - Vehicles owned directly by carrier users
+   * Note: Changed from carrierCompanyId to ownerId
    */
   trucks: defineTable({
-    carrierCompanyId: v.id("carrierCompanies"),
+    // Direct ownership by carrier user (no company)
+    ownerId: v.string(), // Better Auth user ID (carrier role)
+
     licensePlate: v.string(),
     // Truck classification
     truckType: truckTypeValidator,
@@ -232,8 +310,8 @@ export default defineSchema({
     updatedAt: v.number(),
     createdBy: v.string(), // Better Auth user ID
   })
-    .index("by_carrier", ["carrierCompanyId"])
-    .index("by_carrier_and_active", ["carrierCompanyId", "isActive"])
+    .index("by_owner", ["ownerId"])
+    .index("by_owner_and_active", ["ownerId", "isActive"])
     .index("by_license_plate", ["licensePlate"])
     .index("by_type", ["truckType"])
     .index("by_class", ["truckClass"]),
@@ -243,54 +321,73 @@ export default defineSchema({
   // --------------------------------------------------------------------------
 
   /**
-   * Bookings - Truck time slot reservations
-   * Full lifecycle: pending -> confirmed/rejected -> consumed/cancelled/expired
+   * Bookings - Truck time slot reservations with multiple containers
+   * Terminal-level capacity, gate assigned at approval
    */
   bookings: defineTable({
-    // References
-    timeSlotId: v.id("timeSlots"),
-    truckId: v.id("trucks"),
-    carrierCompanyId: v.id("carrierCompanies"),
-    // Denormalized for efficient queries
-    gateId: v.id("gates"),
+    // Terminal-level (gate assigned later at confirmation)
     terminalId: v.id("terminals"),
-    // Booking details
-    bookingReference: v.string(), // Human-readable reference (e.g., "BK-20240115-001")
+    carrierId: v.string(), // Better Auth user ID (carrier role)
+    truckId: v.id("trucks"),
+
+    // Gate assigned at approval, not booking
+    gateId: v.optional(v.id("gates")),
+
+    // Multiple containers per booking
+    containerIds: v.array(v.id("containers")),
+
+    // Reference (terminal-prefixed)
+    bookingReference: v.string(), // e.g., "TER1-BK-001234"
     status: bookingStatusValidator,
-    // QR code data (stored as data URL or external URL)
-    qrCode: v.optional(v.string()),
-    // Driver info (optional, can be added later)
+
+    // Auto-validation tracking
+    wasAutoValidated: v.boolean(),
+
+    // Preferred slot (before gate assignment)
+    preferredDate: v.string(), // YYYY-MM-DD
+    preferredTimeStart: v.string(), // HH:mm
+    preferredTimeEnd: v.string(), // HH:mm
+
+    // QR scan timestamps
+    entryScannedAt: v.optional(v.number()),
+    exitScannedAt: v.optional(v.number()),
+    scannedByEntry: v.optional(v.string()), // Operator who scanned entry
+    scannedByExit: v.optional(v.string()), // Operator who scanned exit
+
+    // QR code
+    qrCode: v.optional(v.string()), // Data URL
+    qrCodeStorageId: v.optional(v.id("_storage")), // Convex file storage
+
+    // Driver info
     driverName: v.optional(v.string()),
     driverPhone: v.optional(v.string()),
     driverIdNumber: v.optional(v.string()),
-    // Container/cargo info
-    containerNumber: v.optional(v.string()),
-    cargoDescription: v.optional(v.string()),
+
     // Timestamps
     bookedAt: v.number(),
     confirmedAt: v.optional(v.number()),
     rejectedAt: v.optional(v.number()),
     cancelledAt: v.optional(v.number()),
     consumedAt: v.optional(v.number()),
-    // Rejection/cancellation reason
+    expiredAt: v.optional(v.number()),
+
+    // Status metadata
     statusReason: v.optional(v.string()),
-    // Who processed this booking (operator who confirmed/rejected)
-    processedBy: v.optional(v.string()), // Better Auth user ID
-    // Booking creator
+    processedBy: v.optional(v.string()), // Who processed this booking
+
     createdBy: v.string(), // Better Auth user ID
     updatedAt: v.number(),
   })
     .index("by_reference", ["bookingReference"])
-    .index("by_time_slot", ["timeSlotId"])
-    .index("by_time_slot_and_status", ["timeSlotId", "status"])
-    .index("by_truck", ["truckId"])
-    .index("by_carrier", ["carrierCompanyId"])
-    .index("by_carrier_and_status", ["carrierCompanyId", "status"])
+    .index("by_carrier", ["carrierId"])
+    .index("by_carrier_and_status", ["carrierId", "status"])
     .index("by_terminal", ["terminalId"])
     .index("by_terminal_and_status", ["terminalId", "status"])
+    .index("by_terminal_and_date", ["terminalId", "preferredDate"])
     .index("by_gate", ["gateId"])
-    .index("by_gate_and_status", ["gateId", "status"])
+    .index("by_truck", ["truckId"])
     .index("by_status", ["status"])
+    .index("by_date", ["preferredDate"])
     .index("by_created_by", ["createdBy"]),
 
   /**
@@ -323,7 +420,7 @@ export default defineSchema({
 
   /**
    * Notifications - In-app and email notifications
-   * Bilingual support (EN/FR)
+   * French only (as per requirements)
    */
   notifications: defineTable({
     // Recipient
@@ -331,11 +428,9 @@ export default defineSchema({
     // Notification type and content
     type: notificationTypeValidator,
     channel: notificationChannelValidator,
-    // Content (bilingual)
-    titleEn: v.string(),
-    titleFr: v.string(),
-    bodyEn: v.string(),
-    bodyFr: v.string(),
+    // Content (French only)
+    title: v.string(),
+    body: v.string(),
     // Related entity (for deep linking)
     relatedEntityType: v.optional(
       v.union(
@@ -361,6 +456,91 @@ export default defineSchema({
     .index("by_created_at", ["createdAt"]),
 
   // --------------------------------------------------------------------------
+  // AUDIT LOGS
+  // --------------------------------------------------------------------------
+
+  /**
+   * AuditLogs - Full audit trail for all actions
+   */
+  auditLogs: defineTable({
+    // Who
+    userId: v.optional(v.string()), // null for anonymous/failed auth
+
+    // What
+    action: auditActionValidator,
+    resource: v.string(), // e.g., "bookings.create"
+    resourceId: v.optional(v.string()), // Document ID if applicable
+
+    // Details
+    args: v.optional(v.string()), // JSON string (sanitized, no secrets)
+    result: v.optional(v.string()), // "success", "error:CODE", etc.
+    errorMessage: v.optional(v.string()),
+
+    // Context
+    ipAddress: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    sessionId: v.optional(v.string()),
+
+    // AI-specific
+    aiThreadId: v.optional(v.string()),
+    aiToolName: v.optional(v.string()),
+
+    // Timing
+    timestamp: v.number(),
+    durationMs: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_action", ["action"])
+    .index("by_resource", ["resource"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_user_and_action", ["userId", "action"])
+    .index("by_ai_thread", ["aiThreadId"]),
+
+  // --------------------------------------------------------------------------
+  // BOOKING AGGREGATES (Analytics)
+  // --------------------------------------------------------------------------
+
+  /**
+   * BookingAggregates - Pre-computed analytics data
+   */
+  bookingAggregates: defineTable({
+    // Scope
+    terminalId: v.id("terminals"),
+    period: aggregationPeriodValidator,
+    date: v.string(), // YYYY-MM-DD
+    hour: v.optional(v.number()), // 0-23 for hourly aggregates
+
+    // Booking counts by status
+    totalBookings: v.number(),
+    pendingCount: v.number(),
+    confirmedCount: v.number(),
+    rejectedCount: v.number(),
+    consumedCount: v.number(),
+    cancelledCount: v.number(),
+    expiredCount: v.number(),
+    autoValidatedCount: v.number(),
+
+    // Capacity metrics
+    avgUtilizationPercent: v.number(),
+    peakUtilizationPercent: v.number(),
+
+    // Container metrics
+    totalContainers: v.number(),
+    pickupCount: v.number(),
+    dropoffCount: v.number(),
+
+    // Timing metrics (milliseconds)
+    avgWaitTimeMs: v.optional(v.number()), // Time from booking to confirm
+    avgProcessingTimeMs: v.optional(v.number()), // Time in terminal
+
+    computedAt: v.number(),
+  })
+    .index("by_terminal", ["terminalId"])
+    .index("by_terminal_and_period", ["terminalId", "period"])
+    .index("by_terminal_and_date", ["terminalId", "date"])
+    .index("by_date", ["date"]),
+
+  // --------------------------------------------------------------------------
   // SYSTEM CONFIGURATION
   // --------------------------------------------------------------------------
 
@@ -369,13 +549,22 @@ export default defineSchema({
    * Singleton table (should have only one document)
    */
   systemConfig: defineTable({
-    // Cancellation policy (-1 or 0 = disabled)
-    cancellationWindowHours: v.number(),
-    // Booking settings
-    maxAdvanceBookingDays: v.number(), // How far in advance can book
-    minAdvanceBookingHours: v.number(), // Minimum hours before slot
+    // Booking window
+    maxAdvanceBookingDays: v.number(), // e.g., 30
+    minAdvanceBookingHours: v.number(), // e.g., 2
+
+    // No-show handling
+    noShowGracePeriodMinutes: v.number(), // e.g., 30
+
+    // Auto-validation defaults
+    defaultAutoValidationThreshold: v.number(), // 0-100, global default
+
     // Reminder settings
-    reminderHoursBefore: v.array(v.number()), // e.g., [24, 2] for 24h and 2h reminders
+    reminderHoursBefore: v.array(v.number()), // e.g., [24, 2]
+
+    // Container settings
+    maxContainersPerBooking: v.number(), // e.g., 10
+
     // Last updated
     updatedAt: v.number(),
     updatedBy: v.string(), // Better Auth user ID
@@ -388,18 +577,16 @@ export default defineSchema({
   /**
    * UserProfiles - Extended user data beyond Better Auth
    * One-to-one with Better Auth user table
-   * Note: apcsRole is now stored in Better Auth user table, not here
    */
   userProfiles: defineTable({
     userId: v.string(), // Better Auth user ID
-    // User preferences
-    preferredLanguage: languageValidator,
+    // User preferences (French only, but keep field for future)
+    preferredLanguage: v.literal("fr"), // Always French
     notificationChannel: notificationChannelValidator,
     // Phone for future SMS notifications
     phone: v.optional(v.string()),
     // Timestamps
     createdAt: v.number(),
     updatedAt: v.number(),
-  })
-    .index("by_user", ["userId"]),
+  }).index("by_user", ["userId"]),
 });

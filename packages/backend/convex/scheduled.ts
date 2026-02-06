@@ -1,11 +1,12 @@
 /**
  * Scheduled Internal Functions
  * Background jobs called by cron scheduler
+ * 
+ * Updated: New schema with preferredDate/preferredTimeStart, carrierId
  */
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { releaseCapacity, recalculateCapacity } from "./lib/capacity";
-import { internal } from "./_generated/api";
+import { releaseCapacityBySlotInfo } from "./lib/capacity";
 
 // ============================================================================
 // BOOKING EXPIRATION
@@ -23,46 +24,44 @@ export const expireOldBookings = internalMutation({
     const todayStr = now.toISOString().slice(0, 10);
     const currentTimeStr = now.toISOString().slice(11, 16);
 
-    // Find time slots that have ended (date passed or time passed today)
-    // We'll look at slots from today and before
-    const recentSlots = await ctx.db
-      .query("timeSlots")
-      .withIndex("by_date")
-      .filter((q) => q.lte(q.field("date"), todayStr))
+    // Find confirmed bookings that have passed their time slot
+    // Get today's and past bookings
+    const recentBookings = await ctx.db
+      .query("bookings")
+      .withIndex("by_status", (q) => q.eq("status", "confirmed"))
       .collect();
 
-    const expiredSlotIds: string[] = [];
-
-    for (const slot of recentSlots) {
-      if (slot.date < todayStr) {
-        // Past date - definitely expired
-        expiredSlotIds.push(slot._id);
-      } else if (slot.date === todayStr && slot.endTime < currentTimeStr) {
-        // Today but end time has passed
-        expiredSlotIds.push(slot._id);
-      }
-    }
-
-    // Find confirmed bookings for these expired slots
     let expiredCount = 0;
 
-    for (const slotId of expiredSlotIds) {
-      const confirmedBookings = await ctx.db
-        .query("bookings")
-        .withIndex("by_time_slot_and_status", (q) =>
-          q.eq("timeSlotId", slotId as any).eq("status", "confirmed")
-        )
-        .collect();
+    for (const booking of recentBookings) {
+      let shouldExpire = false;
 
-      for (const booking of confirmedBookings) {
+      if (booking.preferredDate < todayStr) {
+        // Past date - definitely expired
+        shouldExpire = true;
+      } else if (
+        booking.preferredDate === todayStr &&
+        booking.preferredTimeEnd < currentTimeStr
+      ) {
+        // Today but end time has passed
+        shouldExpire = true;
+      }
+
+      if (shouldExpire) {
         // Mark as expired
         await ctx.db.patch(booking._id, {
           status: "expired",
+          expiredAt: Date.now(),
           updatedAt: Date.now(),
         });
 
-        // Release capacity (though slot is past, this keeps counts accurate)
-        await releaseCapacity(ctx, booking.timeSlotId);
+        // Release capacity
+        await releaseCapacityBySlotInfo(
+          ctx,
+          booking.terminalId,
+          booking.preferredDate,
+          booking.preferredTimeStart
+        );
 
         // Record in history
         await ctx.db.insert("bookingHistory", {
@@ -72,7 +71,7 @@ export const expireOldBookings = internalMutation({
           newValue: "expired",
           changedAt: Date.now(),
           changedBy: "system",
-          note: "Automatically expired - time slot ended",
+          note: "Automatiquement expiré - créneau horaire terminé",
           requiredRebook: false,
         });
 
@@ -80,7 +79,7 @@ export const expireOldBookings = internalMutation({
       }
     }
 
-    console.log(`Expired ${expiredCount} bookings`);
+    console.log(`Expiré ${expiredCount} réservations`);
     return expiredCount;
   },
 });
@@ -99,13 +98,12 @@ export const sendBookingReminders = internalMutation({
   },
   returns: v.number(),
   handler: async (ctx, args): Promise<number> => {
-    // Inline the reminder logic to avoid circular reference
     const now = Date.now();
     const targetTime = now + args.hoursBeforeSlot * 60 * 60 * 1000;
     const targetDate = new Date(targetTime);
     const dateStr = targetDate.toISOString().slice(0, 10);
 
-    // Get time slots for today and tomorrow
+    // Get dates to check (today and tomorrow)
     const dates = [
       dateStr,
       new Date(targetTime + 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
@@ -114,63 +112,54 @@ export const sendBookingReminders = internalMutation({
     let reminderCount = 0;
 
     for (const date of dates) {
-      const timeSlots = await ctx.db
-        .query("timeSlots")
-        .withIndex("by_date", (q) => q.eq("date", date))
+      // Get confirmed bookings for this date
+      const bookings = await ctx.db
+        .query("bookings")
+        .withIndex("by_date", (q) => q.eq("preferredDate", date))
+        .filter((q) => q.eq(q.field("status"), "confirmed"))
         .collect();
 
-      for (const slot of timeSlots) {
-        const slotDateTime = new Date(`${slot.date}T${slot.startTime}`);
+      for (const booking of bookings) {
+        const slotDateTime = new Date(
+          `${booking.preferredDate}T${booking.preferredTimeStart}`
+        );
         const hoursUntil = (slotDateTime.getTime() - now) / (1000 * 60 * 60);
 
         // Check if within 30 minutes of target reminder time
         if (Math.abs(hoursUntil - args.hoursBeforeSlot) <= 0.5) {
-          // Find confirmed bookings for this slot
-          const bookings = await ctx.db
-            .query("bookings")
-            .withIndex("by_time_slot_and_status", (q) =>
-              q.eq("timeSlotId", slot._id).eq("status", "confirmed")
-            )
-            .collect();
+          const terminal = await ctx.db.get(booking.terminalId);
 
-          for (const booking of bookings) {
-            const carrier = await ctx.db.get(booking.carrierCompanyId);
-            const terminal = await ctx.db.get(booking.terminalId);
+          // Gate is optional
+          let gateName = "";
+          if (booking.gateId) {
             const gate = await ctx.db.get(booking.gateId);
-
-            if (!carrier) continue;
-
-            // Get carrier users
-            const carrierUsers = await ctx.db
-              .query("carrierUsers")
-              .withIndex("by_company_and_active", (q) =>
-                q.eq("carrierCompanyId", booking.carrierCompanyId).eq("isActive", true)
-              )
-              .collect();
-
-            for (const carrierUser of carrierUsers) {
-              await ctx.db.insert("notifications", {
-                userId: carrierUser.userId,
-                type: "booking_reminder",
-                channel: carrier.notificationChannel,
-                titleEn: "Booking Reminder",
-                titleFr: "Rappel de réservation",
-                bodyEn: `Reminder: Your booking ${booking.bookingReference} is scheduled in ${Math.round(hoursUntil)} hours at ${terminal?.name ?? "Terminal"}, Gate ${gate?.name ?? "Gate"}.`,
-                bodyFr: `Rappel: Votre réservation ${booking.bookingReference} est prévue dans ${Math.round(hoursUntil)} heures à ${terminal?.name ?? "Terminal"}, Porte ${gate?.name ?? "Porte"}.`,
-                relatedEntityType: "booking",
-                relatedEntityId: booking._id,
-                isRead: false,
-                createdAt: Date.now(),
-              });
-
-              reminderCount++;
-            }
+            gateName = gate?.name ?? "";
           }
+
+          // Get carrier profile for notification preferences
+          const carrierProfile = await ctx.db
+            .query("userProfiles")
+            .withIndex("by_user", (q) => q.eq("userId", booking.carrierId))
+            .unique();
+
+          await ctx.db.insert("notifications", {
+            userId: booking.carrierId,
+            type: "booking_reminder",
+            channel: carrierProfile?.notificationChannel ?? "in_app",
+            title: "Rappel de réservation",
+            body: `Rappel: Votre réservation ${booking.bookingReference} est prévue dans ${Math.round(hoursUntil)} heures à ${terminal?.name ?? "Terminal"}${gateName ? `, Porte ${gateName}` : ""}.`,
+            relatedEntityType: "booking",
+            relatedEntityId: booking._id,
+            isRead: false,
+            createdAt: Date.now(),
+          });
+
+          reminderCount++;
         }
       }
     }
 
-    console.log(`Sent ${reminderCount} booking reminders`);
+    console.log(`Envoyé ${reminderCount} rappels de réservation`);
     return reminderCount;
   },
 });
@@ -206,7 +195,7 @@ export const cleanupOldNotifications = internalMutation({
       await ctx.db.delete(notification._id);
     }
 
-    console.log(`Deleted ${oldNotifications.length} old notifications`);
+    console.log(`Supprimé ${oldNotifications.length} anciennes notifications`);
     return oldNotifications.length;
   },
 });
@@ -232,7 +221,7 @@ export const cleanupOldBookingHistory = internalMutation({
       await ctx.db.delete(entry._id);
     }
 
-    console.log(`Deleted ${oldHistory.length} old booking history entries`);
+    console.log(`Supprimé ${oldHistory.length} anciennes entrées d'historique`);
     return oldHistory.length;
   },
 });
@@ -267,20 +256,29 @@ export const recalculateAllCapacity = internalMutation({
     for (const slot of activeSlots) {
       slotsChecked++;
 
-      // Count actual active bookings
+      // Count actual active bookings using terminal and date
       const bookings = await ctx.db
         .query("bookings")
-        .withIndex("by_time_slot", (q) => q.eq("timeSlotId", slot._id))
+        .withIndex("by_terminal_and_date", (q) =>
+          q.eq("terminalId", slot.terminalId).eq("preferredDate", slot.date)
+        )
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("preferredTimeStart"), slot.startTime),
+            q.or(
+              q.eq(q.field("status"), "pending"),
+              q.eq(q.field("status"), "confirmed")
+            )
+          )
+        )
         .collect();
 
-      const activeCount = bookings.filter(
-        (b) => b.status === "pending" || b.status === "confirmed"
-      ).length;
+      const activeCount = bookings.length;
 
       // Fix if mismatch
       if (slot.currentBookings !== activeCount) {
         console.log(
-          `Fixing slot ${slot._id}: ${slot.currentBookings} -> ${activeCount}`
+          `Correction slot ${slot._id}: ${slot.currentBookings} -> ${activeCount}`
         );
         await ctx.db.patch(slot._id, {
           currentBookings: activeCount,
@@ -290,7 +288,7 @@ export const recalculateAllCapacity = internalMutation({
       }
     }
 
-    console.log(`Checked ${slotsChecked} slots, fixed ${slotsFixed}`);
+    console.log(`Vérifié ${slotsChecked} créneaux, corrigé ${slotsFixed}`);
     return { slotsChecked, slotsFixed };
   },
 });

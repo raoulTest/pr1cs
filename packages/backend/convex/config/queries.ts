@@ -1,5 +1,7 @@
 /**
  * System Configuration Queries
+ * 
+ * Updated: Removed cancellationWindowHours (carriers can cancel anytime)
  */
 import { query } from "../_generated/server";
 import { v } from "convex/values";
@@ -13,10 +15,12 @@ export const get = query({
   returns: v.union(
     v.object({
       _id: v.id("systemConfig"),
-      cancellationWindowHours: v.number(),
       maxAdvanceBookingDays: v.number(),
       minAdvanceBookingHours: v.number(),
+      noShowGracePeriodMinutes: v.number(),
+      defaultAutoValidationThreshold: v.number(),
       reminderHoursBefore: v.array(v.number()),
+      maxContainersPerBooking: v.number(),
       updatedAt: v.number(),
     }),
     v.null()
@@ -30,17 +34,21 @@ export const get = query({
 
     return {
       _id: config._id,
-      cancellationWindowHours: config.cancellationWindowHours,
       maxAdvanceBookingDays: config.maxAdvanceBookingDays,
       minAdvanceBookingHours: config.minAdvanceBookingHours,
+      noShowGracePeriodMinutes: config.noShowGracePeriodMinutes,
+      defaultAutoValidationThreshold: config.defaultAutoValidationThreshold,
       reminderHoursBefore: config.reminderHoursBefore,
+      maxContainersPerBooking: config.maxContainersPerBooking,
       updatedAt: config.updatedAt,
     };
   },
 });
 
 /**
- * Check if cancellation is allowed based on time before slot
+ * Check if cancellation is allowed
+ * Note: Carriers can now cancel anytime, so this always returns true.
+ * Kept for backwards compatibility but simplified.
  */
 export const canCancelBooking = query({
   args: {
@@ -52,28 +60,17 @@ export const canCancelBooking = query({
     reason: v.optional(v.string()),
     hoursRemaining: v.optional(v.number()),
   }),
-  handler: async (ctx, args) => {
-    const config = await ctx.db.query("systemConfig").first();
-
-    // If no config or cancellation window disabled, allow
-    if (!config || config.cancellationWindowHours <= 0) {
-      return { allowed: true };
-    }
-
-    // Calculate time until slot
+  handler: async (_ctx, args) => {
+    // Carriers can cancel anytime - no restrictions
+    // Calculate hours remaining for informational purposes
     const slotDateTime = new Date(`${args.slotDate}T${args.slotStartTime}:00`);
     const now = new Date();
     const hoursUntilSlot =
       (slotDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-    if (hoursUntilSlot < config.cancellationWindowHours) {
-      return {
-        allowed: false,
-        reason: `Cancellation must be done at least ${config.cancellationWindowHours} hours before the time slot`,
-        hoursRemaining: Math.max(0, hoursUntilSlot),
-      };
-    }
-
-    return { allowed: true, hoursRemaining: hoursUntilSlot };
+    return { 
+      allowed: true, 
+      hoursRemaining: Math.max(0, hoursUntilSlot),
+    };
   },
 });

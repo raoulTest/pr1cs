@@ -62,7 +62,7 @@ export const updateMyProfile = mutation({
     // Create new profile (shouldn't normally happen as trigger creates it)
     return await ctx.db.insert("userProfiles", {
       userId: user.userId,
-      preferredLanguage: args.preferredLanguage ?? "en",
+      preferredLanguage: args.preferredLanguage ?? "fr",
       notificationChannel: args.notificationChannel ?? "in_app",
       phone: args.phone,
       createdAt: now,

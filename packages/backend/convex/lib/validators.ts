@@ -2,7 +2,7 @@
  * Shared validators for APCS domain
  * Re-exported from schema for use in function definitions
  */
-import { v, Infer } from "convex/values";
+import { v, type Infer } from "convex/values";
 
 // ============================================================================
 // TYPE VALIDATORS (matching schema.ts)
@@ -47,6 +47,42 @@ export const truckTypeValidator = v.union(
 );
 export type TruckType = Infer<typeof truckTypeValidator>;
 
+/** Container type (ISO standard classifications) */
+export const containerTypeValidator = v.union(
+  v.literal("dry"),
+  v.literal("reefer"),
+  v.literal("open_top"),
+  v.literal("flat_rack"),
+  v.literal("tank"),
+  v.literal("hazardous")
+);
+export type ContainerType = Infer<typeof containerTypeValidator>;
+
+/** Container dimensions (ISO standard) */
+export const containerDimensionsValidator = v.union(
+  v.literal("20ft"),
+  v.literal("40ft"),
+  v.literal("40ft_hc"),
+  v.literal("45ft")
+);
+export type ContainerDimensions = Infer<typeof containerDimensionsValidator>;
+
+/** Container weight class */
+export const containerWeightClassValidator = v.union(
+  v.literal("light"),
+  v.literal("medium"),
+  v.literal("heavy"),
+  v.literal("super_heavy")
+);
+export type ContainerWeightClass = Infer<typeof containerWeightClassValidator>;
+
+/** Container operation type */
+export const containerOperationValidator = v.union(
+  v.literal("pick_up"),
+  v.literal("drop_off")
+);
+export type ContainerOperation = Infer<typeof containerOperationValidator>;
+
 /** Notification type */
 export const notificationTypeValidator = v.union(
   v.literal("booking_created"),
@@ -69,8 +105,8 @@ export const notificationChannelValidator = v.union(
 );
 export type NotificationChannel = Infer<typeof notificationChannelValidator>;
 
-/** Language preference */
-export const languageValidator = v.union(v.literal("en"), v.literal("fr"));
+/** Language preference - French only */
+export const languageValidator = v.literal("fr");
 export type Language = Infer<typeof languageValidator>;
 
 /** Booking history change types */
@@ -84,6 +120,26 @@ export const bookingChangeTypeValidator = v.union(
 );
 export type BookingChangeType = Infer<typeof bookingChangeTypeValidator>;
 
+/** Audit action types */
+export const auditActionValidator = v.union(
+  v.literal("query"),
+  v.literal("mutation"),
+  v.literal("ai_tool_call"),
+  v.literal("login"),
+  v.literal("logout"),
+  v.literal("failed_auth"),
+  v.literal("permission_denied")
+);
+export type AuditAction = Infer<typeof auditActionValidator>;
+
+/** Aggregation period */
+export const aggregationPeriodValidator = v.union(
+  v.literal("hourly"),
+  v.literal("daily"),
+  v.literal("weekly")
+);
+export type AggregationPeriod = Infer<typeof aggregationPeriodValidator>;
+
 // ============================================================================
 // COMPOSITE VALIDATORS (for function arguments)
 // ============================================================================
@@ -94,6 +150,12 @@ export const terminalInputValidator = v.object({
   code: v.string(),
   address: v.optional(v.string()),
   timezone: v.string(),
+  defaultSlotCapacity: v.number(),
+  autoValidationThreshold: v.number(),
+  capacityAlertThresholds: v.array(v.number()),
+  operatingHoursStart: v.string(),
+  operatingHoursEnd: v.string(),
+  slotDurationMinutes: v.number(),
 });
 
 /** Gate input for creation */
@@ -102,35 +164,36 @@ export const gateInputValidator = v.object({
   name: v.string(),
   code: v.string(),
   description: v.optional(v.string()),
-  defaultCapacity: v.number(),
   allowedTruckTypes: v.array(truckTypeValidator),
   allowedTruckClasses: v.array(truckClassValidator),
 });
 
 /** Time slot input for creation */
 export const timeSlotInputValidator = v.object({
-  gateId: v.id("gates"),
+  terminalId: v.id("terminals"),
   date: v.string(),
   startTime: v.string(),
   endTime: v.string(),
   maxCapacity: v.number(),
+  autoValidationThreshold: v.optional(v.number()),
 });
 
-/** Carrier company input for creation */
-export const carrierCompanyInputValidator = v.object({
-  name: v.string(),
-  code: v.string(),
-  taxId: v.optional(v.string()),
-  address: v.optional(v.string()),
-  phone: v.optional(v.string()),
-  email: v.optional(v.string()),
-  preferredLanguage: languageValidator,
-  notificationChannel: notificationChannelValidator,
+/** Container input for creation */
+export const containerInputValidator = v.object({
+  ownerId: v.string(),
+  containerNumber: v.string(),
+  containerType: containerTypeValidator,
+  dimensions: containerDimensionsValidator,
+  weightClass: containerWeightClassValidator,
+  operationType: containerOperationValidator,
+  isEmpty: v.boolean(),
+  readyDate: v.optional(v.number()),
+  departureDate: v.optional(v.number()),
+  notes: v.optional(v.string()),
 });
 
 /** Truck input for creation */
 export const truckInputValidator = v.object({
-  carrierCompanyId: v.id("carrierCompanies"),
   licensePlate: v.string(),
   truckType: truckTypeValidator,
   truckClass: truckClassValidator,
@@ -142,19 +205,20 @@ export const truckInputValidator = v.object({
 
 /** Booking input for creation */
 export const bookingInputValidator = v.object({
-  timeSlotId: v.id("timeSlots"),
+  terminalId: v.id("terminals"),
   truckId: v.id("trucks"),
+  containerIds: v.array(v.id("containers")),
+  preferredDate: v.string(),
+  preferredTimeStart: v.string(),
+  preferredTimeEnd: v.string(),
   driverName: v.optional(v.string()),
   driverPhone: v.optional(v.string()),
   driverIdNumber: v.optional(v.string()),
-  containerNumber: v.optional(v.string()),
-  cargoDescription: v.optional(v.string()),
 });
 
 /** User profile input */
 export const userProfileInputValidator = v.object({
-  apcsRole: v.optional(apcsRoleValidator),
-  preferredLanguage: languageValidator,
+  preferredLanguage: v.literal("fr"),
   notificationChannel: notificationChannelValidator,
   phone: v.optional(v.string()),
 });
@@ -181,6 +245,24 @@ export const ALL_TRUCK_CLASSES: TruckClass[] = [
   "super_heavy",
 ];
 
+/** All container types for validation */
+export const ALL_CONTAINER_TYPES: ContainerType[] = [
+  "dry",
+  "reefer",
+  "open_top",
+  "flat_rack",
+  "tank",
+  "hazardous",
+];
+
+/** All container dimensions for validation */
+export const ALL_CONTAINER_DIMENSIONS: ContainerDimensions[] = [
+  "20ft",
+  "40ft",
+  "40ft_hc",
+  "45ft",
+];
+
 /** Booking status transitions */
 export const BOOKING_STATUS_TRANSITIONS: Record<BookingStatus, BookingStatus[]> =
   {
@@ -198,4 +280,12 @@ export function isValidStatusTransition(
   to: BookingStatus
 ): boolean {
   return BOOKING_STATUS_TRANSITIONS[from].includes(to);
+}
+
+/** Validate ISO 6346 container number */
+export function isValidContainerNumber(num: string): boolean {
+  // Format: 4 letters (owner) + 6 digits + 1 check digit
+  // Example: MSCU1234567
+  const regex = /^[A-Z]{4}\d{7}$/;
+  return regex.test(num);
 }

@@ -1,12 +1,13 @@
 /**
  * Gate Queries
+ * 
+ * Updated: Removed defaultCapacity (capacity is now terminal-level)
  */
 import { query } from "../_generated/server";
 import { v } from "convex/values";
 import {
   getAuthenticatedUser,
   requireAnyRole,
-  canManageTerminal,
 } from "../lib/permissions";
 import { truckTypeValidator, truckClassValidator } from "../lib/validators";
 
@@ -27,7 +28,6 @@ export const listByTerminal = query({
       code: v.string(),
       description: v.optional(v.string()),
       isActive: v.boolean(),
-      defaultCapacity: v.number(),
       allowedTruckTypes: v.array(truckTypeValidator),
       allowedTruckClasses: v.array(truckClassValidator),
     })
@@ -60,7 +60,6 @@ export const listByTerminal = query({
       code: g.code,
       description: g.description,
       isActive: g.isActive,
-      defaultCapacity: g.defaultCapacity,
       allowedTruckTypes: g.allowedTruckTypes,
       allowedTruckClasses: g.allowedTruckClasses,
     }));
@@ -82,7 +81,6 @@ export const get = query({
       code: v.string(),
       description: v.optional(v.string()),
       isActive: v.boolean(),
-      defaultCapacity: v.number(),
       allowedTruckTypes: v.array(truckTypeValidator),
       allowedTruckClasses: v.array(truckClassValidator),
       createdAt: v.number(),
@@ -100,12 +98,11 @@ export const get = query({
       _id: gate._id,
       _creationTime: gate._creationTime,
       terminalId: gate.terminalId,
-      terminalName: terminal?.name ?? "Unknown",
+      terminalName: terminal?.name ?? "Inconnu",
       name: gate.name,
       code: gate.code,
       description: gate.description,
       isActive: gate.isActive,
-      defaultCapacity: gate.defaultCapacity,
       allowedTruckTypes: gate.allowedTruckTypes,
       allowedTruckClasses: gate.allowedTruckClasses,
       createdAt: gate.createdAt,
@@ -163,24 +160,24 @@ export const isTruckAllowed = query({
   handler: async (ctx, args) => {
     const gate = await ctx.db.get(args.gateId);
     if (!gate) {
-      return { allowed: false, reason: "Gate not found" };
+      return { allowed: false, reason: "Porte introuvable" };
     }
 
     if (!gate.isActive) {
-      return { allowed: false, reason: "Gate is not active" };
+      return { allowed: false, reason: "Porte inactive" };
     }
 
     if (!gate.allowedTruckTypes.includes(args.truckType)) {
       return {
         allowed: false,
-        reason: `Gate does not accept ${args.truckType} trucks`,
+        reason: `Cette porte n'accepte pas les camions de type ${args.truckType}`,
       };
     }
 
     if (!gate.allowedTruckClasses.includes(args.truckClass)) {
       return {
         allowed: false,
-        reason: `Gate does not accept ${args.truckClass} class trucks`,
+        reason: `Cette porte n'accepte pas les camions de classe ${args.truckClass}`,
       };
     }
 

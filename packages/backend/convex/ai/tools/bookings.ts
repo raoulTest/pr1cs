@@ -134,10 +134,10 @@ export const listBookingsByTerminal = createTool({
  */
 export const listBookingsByCarrier = createTool({
   description:
-    "List bookings for a specific carrier company. For port admins only. " +
+    "List bookings for a specific carrier. For port admins only. " +
     "Optionally filter by status.",
   args: z.object({
-    carrierCode: z.string().describe("Carrier company code"),
+    carrierId: z.string().describe("Carrier user ID"),
     status: z
       .enum([
         "pending",
@@ -159,7 +159,7 @@ export const listBookingsByCarrier = createTool({
       internal.ai.internalQueries.listBookingsByCarrier,
       {
         userId: ctx.userId!,
-        carrierCode: args.carrierCode,
+        carrierId: args.carrierId,
         status: args.status,
         limit: args.limit ?? 50,
       },

@@ -1,5 +1,7 @@
 /**
  * Terminal Mutations
+ * 
+ * Updated: Terminals now have capacity settings at terminal level
  */
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
@@ -15,6 +17,13 @@ export const create = mutation({
     code: v.string(),
     address: v.optional(v.string()),
     timezone: v.string(),
+    // Terminal-level capacity settings
+    defaultSlotCapacity: v.optional(v.number()),
+    autoValidationThreshold: v.optional(v.number()),
+    capacityAlertThresholds: v.optional(v.array(v.number())),
+    operatingHoursStart: v.optional(v.string()),
+    operatingHoursEnd: v.optional(v.string()),
+    slotDurationMinutes: v.optional(v.number()),
   },
   returns: v.id("terminals"),
   handler: async (ctx, args) => {
@@ -30,7 +39,7 @@ export const create = mutation({
     if (existing) {
       throw new ConvexError({
         code: "DUPLICATE",
-        message: `Terminal with code ${args.code} already exists`,
+        message: `Un terminal avec le code ${args.code} existe déjà`,
       });
     }
 
@@ -41,6 +50,13 @@ export const create = mutation({
       address: args.address,
       timezone: args.timezone,
       isActive: true,
+      // Terminal-level capacity settings with defaults
+      defaultSlotCapacity: args.defaultSlotCapacity ?? 20,
+      autoValidationThreshold: args.autoValidationThreshold ?? 50,
+      capacityAlertThresholds: args.capacityAlertThresholds ?? [70, 85, 95],
+      operatingHoursStart: args.operatingHoursStart ?? "06:00",
+      operatingHoursEnd: args.operatingHoursEnd ?? "22:00",
+      slotDurationMinutes: args.slotDurationMinutes ?? 60,
       createdAt: now,
       updatedAt: now,
       createdBy: user.userId,
@@ -58,6 +74,13 @@ export const update = mutation({
     address: v.optional(v.string()),
     timezone: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
+    // Terminal-level capacity settings
+    defaultSlotCapacity: v.optional(v.number()),
+    autoValidationThreshold: v.optional(v.number()),
+    capacityAlertThresholds: v.optional(v.array(v.number())),
+    operatingHoursStart: v.optional(v.string()),
+    operatingHoursEnd: v.optional(v.string()),
+    slotDurationMinutes: v.optional(v.number()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -68,7 +91,7 @@ export const update = mutation({
     if (!terminal) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Terminal not found",
+        message: "Terminal introuvable",
       });
     }
 
@@ -102,23 +125,39 @@ export const deactivate = mutation({
     if (!terminal) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Terminal not found",
+        message: "Terminal introuvable",
       });
     }
 
     // Check for active bookings
-    const activeBookings = await ctx.db
+    const activeBooking = await ctx.db
       .query("bookings")
       .withIndex("by_terminal_and_status", (q) =>
         q.eq("terminalId", args.terminalId).eq("status", "pending")
       )
       .first();
 
-    if (activeBookings) {
+    if (activeBooking) {
       throw new ConvexError({
         code: "INVALID_STATE",
         message:
-          "Cannot deactivate terminal with pending bookings. Please cancel or complete pending bookings first.",
+          "Impossible de désactiver un terminal avec des réservations en attente. Veuillez d'abord annuler ou compléter les réservations.",
+      });
+    }
+
+    // Also check for confirmed bookings
+    const confirmedBooking = await ctx.db
+      .query("bookings")
+      .withIndex("by_terminal_and_status", (q) =>
+        q.eq("terminalId", args.terminalId).eq("status", "confirmed")
+      )
+      .first();
+
+    if (confirmedBooking) {
+      throw new ConvexError({
+        code: "INVALID_STATE",
+        message:
+          "Impossible de désactiver un terminal avec des réservations confirmées. Veuillez d'abord annuler ou consommer les réservations.",
       });
     }
 

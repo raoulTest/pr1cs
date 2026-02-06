@@ -1,6 +1,14 @@
 /**
  * Booking Mutations
  * Create, update, and manage booking lifecycle
+ * 
+ * Updated for new schema:
+ * - Terminal-level booking (not gate-level)
+ * - Multiple containers per booking (containerIds array)
+ * - Auto-validation flow
+ * - Gate assigned at confirmation time
+ * - Carriers can cancel anytime (no cancellation window)
+ * - Only truck can be changed; other changes require cancel + rebook
  */
 import { mutation } from "../_generated/server";
 import { v, ConvexError } from "convex/values";
@@ -10,26 +18,28 @@ import {
   isPortAdmin,
   isCarrier,
   canManageTerminal,
-  canViewCarrier,
   canModifyBookingStatus,
-  requireBookingView,
+  isBookingOwner,
 } from "../lib/permissions";
 import {
   bookingInputValidator,
-  bookingStatusValidator,
   isValidStatusTransition,
-  type BookingStatus,
 } from "../lib/validators";
 import {
   checkAndReserveCapacity,
-  releaseCapacity,
+  releaseCapacityBySlotInfo,
 } from "../lib/capacity";
+import { shouldAutoValidateBooking } from "../lib/autoValidation";
 import {
   generateBookingReference,
   generateQRCodePlaceholder,
-  validateTruckForGate,
+  validateTruckForTerminal,
   getSystemConfig,
   canCancelBooking,
+  validateContainersForBooking,
+  associateContainersWithBooking,
+  disassociateContainersFromBooking,
+  assignGateForBooking,
 } from "./internal";
 import { internal } from "../_generated/api";
 
@@ -39,7 +49,8 @@ import { internal } from "../_generated/api";
 
 /**
  * Create a new booking
- * Carriers create bookings for their own trucks
+ * Carriers create bookings for their own trucks and containers
+ * Terminal-level, gate assigned at confirmation
  */
 export const create = mutation({
   args: bookingInputValidator.fields,
@@ -48,46 +59,42 @@ export const create = mutation({
     const user = await getAuthenticatedUser(ctx);
     requireRole(user, ["carrier"]);
 
-    if (!user.carrierCompanyId) {
-      throw new ConvexError({
-        code: "FORBIDDEN",
-        message: "You must be associated with a carrier company to create bookings",
-      });
-    }
-
-    // 1. Validate time slot exists and is active
-    const timeSlot = await ctx.db.get(args.timeSlotId);
-    if (!timeSlot) {
+    // 1. Validate terminal exists and is active
+    const terminal = await ctx.db.get(args.terminalId);
+    if (!terminal) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Time slot not found",
+        message: "Terminal introuvable",
       });
     }
-    if (!timeSlot.isActive) {
+    if (!terminal.isActive) {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: "Time slot is not available for booking",
+        message: "Terminal non disponible",
       });
     }
 
     // 2. Validate time slot is in the future
-    const slotDateTime = new Date(`${timeSlot.date}T${timeSlot.startTime}`);
+    const slotDateTime = new Date(
+      `${args.preferredDate}T${args.preferredTimeStart}`
+    );
     const now = new Date();
     if (slotDateTime <= now) {
       throw new ConvexError({
         code: "INVALID_INPUT",
-        message: "Cannot book a time slot in the past",
+        message: "Impossible de réserver un créneau dans le passé",
       });
     }
 
     // 3. Check system config for advance booking rules
     const config = await getSystemConfig(ctx);
-    const hoursUntilSlot = (slotDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-    
+    const hoursUntilSlot =
+      (slotDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+
     if (hoursUntilSlot < config.minAdvanceBookingHours) {
       throw new ConvexError({
         code: "INVALID_INPUT",
-        message: `Bookings must be made at least ${config.minAdvanceBookingHours} hours in advance`,
+        message: `Les réservations doivent être faites au moins ${config.minAdvanceBookingHours} heures à l'avance`,
       });
     }
 
@@ -95,54 +102,57 @@ export const create = mutation({
     if (daysUntilSlot > config.maxAdvanceBookingDays) {
       throw new ConvexError({
         code: "INVALID_INPUT",
-        message: `Bookings cannot be made more than ${config.maxAdvanceBookingDays} days in advance`,
+        message: `Les réservations ne peuvent pas être faites plus de ${config.maxAdvanceBookingDays} jours à l'avance`,
       });
     }
 
-    // 4. Validate truck
+    // 4. Validate truck ownership and availability
     const truck = await ctx.db.get(args.truckId);
     if (!truck) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Truck not found",
+        message: "Camion introuvable",
       });
     }
     if (!truck.isActive) {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: "Truck is not active",
+        message: "Camion non actif",
       });
     }
-    if (truck.carrierCompanyId !== user.carrierCompanyId) {
+    if (truck.ownerId !== user.userId) {
       throw new ConvexError({
         code: "FORBIDDEN",
-        message: "You can only book with trucks from your company",
+        message: "Vous ne pouvez réserver qu'avec vos propres camions",
       });
     }
 
-    // 5. Get gate and terminal
-    const gate = await ctx.db.get(timeSlot.gateId);
-    if (!gate || !gate.isActive) {
-      throw new ConvexError({
-        code: "INVALID_STATE",
-        message: "Gate is not available",
-      });
-    }
-
-    const terminal = await ctx.db.get(gate.terminalId);
-    if (!terminal || !terminal.isActive) {
-      throw new ConvexError({
-        code: "INVALID_STATE",
-        message: "Terminal is not available",
-      });
-    }
-
-    // 6. Validate truck compatibility with gate
-    const compatibility = await validateTruckForGate(ctx, args.truckId, timeSlot.gateId);
-    if (!compatibility.valid) {
+    // 5. Validate truck compatibility with terminal gates
+    const truckCompatibility = await validateTruckForTerminal(
+      ctx,
+      args.truckId,
+      args.terminalId
+    );
+    if (!truckCompatibility.valid) {
       throw new ConvexError({
         code: "INVALID_INPUT",
-        message: compatibility.reason ?? "Truck is not compatible with this gate",
+        message:
+          truckCompatibility.reason ??
+          "Camion non compatible avec ce terminal",
+      });
+    }
+
+    // 6. Validate containers
+    const containerValidation = await validateContainersForBooking(
+      ctx,
+      args.containerIds,
+      user.userId,
+      config.maxContainersPerBooking
+    );
+    if (!containerValidation.valid) {
+      throw new ConvexError({
+        code: "INVALID_INPUT",
+        message: containerValidation.reason ?? "Conteneurs non valides",
       });
     }
 
@@ -152,7 +162,8 @@ export const create = mutation({
       .withIndex("by_truck", (q) => q.eq("truckId", args.truckId))
       .filter((q) =>
         q.and(
-          q.eq(q.field("timeSlotId"), args.timeSlotId),
+          q.eq(q.field("preferredDate"), args.preferredDate),
+          q.eq(q.field("preferredTimeStart"), args.preferredTimeStart),
           q.or(
             q.eq(q.field("status"), "pending"),
             q.eq(q.field("status"), "confirmed")
@@ -164,51 +175,88 @@ export const create = mutation({
     if (existingTruckBooking) {
       throw new ConvexError({
         code: "DUPLICATE",
-        message: "This truck already has a booking for this time slot",
+        message: "Ce camion a déjà une réservation pour ce créneau",
       });
     }
 
-    // 8. Reserve capacity (atomic)
-    const reserved = await checkAndReserveCapacity(ctx, args.timeSlotId);
-    if (!reserved) {
+    // 8. Reserve capacity (atomic) - terminal level
+    const reserved = await checkAndReserveCapacity(
+      ctx,
+      args.terminalId,
+      args.preferredDate,
+      args.preferredTimeStart,
+      args.preferredTimeEnd
+    );
+    if (!reserved.success) {
       throw new ConvexError({
         code: "CAPACITY_FULL",
-        message: "This time slot is fully booked",
+        message: reserved.error ?? "Ce créneau est complet",
       });
     }
 
-    // 9. Generate booking reference
-    const bookingReference = await generateBookingReference(ctx);
+    // 9. Check auto-validation eligibility
+    const autoValidation = await shouldAutoValidateBooking(
+      ctx,
+      args.terminalId,
+      args.preferredDate,
+      args.preferredTimeStart
+    );
 
-    // 10. Create the booking
+    // 10. Generate booking reference
+    const bookingReference = await generateBookingReference(
+      ctx,
+      args.terminalId
+    );
+
+    // 11. Determine initial status
+    const initialStatus = autoValidation.shouldAutoValidate
+      ? "confirmed"
+      : "pending";
+
+    // 12. Create the booking
     const nowTs = Date.now();
     const bookingId = await ctx.db.insert("bookings", {
-      timeSlotId: args.timeSlotId,
+      terminalId: args.terminalId,
+      carrierId: user.userId,
       truckId: args.truckId,
-      carrierCompanyId: user.carrierCompanyId,
-      gateId: timeSlot.gateId,
-      terminalId: gate.terminalId,
+      containerIds: args.containerIds,
       bookingReference,
-      status: "pending",
+      status: initialStatus,
+      wasAutoValidated: autoValidation.shouldAutoValidate,
+      preferredDate: args.preferredDate,
+      preferredTimeStart: args.preferredTimeStart,
+      preferredTimeEnd: args.preferredTimeEnd,
       qrCode: generateQRCodePlaceholder(bookingReference),
       driverName: args.driverName?.trim(),
       driverPhone: args.driverPhone?.trim(),
       driverIdNumber: args.driverIdNumber?.trim(),
-      containerNumber: args.containerNumber?.trim(),
-      cargoDescription: args.cargoDescription?.trim(),
       bookedAt: nowTs,
+      confirmedAt: autoValidation.shouldAutoValidate ? nowTs : undefined,
       createdBy: user.userId,
       updatedAt: nowTs,
     });
 
-    // 11. Record history
+    // 13. Associate containers with booking
+    await associateContainersWithBooking(ctx, args.containerIds, bookingId);
+
+    // 14. If auto-validated, assign gate
+    if (autoValidation.shouldAutoValidate) {
+      const gateId = await assignGateForBooking(ctx, bookingId);
+      if (gateId) {
+        await ctx.db.patch(bookingId, { gateId });
+      }
+    }
+
+    // 15. Record history
     await ctx.runMutation(internal.bookings.internal.recordHistory, {
       bookingId,
       changeType: "created",
       newValue: JSON.stringify({
-        timeSlotId: args.timeSlotId,
+        terminalId: args.terminalId,
         truckId: args.truckId,
-        status: "pending",
+        containerIds: args.containerIds,
+        status: initialStatus,
+        wasAutoValidated: autoValidation.shouldAutoValidate,
       }),
       changedBy: user.userId,
       requiredRebook: false,
@@ -224,6 +272,7 @@ export const create = mutation({
 
 /**
  * Confirm a pending booking (terminal operator/admin)
+ * Gate is assigned at confirmation
  */
 export const confirm = mutation({
   args: {
@@ -239,16 +288,21 @@ export const confirm = mutation({
     if (!booking) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Booking not found",
+        message: "Réservation introuvable",
       });
     }
 
     // Check permission for this terminal
-    const canModify = await canModifyBookingStatus(ctx, user, args.bookingId, "confirmed");
+    const canModify = await canModifyBookingStatus(
+      ctx,
+      user,
+      args.bookingId,
+      "confirmed"
+    );
     if (!canModify) {
       throw new ConvexError({
         code: "FORBIDDEN",
-        message: "You do not have permission to confirm this booking",
+        message: "Vous n'avez pas la permission de confirmer cette réservation",
       });
     }
 
@@ -256,14 +310,18 @@ export const confirm = mutation({
     if (!isValidStatusTransition(booking.status, "confirmed")) {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: `Cannot confirm a booking with status "${booking.status}"`,
+        message: `Impossible de confirmer une réservation avec le statut "${booking.status}"`,
       });
     }
+
+    // Assign gate using load-balanced selection
+    const gateId = await assignGateForBooking(ctx, args.bookingId);
 
     const now = Date.now();
     await ctx.db.patch(args.bookingId, {
       status: "confirmed",
       confirmedAt: now,
+      gateId: gateId ?? undefined,
       processedBy: user.userId,
       updatedAt: now,
     });
@@ -300,27 +358,40 @@ export const reject = mutation({
     if (!booking) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Booking not found",
+        message: "Réservation introuvable",
       });
     }
 
-    const canModify = await canModifyBookingStatus(ctx, user, args.bookingId, "rejected");
+    const canModify = await canModifyBookingStatus(
+      ctx,
+      user,
+      args.bookingId,
+      "rejected"
+    );
     if (!canModify) {
       throw new ConvexError({
         code: "FORBIDDEN",
-        message: "You do not have permission to reject this booking",
+        message: "Vous n'avez pas la permission de rejeter cette réservation",
       });
     }
 
     if (!isValidStatusTransition(booking.status, "rejected")) {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: `Cannot reject a booking with status "${booking.status}"`,
+        message: `Impossible de rejeter une réservation avec le statut "${booking.status}"`,
       });
     }
 
     // Release capacity
-    await releaseCapacity(ctx, booking.timeSlotId);
+    await releaseCapacityBySlotInfo(
+      ctx,
+      booking.terminalId,
+      booking.preferredDate,
+      booking.preferredTimeStart
+    );
+
+    // Disassociate containers
+    await disassociateContainersFromBooking(ctx, args.bookingId);
 
     const now = Date.now();
     await ctx.db.patch(args.bookingId, {
@@ -347,6 +418,7 @@ export const reject = mutation({
 
 /**
  * Cancel a booking (carrier can cancel their own, operators can cancel any)
+ * Note: Carriers can cancel anytime (no cancellation window)
  */
 export const cancel = mutation({
   args: {
@@ -361,26 +433,31 @@ export const cancel = mutation({
     if (!booking) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Booking not found",
+        message: "Réservation introuvable",
       });
     }
 
     // Check permission
-    const canModify = await canModifyBookingStatus(ctx, user, args.bookingId, "cancelled");
+    const canModify = await canModifyBookingStatus(
+      ctx,
+      user,
+      args.bookingId,
+      "cancelled"
+    );
     if (!canModify) {
       throw new ConvexError({
         code: "FORBIDDEN",
-        message: "You do not have permission to cancel this booking",
+        message: "Vous n'avez pas la permission d'annuler cette réservation",
       });
     }
 
-    // For carriers, check cancellation policy
+    // For carriers, check cancellation policy (always allowed in new schema)
     if (isCarrier(user)) {
       const cancelCheck = await canCancelBooking(ctx, args.bookingId);
       if (!cancelCheck.canCancel) {
         throw new ConvexError({
           code: "FORBIDDEN",
-          message: cancelCheck.reason ?? "Cannot cancel this booking",
+          message: cancelCheck.reason ?? "Impossible d'annuler cette réservation",
         });
       }
     }
@@ -388,12 +465,20 @@ export const cancel = mutation({
     if (!isValidStatusTransition(booking.status, "cancelled")) {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: `Cannot cancel a booking with status "${booking.status}"`,
+        message: `Impossible d'annuler une réservation avec le statut "${booking.status}"`,
       });
     }
 
     // Release capacity
-    await releaseCapacity(ctx, booking.timeSlotId);
+    await releaseCapacityBySlotInfo(
+      ctx,
+      booking.terminalId,
+      booking.preferredDate,
+      booking.preferredTimeStart
+    );
+
+    // Disassociate containers
+    await disassociateContainersFromBooking(ctx, args.bookingId);
 
     const now = Date.now();
     await ctx.db.patch(args.bookingId, {
@@ -420,6 +505,7 @@ export const cancel = mutation({
 
 /**
  * Mark a booking as consumed (truck arrived and entered)
+ * Records entry scan timestamp
  */
 export const markConsumed = mutation({
   args: {
@@ -435,22 +521,28 @@ export const markConsumed = mutation({
     if (!booking) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Booking not found",
+        message: "Réservation introuvable",
       });
     }
 
-    const canModify = await canModifyBookingStatus(ctx, user, args.bookingId, "consumed");
+    const canModify = await canModifyBookingStatus(
+      ctx,
+      user,
+      args.bookingId,
+      "consumed"
+    );
     if (!canModify) {
       throw new ConvexError({
         code: "FORBIDDEN",
-        message: "You do not have permission to mark this booking as consumed",
+        message:
+          "Vous n'avez pas la permission de marquer cette réservation comme consommée",
       });
     }
 
     if (!isValidStatusTransition(booking.status, "consumed")) {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: `Cannot mark as consumed a booking with status "${booking.status}"`,
+        message: `Impossible de marquer comme consommée une réservation avec le statut "${booking.status}"`,
       });
     }
 
@@ -458,6 +550,8 @@ export const markConsumed = mutation({
     await ctx.db.patch(args.bookingId, {
       status: "consumed",
       consumedAt: now,
+      entryScannedAt: now,
+      scannedByEntry: user.userId,
       processedBy: user.userId,
       updatedAt: now,
     });
@@ -470,6 +564,53 @@ export const markConsumed = mutation({
       changedBy: user.userId,
       note: args.note,
       requiredRebook: false,
+    });
+
+    return null;
+  },
+});
+
+/**
+ * Record exit scan for a consumed booking
+ */
+export const recordExitScan = mutation({
+  args: {
+    bookingId: v.id("bookings"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    requireRole(user, ["port_admin", "terminal_operator"]);
+
+    const booking = await ctx.db.get(args.bookingId);
+    if (!booking) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "Réservation introuvable",
+      });
+    }
+
+    if (booking.status !== "consumed") {
+      throw new ConvexError({
+        code: "INVALID_STATE",
+        message: "Le scan de sortie n'est possible que pour les réservations consommées",
+      });
+    }
+
+    // Check terminal access
+    const canManage = await canManageTerminal(ctx, user, booking.terminalId);
+    if (!canManage) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Vous n'avez pas accès à ce terminal",
+      });
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(args.bookingId, {
+      exitScannedAt: now,
+      scannedByExit: user.userId,
+      updatedAt: now,
     });
 
     return null;
@@ -498,16 +639,16 @@ export const updateDriver = mutation({
     if (!booking) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Booking not found",
+        message: "Réservation introuvable",
       });
     }
 
-    // Carrier can update their own bookings
-    const canView = await canViewCarrier(ctx, user, booking.carrierCompanyId);
-    if (!canView && !isPortAdmin(user)) {
+    // Carrier can update their own bookings, admin can update any
+    const isOwner = await isBookingOwner(ctx, user, args.bookingId);
+    if (!isOwner && !isPortAdmin(user)) {
       throw new ConvexError({
         code: "FORBIDDEN",
-        message: "You do not have permission to update this booking",
+        message: "Vous n'avez pas la permission de modifier cette réservation",
       });
     }
 
@@ -515,7 +656,7 @@ export const updateDriver = mutation({
     if (booking.status !== "pending" && booking.status !== "confirmed") {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: `Cannot update a booking with status "${booking.status}"`,
+        message: `Impossible de modifier une réservation avec le statut "${booking.status}"`,
       });
     }
 
@@ -550,71 +691,8 @@ export const updateDriver = mutation({
 });
 
 /**
- * Update cargo details (non-capacity affecting)
- */
-export const updateDetails = mutation({
-  args: {
-    bookingId: v.id("bookings"),
-    containerNumber: v.optional(v.string()),
-    cargoDescription: v.optional(v.string()),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const user = await getAuthenticatedUser(ctx);
-
-    const booking = await ctx.db.get(args.bookingId);
-    if (!booking) {
-      throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Booking not found",
-      });
-    }
-
-    const canView = await canViewCarrier(ctx, user, booking.carrierCompanyId);
-    if (!canView && !isPortAdmin(user)) {
-      throw new ConvexError({
-        code: "FORBIDDEN",
-        message: "You do not have permission to update this booking",
-      });
-    }
-
-    if (booking.status !== "pending" && booking.status !== "confirmed") {
-      throw new ConvexError({
-        code: "INVALID_STATE",
-        message: `Cannot update a booking with status "${booking.status}"`,
-      });
-    }
-
-    const previousValues = {
-      containerNumber: booking.containerNumber,
-      cargoDescription: booking.cargoDescription,
-    };
-
-    await ctx.db.patch(args.bookingId, {
-      containerNumber: args.containerNumber?.trim() ?? booking.containerNumber,
-      cargoDescription: args.cargoDescription?.trim() ?? booking.cargoDescription,
-      updatedAt: Date.now(),
-    });
-
-    await ctx.runMutation(internal.bookings.internal.recordHistory, {
-      bookingId: args.bookingId,
-      changeType: "details_updated",
-      previousValue: JSON.stringify(previousValues),
-      newValue: JSON.stringify({
-        containerNumber: args.containerNumber?.trim() ?? booking.containerNumber,
-        cargoDescription: args.cargoDescription?.trim() ?? booking.cargoDescription,
-      }),
-      changedBy: user.userId,
-      requiredRebook: false,
-    });
-
-    return null;
-  },
-});
-
-/**
  * Change truck (non-capacity affecting, but requires validation)
- * Status stays the same
+ * Status stays the same - this is the ONLY modifiable field besides driver info
  */
 export const changeTruck = mutation({
   args: {
@@ -629,53 +707,78 @@ export const changeTruck = mutation({
     if (!booking) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Booking not found",
+        message: "Réservation introuvable",
       });
     }
 
-    const canView = await canViewCarrier(ctx, user, booking.carrierCompanyId);
-    if (!canView && !isPortAdmin(user)) {
+    const isOwner = await isBookingOwner(ctx, user, args.bookingId);
+    if (!isOwner && !isPortAdmin(user)) {
       throw new ConvexError({
         code: "FORBIDDEN",
-        message: "You do not have permission to update this booking",
+        message: "Vous n'avez pas la permission de modifier cette réservation",
       });
     }
 
     if (booking.status !== "pending" && booking.status !== "confirmed") {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: `Cannot change truck for a booking with status "${booking.status}"`,
+        message: `Impossible de changer le camion pour une réservation avec le statut "${booking.status}"`,
       });
     }
 
-    // Validate new truck
+    // Validate new truck ownership
     const newTruck = await ctx.db.get(args.newTruckId);
     if (!newTruck) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "New truck not found",
+        message: "Nouveau camion introuvable",
       });
     }
     if (!newTruck.isActive) {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: "New truck is not active",
+        message: "Nouveau camion non actif",
       });
     }
-    if (newTruck.carrierCompanyId !== booking.carrierCompanyId) {
+    // Truck must belong to the same carrier
+    if (newTruck.ownerId !== booking.carrierId) {
       throw new ConvexError({
         code: "FORBIDDEN",
-        message: "New truck must belong to the same carrier company",
+        message: "Le nouveau camion doit appartenir au même transporteur",
       });
     }
 
-    // Validate compatibility with gate
-    const compatibility = await validateTruckForGate(ctx, args.newTruckId, booking.gateId);
+    // Validate compatibility with terminal
+    const compatibility = await validateTruckForTerminal(
+      ctx,
+      args.newTruckId,
+      booking.terminalId
+    );
     if (!compatibility.valid) {
       throw new ConvexError({
         code: "INVALID_INPUT",
-        message: compatibility.reason ?? "New truck is not compatible with the gate",
+        message:
+          compatibility.reason ??
+          "Nouveau camion non compatible avec le terminal",
       });
+    }
+
+    // If booking is confirmed with gate assigned, validate gate compatibility
+    if (booking.gateId) {
+      const { validateTruckForGate } = await import("./internal");
+      const gateCompatibility = await validateTruckForGate(
+        ctx,
+        args.newTruckId,
+        booking.gateId
+      );
+      if (!gateCompatibility.valid) {
+        throw new ConvexError({
+          code: "INVALID_INPUT",
+          message:
+            gateCompatibility.reason ??
+            "Nouveau camion non compatible avec le portail assigné",
+        });
+      }
     }
 
     // Check new truck doesn't have a booking for this slot
@@ -684,7 +787,8 @@ export const changeTruck = mutation({
       .withIndex("by_truck", (q) => q.eq("truckId", args.newTruckId))
       .filter((q) =>
         q.and(
-          q.eq(q.field("timeSlotId"), booking.timeSlotId),
+          q.eq(q.field("preferredDate"), booking.preferredDate),
+          q.eq(q.field("preferredTimeStart"), booking.preferredTimeStart),
           q.neq(q.field("_id"), args.bookingId),
           q.or(
             q.eq(q.field("status"), "pending"),
@@ -697,7 +801,7 @@ export const changeTruck = mutation({
     if (existingBooking) {
       throw new ConvexError({
         code: "DUPLICATE",
-        message: "The new truck already has a booking for this time slot",
+        message: "Le nouveau camion a déjà une réservation pour ce créneau",
       });
     }
 
@@ -722,138 +826,92 @@ export const changeTruck = mutation({
 });
 
 // ============================================================================
-// CAPACITY-AFFECTING CHANGES (Rebook)
+// QR CODE SCANNING
 // ============================================================================
 
 /**
- * Change time slot (capacity-affecting - resets to pending)
+ * Scan QR code for entry (lookup by booking reference)
  */
-export const changeTimeSlot = mutation({
+export const scanEntry = mutation({
   args: {
-    bookingId: v.id("bookings"),
-    newTimeSlotId: v.id("timeSlots"),
+    bookingReference: v.string(),
   },
-  returns: v.null(),
+  returns: v.object({
+    bookingId: v.id("bookings"),
+    status: v.string(),
+    message: v.string(),
+  }),
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
+    requireRole(user, ["port_admin", "terminal_operator"]);
 
-    const booking = await ctx.db.get(args.bookingId);
+    const booking = await ctx.db
+      .query("bookings")
+      .withIndex("by_reference", (q) =>
+        q.eq("bookingReference", args.bookingReference)
+      )
+      .unique();
+
     if (!booking) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Booking not found",
+        message: "Réservation introuvable",
       });
     }
 
-    const canView = await canViewCarrier(ctx, user, booking.carrierCompanyId);
-    if (!canView && !isPortAdmin(user)) {
+    // Check terminal access
+    const canManage = await canManageTerminal(ctx, user, booking.terminalId);
+    if (!canManage) {
       throw new ConvexError({
         code: "FORBIDDEN",
-        message: "You do not have permission to update this booking",
+        message: "Vous n'avez pas accès à ce terminal",
       });
     }
 
-    if (booking.status !== "pending" && booking.status !== "confirmed") {
-      throw new ConvexError({
-        code: "INVALID_STATE",
-        message: `Cannot change time slot for a booking with status "${booking.status}"`,
-      });
+    // Validate booking can be consumed
+    if (booking.status !== "confirmed") {
+      return {
+        bookingId: booking._id,
+        status: booking.status,
+        message: `Réservation ne peut pas être scannée (statut: ${booking.status})`,
+      };
     }
 
-    // Validate new time slot
-    const newTimeSlot = await ctx.db.get(args.newTimeSlotId);
-    if (!newTimeSlot) {
-      throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "New time slot not found",
-      });
-    }
-    if (!newTimeSlot.isActive) {
-      throw new ConvexError({
-        code: "INVALID_STATE",
-        message: "New time slot is not available",
-      });
+    // Check date matches
+    const today = new Date().toISOString().slice(0, 10);
+    if (booking.preferredDate !== today) {
+      return {
+        bookingId: booking._id,
+        status: booking.status,
+        message: `Réservation prévue pour ${booking.preferredDate}, pas aujourd'hui`,
+      };
     }
 
-    // Validate time slot is in the future
-    const slotDateTime = new Date(`${newTimeSlot.date}T${newTimeSlot.startTime}`);
-    if (slotDateTime <= new Date()) {
-      throw new ConvexError({
-        code: "INVALID_INPUT",
-        message: "Cannot book a time slot in the past",
-      });
-    }
-
-    // Validate truck compatibility with new gate
-    const compatibility = await validateTruckForGate(ctx, booking.truckId, newTimeSlot.gateId);
-    if (!compatibility.valid) {
-      throw new ConvexError({
-        code: "INVALID_INPUT",
-        message: compatibility.reason ?? "Truck is not compatible with the new gate",
-      });
-    }
-
-    // Check truck doesn't have another booking for new slot
-    const existingBooking = await ctx.db
-      .query("bookings")
-      .withIndex("by_truck", (q) => q.eq("truckId", booking.truckId))
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("timeSlotId"), args.newTimeSlotId),
-          q.neq(q.field("_id"), args.bookingId),
-          q.or(
-            q.eq(q.field("status"), "pending"),
-            q.eq(q.field("status"), "confirmed")
-          )
-        )
-      )
-      .first();
-
-    if (existingBooking) {
-      throw new ConvexError({
-        code: "DUPLICATE",
-        message: "This truck already has a booking for the new time slot",
-      });
-    }
-
-    // Reserve capacity on new slot first
-    const reserved = await checkAndReserveCapacity(ctx, args.newTimeSlotId);
-    if (!reserved) {
-      throw new ConvexError({
-        code: "CAPACITY_FULL",
-        message: "The new time slot is fully booked",
-      });
-    }
-
-    // Release capacity from old slot
-    await releaseCapacity(ctx, booking.timeSlotId);
-
-    // Get new gate/terminal info
-    const newGate = await ctx.db.get(newTimeSlot.gateId);
-
-    const previousTimeSlotId = booking.timeSlotId;
-    const wasConfirmed = booking.status === "confirmed";
-
-    await ctx.db.patch(args.bookingId, {
-      timeSlotId: args.newTimeSlotId,
-      gateId: newTimeSlot.gateId,
-      terminalId: newGate?.terminalId ?? booking.terminalId,
-      status: "pending", // Reset to pending for re-confirmation
-      confirmedAt: undefined, // Clear confirmation
-      processedBy: undefined,
-      updatedAt: Date.now(),
+    // Mark as consumed
+    const now = Date.now();
+    await ctx.db.patch(booking._id, {
+      status: "consumed",
+      consumedAt: now,
+      entryScannedAt: now,
+      scannedByEntry: user.userId,
+      processedBy: user.userId,
+      updatedAt: now,
     });
 
     await ctx.runMutation(internal.bookings.internal.recordHistory, {
-      bookingId: args.bookingId,
-      changeType: "time_slot_changed",
-      previousValue: previousTimeSlotId,
-      newValue: args.newTimeSlotId,
+      bookingId: booking._id,
+      changeType: "status_changed",
+      previousValue: "confirmed",
+      newValue: "consumed",
       changedBy: user.userId,
-      note: wasConfirmed ? "Booking reset to pending for re-confirmation" : undefined,
-      requiredRebook: wasConfirmed,
+      note: "Entrée scannée via QR code",
+      requiredRebook: false,
     });
 
-    return null;
+    return {
+      bookingId: booking._id,
+      status: "consumed",
+      message: "Entrée enregistrée avec succès",
+    };
   },
 });

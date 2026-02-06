@@ -104,7 +104,7 @@ export async function checkToolAccess(
     { userId: ctx.userId },
   );
 
-  const role = profile?.apcsRole as ApcsRole | null;
+  const role = profile?.role as ApcsRole | null;
   if (!role) {
     return {
       error: "ACCESS_DENIED",

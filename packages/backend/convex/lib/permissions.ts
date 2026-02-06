@@ -1,6 +1,11 @@
 /**
  * RBAC Permission System for APCS
  * Handles authentication and authorization checks
+ * 
+ * Updated for new schema: 
+ * - No more carrierCompanies/carrierUsers tables
+ * - Trucks and containers are owned directly by carrier users
+ * - Bookings use carrierId instead of carrierCompanyId
  */
 import { ConvexError } from "convex/values";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
@@ -22,8 +27,6 @@ export type AuthenticatedUser = {
   email: string;
   name: string | undefined;
   apcsRole: ApcsRole | null;
-  carrierCompanyId: Id<"carrierCompanies"> | null;
-  isCompanyAdmin: boolean;
 };
 
 export type PermissionContext = QueryCtx | MutationCtx;
@@ -33,9 +36,8 @@ export type PermissionContext = QueryCtx | MutationCtx;
 // ============================================================================
 
 /**
- * Get the currently authenticated user with their APCS role and carrier association
+ * Get the currently authenticated user with their APCS role
  * Throws if not authenticated
- * Note: Role is now read from Better Auth user table, not userProfiles
  */
 export async function getAuthenticatedUser(
   ctx: PermissionContext
@@ -54,32 +56,14 @@ export async function getAuthenticatedUser(
   // Role now comes from Better Auth user table
   // Map "user" role to null (no APCS privileges)
   const betterAuthRole = (authUser as unknown as { role: string }).role;
-  const apcsRole: ApcsRole | null = 
+  const apcsRole: ApcsRole | null =
     betterAuthRole === "user" ? null : (betterAuthRole as ApcsRole);
-
-  // Get carrier association if applicable
-  let carrierCompanyId: Id<"carrierCompanies"> | null = null;
-  let isCompanyAdmin = false;
-
-  if (apcsRole === "carrier") {
-    const carrierUser = await ctx.db
-      .query("carrierUsers")
-      .withIndex("by_user", (q) => q.eq("userId", authUser._id))
-      .unique();
-
-    if (carrierUser?.isActive) {
-      carrierCompanyId = carrierUser.carrierCompanyId;
-      isCompanyAdmin = carrierUser.isCompanyAdmin;
-    }
-  }
 
   return {
     userId: authUser._id as unknown as string,
     email: authUser.email,
     name: authUser.name,
     apcsRole,
-    carrierCompanyId,
-    isCompanyAdmin,
   };
 }
 
@@ -230,70 +214,72 @@ export async function getManagedTerminalIds(
 }
 
 // ============================================================================
-// CARRIER ACCESS CHECKS
+// CONTAINER ACCESS CHECKS
 // ============================================================================
 
 /**
- * Check if user can manage a specific carrier company
- * Port admins can manage all carriers
- * Carrier company admins can manage their own company
+ * Check if user can manage a specific container
+ * Port admins can manage all containers
+ * Carriers can only manage their own containers
  */
-export async function canManageCarrier(
+export async function canManageContainer(
   ctx: PermissionContext,
   user: AuthenticatedUser,
-  carrierCompanyId: Id<"carrierCompanies">
+  containerId: Id<"containers">
 ): Promise<boolean> {
-  // Port admins can manage all carriers
+  const container = await ctx.db.get(containerId);
+  if (!container) return false;
+
+  // Port admins can manage all containers
   if (user.apcsRole === "port_admin") {
     return true;
   }
 
-  // Carrier users can only manage their own company if they're company admin
+  // Carriers can only manage their own containers
   if (user.apcsRole === "carrier") {
-    return (
-      user.carrierCompanyId === carrierCompanyId && user.isCompanyAdmin === true
-    );
+    return container.ownerId === user.userId;
   }
 
   return false;
 }
 
 /**
- * Check if user can view a specific carrier company's data
- * Port admins can view all
- * All carrier users can view their own company
+ * Check if user can view a specific container
  */
-export async function canViewCarrier(
+export async function canViewContainer(
   ctx: PermissionContext,
   user: AuthenticatedUser,
-  carrierCompanyId: Id<"carrierCompanies">
+  containerId: Id<"containers">
 ): Promise<boolean> {
-  // Port admins can view all carriers
+  const container = await ctx.db.get(containerId);
+  if (!container) return false;
+
+  // Port admins can view all containers
   if (user.apcsRole === "port_admin") {
     return true;
   }
 
-  // All carrier users can view their own company
+  // Carriers can only view their own containers
   if (user.apcsRole === "carrier") {
-    return user.carrierCompanyId === carrierCompanyId;
+    return container.ownerId === user.userId;
   }
 
   return false;
 }
 
 /**
- * Require that user can manage a specific carrier company
+ * Require that user can manage a specific container
  */
-export async function requireCarrierManagement(
+export async function requireContainerAccess(
   ctx: PermissionContext,
   user: AuthenticatedUser,
-  carrierCompanyId: Id<"carrierCompanies">
+  containerId: Id<"containers">
 ): Promise<void> {
-  const canManage = await canManageCarrier(ctx, user, carrierCompanyId);
+  const canManage = await canManageContainer(ctx, user, containerId);
   if (!canManage) {
     throw new ConvexError({
       code: "FORBIDDEN",
-      message: "You do not have permission to manage this carrier company",
+      message: "You do not have permission to manage this container",
     });
   }
 }
@@ -304,6 +290,8 @@ export async function requireCarrierManagement(
 
 /**
  * Check if user can manage a specific truck
+ * Port admins can manage all trucks
+ * Carriers can only manage their own trucks
  */
 export async function canManageTruck(
   ctx: PermissionContext,
@@ -313,7 +301,17 @@ export async function canManageTruck(
   const truck = await ctx.db.get(truckId);
   if (!truck) return false;
 
-  return canManageCarrier(ctx, user, truck.carrierCompanyId);
+  // Port admins can manage all trucks
+  if (user.apcsRole === "port_admin") {
+    return true;
+  }
+
+  // Carriers can only manage their own trucks
+  if (user.apcsRole === "carrier") {
+    return truck.ownerId === user.userId;
+  }
+
+  return false;
 }
 
 /**
@@ -327,7 +325,17 @@ export async function canViewTruck(
   const truck = await ctx.db.get(truckId);
   if (!truck) return false;
 
-  return canViewCarrier(ctx, user, truck.carrierCompanyId);
+  // Port admins can view all trucks
+  if (user.apcsRole === "port_admin") {
+    return true;
+  }
+
+  // Carriers can only view their own trucks
+  if (user.apcsRole === "carrier") {
+    return truck.ownerId === user.userId;
+  }
+
+  return false;
 }
 
 /**
@@ -374,7 +382,7 @@ export async function canViewBooking(
 
   // Carriers can view their own bookings
   if (user.apcsRole === "carrier") {
-    return booking.carrierCompanyId === user.carrierCompanyId;
+    return booking.carrierId === user.userId;
   }
 
   return false;
@@ -392,13 +400,17 @@ export async function canModifyBookingStatus(
   const booking = await ctx.db.get(bookingId);
   if (!booking) return false;
 
-  // For cancellation, carriers can cancel their own bookings
+  // For cancellation, carriers can cancel their own bookings (anytime)
   if (newStatus === "cancelled") {
-    if (
-      user.apcsRole === "carrier" &&
-      booking.carrierCompanyId === user.carrierCompanyId
-    ) {
+    if (user.apcsRole === "carrier" && booking.carrierId === user.userId) {
       return true;
+    }
+    // Operators and admins can also cancel
+    if (user.apcsRole === "port_admin") {
+      return true;
+    }
+    if (user.apcsRole === "terminal_operator") {
+      return canManageTerminal(ctx, user, booking.terminalId);
     }
   }
 
@@ -430,4 +442,17 @@ export async function requireBookingView(
       message: "You do not have access to this booking",
     });
   }
+}
+
+/**
+ * Check if user owns a specific booking
+ */
+export async function isBookingOwner(
+  ctx: PermissionContext,
+  user: AuthenticatedUser,
+  bookingId: Id<"bookings">
+): Promise<boolean> {
+  const booking = await ctx.db.get(bookingId);
+  if (!booking) return false;
+  return booking.carrierId === user.userId;
 }

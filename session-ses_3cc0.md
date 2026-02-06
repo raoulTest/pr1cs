@@ -10,7 +10,7 @@
 
 The application aims to develop a centralized platform to regulate maritime port access by managing truck flows through a synchronized booking system and terminal capacity engine.
 
-There a 3 main roles in the application: 
+There a 3 main roles in the application:
 The port admins: responsible for global system configuration.
 Terminal operators: in charge of capacity management, and booking validation.
 Carriers: manage their own truck fleets, and submit booking requests.
@@ -21,11 +21,11 @@ Example: a carrier asks for a booking request, the chat interface answers with a
 
 We know that we can’t limit ourselves to the conversational interface. So, similarly to ChatGPT or others, there will be a sidebar menu where you can access the traditional dashboards for example : the list of containers with their statuses etc…
 
-The application should be fully configured to adapt to the reality of the port. The port admins should define the terminals, their gates, and assign terminals to operators. 
+The application should be fully configured to adapt to the reality of the port. The port admins should define the terminals, their gates, and assign terminals to operators.
 
 The terminals are open 24/7, each time slot is equal to 1 hour. Terminal operators choose which slots are active and the capacity of each slot. For convenience, we could say that there is a way to define a default capacity for all the slots at once. The app should handle the bulk editing either for activation/desactivation of time slots and capacity settings.
 
-Carriers should be able to create a fleet of trucks. Adding, modifying and removing trucks. 
+Carriers should be able to create a fleet of trucks. Adding, modifying and removing trucks.
 
 Carriers are here to pick-up/drop-off containers. Containers are already seeded in the database and assigned to the carriers (we assume that they are from an external data source, they should then be seeded for demonstration purposes). A container is represented by an id, a type of container, nature of the operation being made on the container (pick-up or drop-off) if it’s a pick-up, we have when the container was ready to pick. If it’s a drop-off, the date of departure of the boat. You can drop-off empty containers. I may have forgotten some properties, don’t hesitate to suggest modifications or enhancements at any step of this plan.
 
@@ -35,21 +35,21 @@ The booking requests follow a specific algorithm. It relies a lot on the convers
 
 You should know that we will implement a system that auto validates N% of the maximum slot capacity. N is defined by the port admin. That means that N% of the booking requests for a time slot are directly validated. The other (100-N)% are subject to manual validation by the terminal operator.
 
-The terminal operator sees a list of requests for each time slot, which will be ordered by priority according to an algorithm we will discuss later. 
+The terminal operator sees a list of requests for each time slot, which will be ordered by priority according to an algorithm we will discuss later.
 
 Whether the request was approved automatically or manually, a reference id for the booking and a QR code should be generated.
 
 Real-time availability should be displayed to the operators (slots availability). You should know that when I am talking about fetching any type of real-time data, whenever it’s relevant, return it into a component embedded in the chat that has a button to maximize the size of the component and see more data. Our goal is to make access to data easier, without the overhead of menus and complex interfaces, not in the detriment of simplicity and usefulness. If a menu is better, it is better.
 
-There should be notifications for booking events, capacity alerts. 
+There should be notifications for booking events, capacity alerts.
 
-The idea is to turn into a tool call every query/mutation that can be turned into it (it has to be pertinent). If I ask about the availability of a slot of a day, the AI should give me a card containing the information. 
+The idea is to turn into a tool call every query/mutation that can be turned into it (it has to be pertinent). If I ask about the availability of a slot of a day, the AI should give me a card containing the information.
 
-Every action (either through the conversational AI or manual actions) should be logged. 
+Every action (either through the conversational AI or manual actions) should be logged.
 
 —
 
-Now we have to make an extremely detailed plan covering every functional aspect of the application. I want you to ask me as many questions as you need. I want the questions to be well-thought. Each time you have a doubt about something, don’t hesitate to ask, we’ll refine the plan along the way until I am satisfied. 
+Now we have to make an extremely detailed plan covering every functional aspect of the application. I want you to ask me as many questions as you need. I want the questions to be well-thought. Each time you have a doubt about something, don’t hesitate to ask, we’ll refine the plan along the way until I am satisfied.
 
 ---
 
@@ -60,6 +60,7 @@ I'll start by exploring the codebase to understand the current project structure
 **Tool: task**
 
 **Input:**
+
 ```json
 {
   "description": "Explore codebase structure",
@@ -69,6 +70,7 @@ I'll start by exploring the codebase to understand the current project structure
 ```
 
 **Output:**
+
 ```
 Excellent! I now have a comprehensive understanding of the project. Let me provide you with a detailed summary:
 
@@ -81,18 +83,20 @@ Excellent! I now have a comprehensive understanding of the project. Let me provi
 This is a **Turborepo monorepo** named "microhack" with the following structure:
 
 ```
+
 microhack/
 ├── apps/
-│   ├── web/          # Frontend web application
-│   └── native/       # Mobile application (Expo/React Native)
+│ ├── web/ # Frontend web application
+│ └── native/ # Mobile application (Expo/React Native)
 ├── packages/
-│   ├── backend/      # Convex backend functions, schema, and AI agent
-│   ├── env/          # Shared environment variable management
-│   └── config/       # Shared configuration (currently minimal)
-├── turbo.json        # Turborepo configuration
-├── package.json      # Root workspace configuration
-└── bun.lock          # Package manager: Bun v1.3.5
-```
+│ ├── backend/ # Convex backend functions, schema, and AI agent
+│ ├── env/ # Shared environment variable management
+│ └── config/ # Shared configuration (currently minimal)
+├── turbo.json # Turborepo configuration
+├── package.json # Root workspace configuration
+└── bun.lock # Package manager: Bun v1.3.5
+
+````
 
 **Workspaces:**
 - `apps/*` - Application packages
@@ -143,9 +147,10 @@ import agent from "@convex-dev/agent/convex.config";
 const app = defineApp();
 app.use(betterAuth);  // Better Auth integration
 app.use(agent);       // Convex Agent for AI
-```
+````
 
 #### Backend Structure:
+
 ```
 packages/backend/convex/
 ├── schema.ts                  # Main database schema
@@ -180,11 +185,13 @@ packages/backend/convex/
 **YES - Vercel AI SDK is integrated**
 
 #### Dependencies:
+
 - `"ai": "^5.0.128"` - Main Vercel AI SDK (in both web and backend)
 - `"@ai-sdk/google": "^2.0.52"` - Google Gemini provider (in backend)
 - `"@convex-dev/agent": "^0.3.2"` - Convex Agent SDK
 
 #### AI Agent Implementation:
+
 ```typescript
 // packages/backend/convex/ai/agent.ts
 import { google } from "@ai-sdk/google";
@@ -200,12 +207,14 @@ export const apcsAgent = new Agent(components.agent, {
 ```
 
 #### Chat Features:
+
 - Thread creation
 - Streaming text responses (`streamText`)
 - Non-streaming responses (`generateText`)
 - Role-based tool access
 
 #### Web App AI Components (`apps/web/src/components/ai-elements/`):
+
 - 50+ AI-related UI components including:
   - `message.tsx` - Chat messages
   - `prompt-input.tsx` - Input with attachments
@@ -222,6 +231,7 @@ export const apcsAgent = new Agent(components.agent, {
 **Better Auth** is the authentication system with Convex integration.
 
 #### Configuration:
+
 ```typescript
 // packages/backend/convex/auth.ts
 import { betterAuth } from "better-auth";
@@ -238,16 +248,19 @@ import { admin as adminPlugin } from "better-auth/plugins";
 ```
 
 #### User Roles (APCS-specific):
+
 - `port_admin` - Full system access
 - `terminal_operator` - Terminal management access
 - `carrier` - Basic booking/truck access
 
 #### Role-Based Access Control:
+
 - Custom access control system with `createAccessControl`
 - Tool-level permission checking for AI tools
 - Per-role tool availability
 
 #### Auth Providers in Apps:
+
 - **Web**: `@convex-dev/better-auth/react` with `ConvexBetterAuthProvider`
 - **Native**: Same provider with Expo-specific setup
 
@@ -256,21 +269,23 @@ import { admin as adminPlugin } from "better-auth/plugins";
 ### 6. UI Component Libraries
 
 #### Web App:
-| Library | Purpose |
-|---------|---------|
-| **shadcn/ui** | Primary UI components (33+ components in `/components/ui/`) |
-| **Radix UI** | Headless components (via shadcn) |
-| **Lucide React** | Icons |
-| **cmdk** | Command palette |
-| **Sonner** | Toast notifications |
-| **class-variance-authority** | Variant styling |
-| **tailwind-merge** | Class merging |
-| **Motion** (framer-motion) | Animations |
-| **Embla Carousel** | Carousels |
-| **@xyflow/react** | Flow diagrams |
-| **Streamdown** | Markdown streaming |
+
+| Library                      | Purpose                                                     |
+| ---------------------------- | ----------------------------------------------------------- |
+| **shadcn/ui**                | Primary UI components (33+ components in `/components/ui/`) |
+| **Radix UI**                 | Headless components (via shadcn)                            |
+| **Lucide React**             | Icons                                                       |
+| **cmdk**                     | Command palette                                             |
+| **Sonner**                   | Toast notifications                                         |
+| **class-variance-authority** | Variant styling                                             |
+| **tailwind-merge**           | Class merging                                               |
+| **Motion** (framer-motion)   | Animations                                                  |
+| **Embla Carousel**           | Carousels                                                   |
+| **@xyflow/react**            | Flow diagrams                                               |
+| **Streamdown**               | Markdown streaming                                          |
 
 **shadcn/ui Components Available:**
+
 - accordion, alert-dialog, alert, avatar, badge, button-group, button
 - card, carousel, checkbox, collapsible, combobox, command, dialog
 - dropdown-menu, field, hover-card, input-group, input, label
@@ -278,13 +293,14 @@ import { admin as adminPlugin } from "better-auth/plugins";
 - sonner, spinner, switch, tabs, textarea, tooltip
 
 #### Native App:
-| Library | Purpose |
-|---------|---------|
-| **HeroUI Native** | Mobile UI components |
-| **@expo/vector-icons** | Icons |
-| **@gorhom/bottom-sheet** | Bottom sheets |
-| **React Navigation** | Navigation (bottom tabs, drawer) |
-| **tailwind-variants** | Variant styling |
+
+| Library                  | Purpose                          |
+| ------------------------ | -------------------------------- |
+| **HeroUI Native**        | Mobile UI components             |
+| **@expo/vector-icons**   | Icons                            |
+| **@gorhom/bottom-sheet** | Bottom sheets                    |
+| **React Navigation**     | Navigation (bottom tabs, drawer) |
+| **tailwind-variants**    | Variant styling                  |
 
 ---
 
@@ -294,22 +310,23 @@ import { admin as adminPlugin } from "better-auth/plugins";
 
 #### Core Tables:
 
-| Table | Purpose |
-|-------|---------|
-| `terminals` | Physical port terminals |
-| `gates` | Entry points at terminals with capacity |
-| `timeSlots` | Bookable time windows per gate |
-| `terminalOperatorAssignments` | Links operators to terminals (M:M) |
-| `carrierCompanies` | Organizations that own trucks |
-| `carrierUsers` | Links users to carrier companies |
-| `trucks` | Vehicles with type/class classification |
-| `bookings` | Truck time slot reservations |
-| `bookingHistory` | Audit trail for booking changes |
-| `notifications` | Bilingual notifications (EN/FR) |
-| `systemConfig` | Global system settings (singleton) |
-| `userProfiles` | Extended user data beyond Better Auth |
+| Table                         | Purpose                                 |
+| ----------------------------- | --------------------------------------- |
+| `terminals`                   | Physical port terminals                 |
+| `gates`                       | Entry points at terminals with capacity |
+| `timeSlots`                   | Bookable time windows per gate          |
+| `terminalOperatorAssignments` | Links operators to terminals (M:M)      |
+| `carrierCompanies`            | Organizations that own trucks           |
+| `carrierUsers`                | Links users to carrier companies        |
+| `trucks`                      | Vehicles with type/class classification |
+| `bookings`                    | Truck time slot reservations            |
+| `bookingHistory`              | Audit trail for booking changes         |
+| `notifications`               | Bilingual notifications (EN/FR)         |
+| `systemConfig`                | Global system settings (singleton)      |
+| `userProfiles`                | Extended user data beyond Better Auth   |
 
 #### Key Domain Validators:
+
 ```typescript
 // User Roles
 apcsRoleValidator: "port_admin" | "terminal_operator" | "carrier"
@@ -329,7 +346,9 @@ languageValidator: "en" | "fr"
 ```
 
 #### Better Auth Tables:
+
 Managed by the Better Auth component at `/packages/backend/convex/betterAuth/`:
+
 - Generated schema with user/session/account tables
 - Triggers for auto-creating userProfiles on user signup
 
@@ -351,7 +370,8 @@ This is a **mature, full-stack logistics application** (Advanced Port Container 
 <task_metadata>
 session_id: ses_3cc09648dffejm5GaCqVrBikIT
 </task_metadata>
-```
+
+````
 
 **Tool: task**
 
@@ -362,10 +382,11 @@ session_id: ses_3cc09648dffejm5GaCqVrBikIT
   "prompt": "Search for any existing conversational UI patterns, AI chat implementations, or Vercel AI SDK usage in the codebase. Look for:\n\n1. Any chat components or message interfaces\n2. AI agent configurations or tool definitions\n3. Streaming response patterns\n4. Widget/embedded component patterns within messages\n5. Any existing tool call implementations\n\nSearch for keywords like: \"useChat\", \"streamText\", \"tool\", \"agent\", \"message\", \"conversation\", \"chat\"\n\nReturn what you find about existing patterns or confirm if none exist.",
   "subagent_type": "explore"
 }
-```
+````
 
 **Output:**
-```
+
+````
 Now I have a comprehensive understanding of the codebase. Let me provide a summary of the findings:
 
 ---
@@ -411,18 +432,26 @@ Key components include:
     tools: ALL_TOOLS,
     maxSteps: 5,
   });
-  ```
+````
 
 - **`registry.ts`** - Central tool registry with role-based filtering:
+
   ```typescript
   export const ALL_TOOLS = {
-    listMyBookings, getBookingDetails, listBookingsByTerminal,
-    listBookingsByCarrier, listPendingBookings, listTerminals,
-    getTerminalDetails, getAvailableSlots, getSystemConfig,
-  }
+    listMyBookings,
+    getBookingDetails,
+    listBookingsByTerminal,
+    listBookingsByCarrier,
+    listPendingBookings,
+    listTerminals,
+    getTerminalDetails,
+    getAvailableSlots,
+    getSystemConfig,
+  };
   ```
 
 - **`tools/types.ts`** - Role-based access control:
+
   ```typescript
   export const TOOL_PERMISSIONS: Record<ApcsRole, readonly string[]> = {
     carrier: [...],
@@ -455,6 +484,7 @@ export const initiateStream = action({
 ```
 
 **Queries for real-time updates:** `/home/sones/projects/monorepo/packages/backend/convex/ai/queries.ts`
+
 ```typescript
 export const listThreadMessages = query({
   handler: async (ctx, args) => {
@@ -469,15 +499,18 @@ export const listThreadMessages = query({
 ### 4. Widget/Embedded Component Patterns Within Messages
 
 **`tool.tsx`** - Tool invocation display:
+
 - `Tool`, `ToolHeader`, `ToolContent`, `ToolInput`, `ToolOutput`
 - Supports `ToolUIPart` and `DynamicToolUIPart` from AI SDK
 - Status indicators: pending, running, completed, error, approval states
 
 **`confirmation.tsx`** - Tool approval workflow:
+
 - `Confirmation`, `ConfirmationRequest`, `ConfirmationAccepted`, `ConfirmationRejected`, `ConfirmationActions`
 - Uses `ToolUIPart` state for approval flow
 
 **Additional AI element components (48 total):**
+
 - `reasoning.tsx` - Chain of thought display
 - `sources.tsx` - Source citations
 - `code-block.tsx` - Code display
@@ -489,6 +522,7 @@ export const listThreadMessages = query({
 ### 5. Existing Tool Call Implementations
 
 **Tool creation pattern:**
+
 ```typescript
 // From tools/bookings.ts
 export const listMyBookings = createTool({
@@ -531,7 +565,8 @@ export const listMyBookings = createTool({
 <task_metadata>
 session_id: ses_3cc095717ffeLlW3yfr8zZAhAl
 </task_metadata>
-```
+
+````
 
 **Tool: task**
 
@@ -542,10 +577,11 @@ session_id: ses_3cc095717ffeLlW3yfr8zZAhAl
   "prompt": "Search for any existing Convex implementation patterns in the codebase. Look for:\n\n1. Schema definitions (schema.ts files)\n2. Query and mutation patterns\n3. Real-time subscription patterns\n4. Authentication integration with Convex\n5. File storage patterns\n6. Any existing agents or workflow implementations using @convex-dev/agent\n\nSearch thoroughly through any convex directories and related files. Return a summary of existing Convex patterns or confirm if it's a fresh setup.",
   "subagent_type": "explore"
 }
-```
+````
 
 **Output:**
-```
+
+````
 I now have a comprehensive view of the Convex implementation. Let me provide you with a detailed summary:
 
 ---
@@ -587,7 +623,7 @@ This is **NOT a fresh setup** - it's a mature, well-structured Convex implementa
 - `bookings/` - Full CRUD + status transitions
 - `carriers/` - Company management
 - `gates/` - Gate CRUD
-- `terminals/` - Terminal CRUD  
+- `terminals/` - Terminal CRUD
 - `trucks/` - Vehicle management
 - `timeSlots/` - Availability management
 - `notifications/` - Notification CRUD
@@ -614,9 +650,10 @@ ctx.db.query("bookings")
   .withIndex("by_carrier_and_status", (q) =>
     q.eq("carrierCompanyId", user.carrierCompanyId!).eq("status", args.status!)
   )
-```
+````
 
 **Mutation Patterns:**
+
 ```typescript
 // Input validation with validators
 args: bookingInputValidator.fields
@@ -636,6 +673,7 @@ if (!isValidStatusTransition(booking.status, "confirmed")) {...}
 ### 3. Real-Time Subscription Patterns
 
 **Frontend Usage (`/apps/web/src/routes/convex-showcase.tsx`):**
+
 ```typescript
 import { useQuery, useMutation } from "convex/react";
 
@@ -647,7 +685,7 @@ const notifications = useQuery(api.notifications.queries.list, {});
 // Conditional queries with "skip"
 const slots = useQuery(
   api.timeSlots.queries.listByGateAndDate,
-  selectedGateId ? { gateId: selectedGateId, date: selectedDate } : "skip"
+  selectedGateId ? { gateId: selectedGateId, date: selectedDate } : "skip",
 );
 
 // Mutations
@@ -656,6 +694,7 @@ const confirmBooking = useMutation(api.bookings.mutations.confirm);
 ```
 
 **Auth components:**
+
 ```typescript
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 ```
@@ -669,6 +708,7 @@ import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 **Integration:** Better Auth with Convex adapter via `@convex-dev/better-auth`
 
 **Features:**
+
 - Email/password authentication
 - Expo mobile app support
 - Admin plugin with role-based access control
@@ -677,6 +717,7 @@ import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 - JWKS token rotation
 
 **Pattern:**
+
 ```typescript
 // Auth component creation
 export const authComponent = createClient<DataModel, typeof authSchema>(
@@ -704,6 +745,7 @@ export const getCurrentUser = query({
 ```
 
 **HTTP Routes:** `/packages/backend/convex/http.ts`
+
 ```typescript
 authComponent.registerRoutes(http, createAuth);
 ```
@@ -713,6 +755,7 @@ authComponent.registerRoutes(http, createAuth);
 ### 5. File Storage Patterns
 
 **Status:** No Convex file storage (`ctx.storage`) is currently implemented in this codebase. The search found only:
+
 - External blob storage URLs (Vercel Blob Storage)
 - SKILL documentation files about Convex file storage patterns
 
@@ -723,6 +766,7 @@ authComponent.registerRoutes(http, createAuth);
 **Location:** `/packages/backend/convex/ai/`
 
 **Files:**
+
 - `agent.ts` - Main agent definition with Google Gemini
 - `chat.ts` - Chat actions (createThread, initiateStream, generateResponse)
 - `queries.ts` - Thread message listing
@@ -731,6 +775,7 @@ authComponent.registerRoutes(http, createAuth);
 - `internalQueries.ts` - Internal queries for agent tools
 
 **Agent Definition:**
+
 ```typescript
 import { Agent } from "@convex-dev/agent";
 import { google } from "@ai-sdk/google";
@@ -745,6 +790,7 @@ export const apcsAgent = new Agent(components.agent, {
 ```
 
 **Tool Creation Pattern:**
+
 ```typescript
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod/v3";
@@ -764,6 +810,7 @@ export const listMyBookings = createTool({
 ```
 
 **Role-Based Tool Permissions:**
+
 ```typescript
 export const TOOL_PERMISSIONS: Record<ApcsRole, readonly string[]> = {
   carrier: ["listMyBookings", "getBookingDetails", "listTerminals", ...],
@@ -773,6 +820,7 @@ export const TOOL_PERMISSIONS: Record<ApcsRole, readonly string[]> = {
 ```
 
 **Streaming Support:**
+
 ```typescript
 // Stream text with real-time message updates
 await apcsAgent.streamText(
@@ -798,6 +846,7 @@ export const listThreadMessages = query({
 **Location:** `/packages/backend/convex/crons.ts` and `/packages/backend/convex/scheduled.ts`
 
 **Jobs:**
+
 - **Booking expiration:** Every 15 minutes
 - **24-hour reminders:** Every hour
 - **2-hour reminders:** Every 30 minutes
@@ -806,11 +855,22 @@ export const listThreadMessages = query({
 - **Capacity recalculation:** Daily at 4 AM UTC
 
 **Pattern:**
+
 ```typescript
 const crons = cronJobs();
 
-crons.interval("expire old bookings", { minutes: 15 }, internal.scheduled.expireOldBookings, {});
-crons.cron("cleanup old notifications", "0 2 * * *", internal.scheduled.cleanupOldNotifications, { daysToKeep: 30 });
+crons.interval(
+  "expire old bookings",
+  { minutes: 15 },
+  internal.scheduled.expireOldBookings,
+  {},
+);
+crons.cron(
+  "cleanup old notifications",
+  "0 2 * * *",
+  internal.scheduled.cleanupOldNotifications,
+  { daysToKeep: 30 },
+);
 ```
 
 ---
@@ -820,6 +880,7 @@ crons.cron("cleanup old notifications", "0 2 * * *", internal.scheduled.cleanupO
 **Location:** `/packages/backend/convex/lib/permissions.ts`
 
 **Features:**
+
 - Authentication wrapper via Better Auth
 - Role-based access control functions
 - Terminal/Carrier/Truck/Booking permission checks
@@ -848,22 +909,23 @@ export default app;
 
 ### Key Patterns Summary
 
-| Pattern | Implementation |
-|---------|---------------|
-| Schema | Comprehensive with exported validators, strategic indexes |
-| Queries | Return type validators, batch fetching, role-based filtering |
-| Mutations | Input validation, atomic operations, history tracking |
-| Real-time | `useQuery` with conditional "skip", `useMutation` |
-| Auth | Better Auth integration with role-based access |
-| File Storage | Not implemented yet |
-| AI Agent | @convex-dev/agent with role-based tools, streaming |
-| Crons | Background jobs for expiration, reminders, cleanup |
-| Permissions | Comprehensive RBAC system |
+| Pattern      | Implementation                                               |
+| ------------ | ------------------------------------------------------------ |
+| Schema       | Comprehensive with exported validators, strategic indexes    |
+| Queries      | Return type validators, batch fetching, role-based filtering |
+| Mutations    | Input validation, atomic operations, history tracking        |
+| Real-time    | `useQuery` with conditional "skip", `useMutation`            |
+| Auth         | Better Auth integration with role-based access               |
+| File Storage | Not implemented yet                                          |
+| AI Agent     | @convex-dev/agent with role-based tools, streaming           |
+| Crons        | Background jobs for expiration, reminders, cleanup           |
+| Permissions  | Comprehensive RBAC system                                    |
 
 <task_metadata>
 session_id: ses_3cc094cc6ffec1olQKsDNt4toU
 </task_metadata>
-```
+
+````
 
 ---
 
@@ -1070,9 +1132,10 @@ Now let me ask clarifying questions to refine the plan:
     }
   ]
 }
-```
+````
 
 **Output:**
+
 ```
 User has answered your questions: "The current schema has bookings linked to trucks and time slots. However, your description mentions bookings should include multiple containers (some pick-up, some drop-off). Should a booking contain multiple containers, and how should the truck-container relationship work?"="Ignore patterns, or things that were done that doesn't comply with our description. For this question, indeed, one booking may include multiple containers (some pick-up, some drop-off).", "How should the priority algorithm for terminal operators order pending booking requests? What factors should influence priority?"="Let it FIFO for now, we'll discuss it later. It's more complex.", "For the AI-guided booking slot selection, what optimization criteria should the AI use when suggesting slots?"="Full optimization", "How should the auto-validation threshold (N%) work when there are multiple pending requests for the same slot?"="First N% auto-approved", "What container properties should be tracked? You mentioned ID, type, operation type (pick-up/drop-off), and dates. Any additional properties?"="Weight class, dimensions only. Those should definitely not be used in prioritizing. Type can be frigorefic, etc...", "How should notifications be delivered beyond the in-app notification system?"="In-app + Email", "Should the QR code for approved bookings contain the full booking data or just a reference ID that requires server lookup?"="Reference ID only", "What dashboard views are needed in the sidebar beyond the chat interface? This helps scope the traditional UI components."="Comprehensive analytics", "How should the mobile (Expo) app differ from the web app? Same functionality or a subset?"="Ignore Expo app for now.", "For the action logging system, what level of detail is needed?"="Full audit trail". You can now continue with the user's answers in mind.
 ```
@@ -1086,6 +1149,7 @@ Thank you for the detailed answers. Let me ask a few more clarifying questions t
 **Tool: question**
 
 **Input:**
+
 ```json
 {
   "questions": [
@@ -1287,6 +1351,7 @@ Thank you for the detailed answers. Let me ask a few more clarifying questions t
 ```
 
 **Output:**
+
 ```
 User has answered your questions: "What container dimensions should the system support?"="20ft / 40ft / 40ft HC / 45ft", "What container types should be supported?"="Dry, Refrigerated (Reefer), Open Top, Flat Rack, Tank, Hazardous", "How should slot capacity be measured - by number of trucks or number of containers? And should pick-up and drop-off operations have separate capacity pools?"="Capacity = truck count", "Should capacity be managed at the gate level, terminal level, or both?"="Terminal-level, we just have to keep track of the gate we assigned the truck to go through", "For bulk time slot editing, what operations should be supported?"="All options", "Can a single booking request span multiple terminals, or must each booking be for one terminal only?"="Single terminal per booking", "What time granularity should the analytics dashboards support?"="Full analytics suite, using convex aggregate component.", "Should there be rules about how far in advance carriers can book?"="Configurable booking window (min + max in days)", "What cancellation rules should apply to confirmed bookings?"="Anytime", "Can carriers modify their booking after submission (change truck, containers, slot)?"="Can change truck only. In other cases he has to cancel and rebook again.". You can now continue with the user's answers in mind.
 ```
@@ -1300,6 +1365,7 @@ A few more questions to complete the system design:
 **Tool: question**
 
 **Input:**
+
 ```json
 {
   "questions": [
@@ -1484,6 +1550,7 @@ A few more questions to complete the system design:
 ```
 
 **Output:**
+
 ```
 User has answered your questions: "Can a terminal have multiple operators, and can an operator manage multiple terminals?"="Many operators per terminal", "Can any truck from a carrier's fleet be assigned to any booking, or are there terminal/gate restrictions on truck types or classes?"="Flexible assignment", "When is a specific gate assigned to a booking - at booking time, approval time, or dynamically at arrival?"="At approval time", "Can a carrier user belong to multiple carrier companies, or just one?"="There is no principle of companies. A user has a fleet of trucks if he is a carrier.", "How do new carrier companies and users get created in the system?"="There is no carrier companies. Users are created by the admin.", "You mentioned dropping off empty containers. Should these be tracked differently from regular container drop-offs?"="Same as regular containers", "The notification system already has EN/FR. Should the entire UI support multiple languages?"="FR only.", "Should AI conversation history be preserved across sessions?"="They will be persisted using convex agent component through threads and messages.", "What format should booking reference IDs follow?"="Terminal-prefixed", "For the seeded container data (simulating external source), what scale should we target?"="Medium realistic dataset". You can now continue with the user's answers in mind.
 ```
@@ -1497,6 +1564,7 @@ Important clarifications noted! So there's no carrier company concept - carriers
 **Tool: question**
 
 **Input:**
+
 ```json
 {
   "questions": [
@@ -1690,6 +1758,7 @@ Important clarifications noted! So there's no carrier company concept - carriers
 ```
 
 **Output:**
+
 ```
 User has answered your questions: "You mentioned containers are assigned to carriers. Since carriers are individual users (not companies), how is this assignment determined? Is it pre-defined in the external data source?"="Seeded containers. Each is pre-assigned to one specific carrier in the seed data. This is for demo purposes, because in reality we are getting from real APIs and storing them in db.", "Since there are no carrier companies, trucks belong directly to individual carrier users. Can carriers share trucks, or does each truck belong to exactly one carrier?"="Direct ownership", "Should the AI conversational assistant respond in French only (matching the UI), or should it be bilingual?"="French only", "Which events should trigger email notifications?"="Booking confirmed, Booking rejected, Booking created, Slot reminder, Capacity alert (operators), Booking cancelled", "At what capacity percentage should terminal operators receive alerts?"="Configurable per terminal", "How should real-time slot availability be displayed to operators?"="Visual + detailed", "When a truck arrives and uses its booking, how is it marked as 'consumed'?"="Double QR code scanning, at entry and exit.", "What happens when a confirmed booking's time slot passes without the truck showing up?"="Grace period + expire", "When users are on the traditional dashboard views (analytics, lists), should the chat be accessible?"="Closeable sidebar.", "The existing codebase has a schema with carrierCompanies, carrierUsers, etc. Should we refactor to remove the company concept, or work around it?"="Refactor existing". You can now continue with the user's answers in mind.
 ```
@@ -1703,6 +1772,7 @@ Excellent! I have all the information needed. Let me now create a comprehensive 
 **Tool: task**
 
 **Input:**
+
 ```json
 {
   "description": "Design implementation approach",
@@ -1712,7 +1782,8 @@ Excellent! I have all the information needed. Let me now create a comprehensive 
 ```
 
 **Output:**
-```
+
+````
 Now I have a comprehensive understanding of the existing codebase. Let me create a detailed implementation plan.
 
 # APCS Maritime Port Booking System - Implementation Plan
@@ -1725,7 +1796,7 @@ This document outlines a phased implementation plan for transforming the existin
 
 ## Phase 1: Schema Refactoring (Foundation)
 
-**Duration:** 3-5 days  
+**Duration:** 3-5 days
 **Priority:** Critical - All subsequent phases depend on this
 
 ### 1.1 Remove Carrier Company Concept
@@ -1753,7 +1824,7 @@ trucks: defineTable({
   .index("by_owner", ["ownerId"])
   .index("by_owner_and_active", ["ownerId", "isActive"])
   // ... rest remains
-```
+````
 
 ### 1.2 Add Containers Table
 
@@ -1831,39 +1902,39 @@ bookings: defineTable({
   // Gate assigned at approval (not at booking time)
   gateId: v.optional(v.id("gates")),
   timeSlotId: v.optional(v.id("timeSlots")), // Optional until gate assigned
-  
+
   // Booking reference: TER1-BK-001234 (terminal-prefixed)
   bookingReference: v.string(),
-  
+
   // Status
   status: bookingStatusValidator,
-  
+
   // Auto-validation flag
   wasAutoValidated: v.boolean(),
-  
+
   // Container IDs (1:N relationship)
   containerIds: v.array(v.id("containers")),
-  
+
   // QR Code (generated on approval)
   qrCode: v.optional(v.string()),
   qrCodeStorageId: v.optional(v.id("_storage")),
-  
+
   // Driver info
   driverName: v.optional(v.string()),
   driverPhone: v.optional(v.string()),
   driverIdNumber: v.optional(v.string()),
-  
+
   // Slot preference (before gate assignment)
   preferredDate: v.string(), // YYYY-MM-DD
   preferredTimeStart: v.string(), // HH:mm
   preferredTimeEnd: v.string(), // HH:mm
-  
+
   // Scan tracking
   entryScannedAt: v.optional(v.number()),
   exitScannedAt: v.optional(v.number()),
   entryScannedBy: v.optional(v.string()),
   exitScannedBy: v.optional(v.string()),
-  
+
   // Timestamps
   bookedAt: v.number(),
   confirmedAt: v.optional(v.number()),
@@ -1871,10 +1942,10 @@ bookings: defineTable({
   cancelledAt: v.optional(v.number()),
   consumedAt: v.optional(v.number()),
   expiredAt: v.optional(v.number()),
-  
+
   // Rejection/cancellation reason
   statusReason: v.optional(v.string()),
-  
+
   // Who processed
   processedBy: v.optional(v.string()),
   createdBy: v.string(),
@@ -1925,6 +1996,7 @@ timeSlots: defineTable({
 **File:** `packages/backend/convex/schema.ts`
 
 Update `systemConfig`:
+
 ```typescript
 systemConfig: defineTable({
   // Existing fields...
@@ -1932,17 +2004,17 @@ systemConfig: defineTable({
   maxAdvanceBookingDays: v.number(),
   minAdvanceBookingHours: v.number(),
   reminderHoursBefore: v.array(v.number()),
-  
+
   // NEW: Auto-validation threshold (global default, can be overridden per terminal)
   defaultAutoValidationThreshold: v.number(), // 0-100 (percentage)
-  
+
   // NEW: Grace period for no-shows (minutes after slot start)
   noShowGracePeriodMinutes: v.number(),
-  
+
   // NEW: Booking window settings
   minBookingWindowHours: v.number(), // Minimum hours before slot
   maxBookingWindowDays: v.number(), // Maximum days in advance
-  
+
   updatedAt: v.number(),
   updatedBy: v.string(),
 }),
@@ -1968,20 +2040,20 @@ auditLogs: defineTable({
   action: auditActionValidator,
   resource: v.string(), // Function name or resource type
   resourceId: v.optional(v.string()), // Entity ID if applicable
-  
+
   // Request details
   args: v.optional(v.string()), // JSON stringified (sanitized)
   result: v.optional(v.string()), // Success/failure/error message
-  
+
   // Context
   ipAddress: v.optional(v.string()),
   userAgent: v.optional(v.string()),
   sessionId: v.optional(v.string()),
-  
+
   // AI-specific
   aiThreadId: v.optional(v.string()),
   aiToolName: v.optional(v.string()),
-  
+
   // Timing
   timestamp: v.number(),
   durationMs: v.optional(v.number()),
@@ -2005,33 +2077,33 @@ terminals: defineTable({
   address: v.optional(v.string()),
   timezone: v.string(),
   isActive: v.boolean(),
-  
+
   // NEW: Terminal-specific settings
   autoValidationThreshold: v.optional(v.number()), // Overrides global if set
   capacityAlertThresholds: v.optional(v.array(v.number())), // e.g., [70, 85, 95]
-  
+
   // NEW: Operating hours (null = 24/7)
   operatingHoursStart: v.optional(v.string()), // HH:mm
   operatingHoursEnd: v.optional(v.string()), // HH:mm
-  
+
   createdAt: v.number(),
   updatedAt: v.number(),
   createdBy: v.string(),
-})
+});
 ```
 
 ### Files to Create/Modify
 
-| File | Action |
-|------|--------|
-| `packages/backend/convex/schema.ts` | Modify (major changes) |
-| `packages/backend/convex/lib/validators.ts` | Add new validators |
-| `packages/backend/convex/containers/` | Create new directory |
-| `packages/backend/convex/containers/queries.ts` | Create |
-| `packages/backend/convex/containers/mutations.ts` | Create |
-| `packages/backend/convex/audit/` | Create new directory |
-| `packages/backend/convex/audit/mutations.ts` | Create |
-| `packages/backend/convex/audit/queries.ts` | Create |
+| File                                              | Action                 |
+| ------------------------------------------------- | ---------------------- |
+| `packages/backend/convex/schema.ts`               | Modify (major changes) |
+| `packages/backend/convex/lib/validators.ts`       | Add new validators     |
+| `packages/backend/convex/containers/`             | Create new directory   |
+| `packages/backend/convex/containers/queries.ts`   | Create                 |
+| `packages/backend/convex/containers/mutations.ts` | Create                 |
+| `packages/backend/convex/audit/`                  | Create new directory   |
+| `packages/backend/convex/audit/mutations.ts`      | Create                 |
+| `packages/backend/convex/audit/queries.ts`        | Create                 |
 
 ---
 
@@ -2062,19 +2134,19 @@ export type AuthenticatedUser = {
 export async function canManageTruck(
   ctx: PermissionContext,
   user: AuthenticatedUser,
-  truckId: Id<"trucks">
+  truckId: Id<"trucks">,
 ): Promise<boolean> {
   const truck = await ctx.db.get(truckId);
   if (!truck) return false;
-  
+
   // Port admin can manage all
   if (user.apcsRole === "port_admin") return true;
-  
+
   // Carrier can only manage their own trucks
   if (user.apcsRole === "carrier") {
     return truck.ownerId === user.userId;
   }
-  
+
   return false;
 }
 ```
@@ -2093,7 +2165,7 @@ export async function getTerminalSlotCapacity(
   terminalId: Id<"terminals">,
   date: string,
   startTime: string,
-  endTime: string
+  endTime: string,
 ): Promise<{
   available: number;
   total: number;
@@ -2105,36 +2177,42 @@ export async function getTerminalSlotCapacity(
   const slot = await ctx.db
     .query("timeSlots")
     .withIndex("by_terminal_and_date", (q) =>
-      q.eq("terminalId", terminalId).eq("date", date)
+      q.eq("terminalId", terminalId).eq("date", date),
     )
     .filter((q) =>
       q.and(
         q.eq(q.field("startTime"), startTime),
-        q.eq(q.field("endTime"), endTime)
-      )
+        q.eq(q.field("endTime"), endTime),
+      ),
     )
     .first();
 
   if (!slot) {
-    return { available: 0, total: 0, booked: 0, autoValidationLimit: 0, pendingCount: 0 };
+    return {
+      available: 0,
+      total: 0,
+      booked: 0,
+      autoValidationLimit: 0,
+      pendingCount: 0,
+    };
   }
 
   // Count pending bookings
   const pendingBookings = await ctx.db
     .query("bookings")
     .withIndex("by_terminal_and_status", (q) =>
-      q.eq("terminalId", terminalId).eq("status", "pending")
+      q.eq("terminalId", terminalId).eq("status", "pending"),
     )
     .filter((q) =>
       q.and(
         q.eq(q.field("preferredDate"), date),
-        q.eq(q.field("preferredTimeStart"), startTime)
-      )
+        q.eq(q.field("preferredTimeStart"), startTime),
+      ),
     )
     .collect();
 
   const autoValidationLimit = Math.floor(
-    (slot.maxCapacity * slot.autoValidationThreshold) / 100
+    (slot.maxCapacity * slot.autoValidationThreshold) / 100,
   );
 
   return {
@@ -2152,7 +2230,7 @@ export async function getTerminalSlotCapacity(
 export async function shouldAutoValidate(
   ctx: QueryCtx,
   terminalId: Id<"terminals">,
-  slotId: Id<"timeSlots">
+  slotId: Id<"timeSlots">,
 ): Promise<boolean> {
   const slot = await ctx.db.get(slotId);
   if (!slot) return false;
@@ -2161,12 +2239,12 @@ export async function shouldAutoValidate(
   const confirmedCount = await ctx.db
     .query("bookings")
     .withIndex("by_time_slot_and_status", (q) =>
-      q.eq("timeSlotId", slotId).eq("status", "confirmed")
+      q.eq("timeSlotId", slotId).eq("status", "confirmed"),
     )
     .collect();
 
   const autoValidationLimit = Math.floor(
-    (slot.maxCapacity * slot.autoValidationThreshold) / 100
+    (slot.maxCapacity * slot.autoValidationThreshold) / 100,
   );
 
   return confirmedCount.length < autoValidationLimit;
@@ -2178,6 +2256,7 @@ export async function shouldAutoValidate(
 **File:** `packages/backend/convex/bookings/mutations.ts`
 
 Major changes:
+
 - Remove carrier company references
 - Add container selection
 - Implement auto-validation logic
@@ -2191,17 +2270,20 @@ Major changes:
  */
 async function generateBookingReference(
   ctx: MutationCtx,
-  terminalCode: string
+  terminalCode: string,
 ): Promise<string> {
   const today = new Date();
   const dateStr = today.toISOString().split("T")[0].replace(/-/g, "");
-  
+
   // Count bookings for this terminal today
   const count = await ctx.db
     .query("bookings")
     .withIndex("by_terminal", (q) => q.eq("terminalId", terminalId))
-    .filter((q) => 
-      q.gte(q.field("bookedAt"), new Date(today.setHours(0,0,0,0)).getTime())
+    .filter((q) =>
+      q.gte(
+        q.field("bookedAt"),
+        new Date(today.setHours(0, 0, 0, 0)).getTime(),
+      ),
     )
     .collect();
 
@@ -2266,7 +2348,7 @@ export const create = mutation({
       args.terminalId,
       args.preferredDate,
       args.preferredTimeStart,
-      args.preferredTimeEnd
+      args.preferredTimeEnd,
     );
 
     if (capacity.available <= 0) {
@@ -2280,13 +2362,13 @@ export const create = mutation({
     const slot = await ctx.db
       .query("timeSlots")
       .withIndex("by_terminal_and_date", (q) =>
-        q.eq("terminalId", args.terminalId).eq("date", args.preferredDate)
+        q.eq("terminalId", args.terminalId).eq("date", args.preferredDate),
       )
       .filter((q) =>
         q.and(
           q.eq(q.field("startTime"), args.preferredTimeStart),
-          q.eq(q.field("endTime"), args.preferredTimeEnd)
-        )
+          q.eq(q.field("endTime"), args.preferredTimeEnd),
+        ),
       )
       .first();
 
@@ -2297,10 +2379,17 @@ export const create = mutation({
       });
     }
 
-    const shouldAutoValidate = await shouldAutoValidate(ctx, args.terminalId, slot._id);
+    const shouldAutoValidate = await shouldAutoValidate(
+      ctx,
+      args.terminalId,
+      slot._id,
+    );
 
     const terminal = await ctx.db.get(args.terminalId);
-    const bookingReference = await generateBookingReference(ctx, terminal!.code);
+    const bookingReference = await generateBookingReference(
+      ctx,
+      terminal!.code,
+    );
     const now = Date.now();
 
     const bookingId = await ctx.db.insert("bookings", {
@@ -2363,23 +2452,24 @@ export async function assignGateToBooking(
   ctx: MutationCtx,
   bookingId: Id<"bookings">,
   terminalId: Id<"terminals">,
-  timeSlotId: Id<"timeSlots">
+  timeSlotId: Id<"timeSlots">,
 ): Promise<Id<"gates">> {
   const booking = await ctx.db.get(bookingId);
   const truck = await ctx.db.get(booking!.truckId);
-  
+
   // Get all active gates for terminal
   const gates = await ctx.db
     .query("gates")
     .withIndex("by_terminal_and_active", (q) =>
-      q.eq("terminalId", terminalId).eq("isActive", true)
+      q.eq("terminalId", terminalId).eq("isActive", true),
     )
     .collect();
 
   // Filter gates compatible with truck
-  const compatibleGates = gates.filter((gate) =>
-    gate.allowedTruckTypes.includes(truck!.truckType) &&
-    gate.allowedTruckClasses.includes(truck!.truckClass)
+  const compatibleGates = gates.filter(
+    (gate) =>
+      gate.allowedTruckTypes.includes(truck!.truckType) &&
+      gate.allowedTruckClasses.includes(truck!.truckClass),
   );
 
   if (compatibleGates.length === 0) {
@@ -2402,9 +2492,9 @@ export async function assignGateToBooking(
           q.eq(q.field("timeSlotId"), timeSlotId),
           q.or(
             q.eq(q.field("status"), "pending"),
-            q.eq(q.field("status"), "confirmed")
-          )
-        )
+            q.eq(q.field("status"), "confirmed"),
+          ),
+        ),
       )
       .collect();
 
@@ -2425,17 +2515,17 @@ export async function assignGateToBooking(
 
 ### Files to Create/Modify
 
-| File | Action |
-|------|--------|
-| `packages/backend/convex/lib/permissions.ts` | Modify |
-| `packages/backend/convex/lib/capacity.ts` | Major refactor |
-| `packages/backend/convex/bookings/mutations.ts` | Major refactor |
-| `packages/backend/convex/bookings/queries.ts` | Modify |
-| `packages/backend/convex/bookings/internal.ts` | Major refactor |
-| `packages/backend/convex/trucks/mutations.ts` | Modify (remove carrier company) |
-| `packages/backend/convex/trucks/queries.ts` | Modify |
-| `packages/backend/convex/containers/mutations.ts` | Create |
-| `packages/backend/convex/containers/queries.ts` | Create |
+| File                                              | Action                          |
+| ------------------------------------------------- | ------------------------------- |
+| `packages/backend/convex/lib/permissions.ts`      | Modify                          |
+| `packages/backend/convex/lib/capacity.ts`         | Major refactor                  |
+| `packages/backend/convex/bookings/mutations.ts`   | Major refactor                  |
+| `packages/backend/convex/bookings/queries.ts`     | Modify                          |
+| `packages/backend/convex/bookings/internal.ts`    | Major refactor                  |
+| `packages/backend/convex/trucks/mutations.ts`     | Modify (remove carrier company) |
+| `packages/backend/convex/trucks/queries.ts`       | Modify                          |
+| `packages/backend/convex/containers/mutations.ts` | Create                          |
+| `packages/backend/convex/containers/queries.ts`   | Create                          |
 
 ---
 
@@ -2496,26 +2586,29 @@ export const listMyContainers = createTool({
     "Liste les conteneurs du transporteur. " +
     "Peut filtrer par type, opération (enlèvement/dépôt), ou disponibilité.",
   args: z.object({
-    operationType: z.enum(["pick_up", "drop_off"]).optional()
+    operationType: z
+      .enum(["pick_up", "drop_off"])
+      .optional()
       .describe("Filtrer par type d'opération"),
-    available: z.boolean().optional()
+    available: z
+      .boolean()
+      .optional()
       .describe("Uniquement les conteneurs non assignés"),
-    limit: z.number().optional()
+    limit: z
+      .number()
+      .optional()
       .describe("Nombre maximum de résultats (défaut 50)"),
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "listMyContainers");
     if (denied) return denied;
 
-    return await ctx.runQuery(
-      internal.ai.internalQueries.listMyContainers,
-      {
-        userId: ctx.userId!,
-        operationType: args.operationType,
-        available: args.available ?? true,
-        limit: args.limit ?? 50,
-      },
-    );
+    return await ctx.runQuery(internal.ai.internalQueries.listMyContainers, {
+      userId: ctx.userId!,
+      operationType: args.operationType,
+      available: args.available ?? true,
+      limit: args.limit ?? 50,
+    });
   },
 });
 
@@ -2528,7 +2621,8 @@ export const selectContainersForBooking = createTool({
     "Permet de sélectionner des conteneurs pour une réservation. " +
     "Retourne un widget de sélection interactif.",
   args: z.object({
-    containerIds: z.array(z.string())
+    containerIds: z
+      .array(z.string())
       .describe("IDs des conteneurs à sélectionner"),
   }),
   handler: async (ctx, args): Promise<unknown> => {
@@ -2562,24 +2656,21 @@ export const suggestOptimalSlots = createTool({
     "Retourne les 5 meilleurs créneaux avec scores.",
   args: z.object({
     terminalId: z.string().describe("ID du terminal"),
-    containerIds: z.array(z.string())
+    containerIds: z
+      .array(z.string())
       .describe("IDs des conteneurs à transporter"),
-    preferredDate: z.string().optional()
-      .describe("Date préférée (YYYY-MM-DD)"),
+    preferredDate: z.string().optional().describe("Date préférée (YYYY-MM-DD)"),
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "suggestOptimalSlots");
     if (denied) return denied;
 
-    return await ctx.runQuery(
-      internal.ai.internalQueries.suggestOptimalSlots,
-      {
-        userId: ctx.userId!,
-        terminalId: args.terminalId,
-        containerIds: args.containerIds,
-        preferredDate: args.preferredDate,
-      },
-    );
+    return await ctx.runQuery(internal.ai.internalQueries.suggestOptimalSlots, {
+      userId: ctx.userId!,
+      terminalId: args.terminalId,
+      containerIds: args.containerIds,
+      preferredDate: args.preferredDate,
+    });
   },
 });
 
@@ -2600,15 +2691,12 @@ export const getSlotAvailability = createTool({
     const denied = await checkToolAccess(ctx, "getSlotAvailability");
     if (denied) return denied;
 
-    return await ctx.runQuery(
-      internal.ai.internalQueries.getSlotAvailability,
-      {
-        userId: ctx.userId!,
-        terminalId: args.terminalId,
-        startDate: args.startDate,
-        endDate: args.endDate,
-      },
-    );
+    return await ctx.runQuery(internal.ai.internalQueries.getSlotAvailability, {
+      userId: ctx.userId!,
+      terminalId: args.terminalId,
+      startDate: args.startDate,
+      endDate: args.endDate,
+    });
   },
 });
 ```
@@ -2638,20 +2726,17 @@ export const createBookingViaAI = createTool({
     const denied = await checkToolAccess(ctx, "createBookingViaAI");
     if (denied) return denied;
 
-    return await ctx.runMutation(
-      internal.ai.mutations.createBooking,
-      {
-        userId: ctx.userId!,
-        terminalId: args.terminalId as Id<"terminals">,
-        truckId: args.truckId as Id<"trucks">,
-        containerIds: args.containerIds as Id<"containers">[],
-        slotDate: args.slotDate,
-        slotStartTime: args.slotStartTime,
-        slotEndTime: args.slotEndTime,
-        driverName: args.driverName,
-        driverPhone: args.driverPhone,
-      },
-    );
+    return await ctx.runMutation(internal.ai.mutations.createBooking, {
+      userId: ctx.userId!,
+      terminalId: args.terminalId as Id<"terminals">,
+      truckId: args.truckId as Id<"trucks">,
+      containerIds: args.containerIds as Id<"containers">[],
+      slotDate: args.slotDate,
+      slotStartTime: args.slotStartTime,
+      slotEndTime: args.slotEndTime,
+      driverName: args.driverName,
+      driverPhone: args.driverPhone,
+    });
   },
 });
 
@@ -2663,23 +2748,20 @@ export const cancelBookingViaAI = createTool({
     "Annule une réservation existante. " +
     "Le transporteur peut annuler ses propres réservations à tout moment.",
   args: z.object({
-    bookingReference: z.string()
+    bookingReference: z
+      .string()
       .describe("Référence de la réservation (ex: TER1-BK-001234)"),
-    reason: z.string().optional()
-      .describe("Raison de l'annulation"),
+    reason: z.string().optional().describe("Raison de l'annulation"),
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "cancelBookingViaAI");
     if (denied) return denied;
 
-    return await ctx.runMutation(
-      internal.ai.mutations.cancelBooking,
-      {
-        userId: ctx.userId!,
-        bookingReference: args.bookingReference,
-        reason: args.reason,
-      },
-    );
+    return await ctx.runMutation(internal.ai.mutations.cancelBooking, {
+      userId: ctx.userId!,
+      bookingReference: args.bookingReference,
+      reason: args.reason,
+    });
   },
 });
 ```
@@ -2695,26 +2777,18 @@ import {
   listBookingsByTerminal,
   listPendingBookings,
 } from "./tools/bookings";
-import {
-  listTerminals,
-  getTerminalDetails,
-} from "./tools/terminals";
+import { listTerminals, getTerminalDetails } from "./tools/terminals";
 import {
   listMyContainers,
   selectContainersForBooking,
 } from "./tools/containers";
-import {
-  suggestOptimalSlots,
-  getSlotAvailability,
-} from "./tools/slots";
+import { suggestOptimalSlots, getSlotAvailability } from "./tools/slots";
 import {
   createBookingViaAI,
   cancelBookingViaAI,
   changeTruckViaAI,
 } from "./tools/booking-flow";
-import {
-  listMyTrucks,
-} from "./tools/trucks";
+import { listMyTrucks } from "./tools/trucks";
 import { getSystemConfig } from "./tools/config";
 
 export const ALL_TOOLS = {
@@ -2731,7 +2805,7 @@ export const ALL_TOOLS = {
   suggestOptimalSlots,
   getSlotAvailability,
   getSystemConfig,
-  
+
   // Mutations
   createBookingViaAI,
   cancelBookingViaAI,
@@ -2794,30 +2868,30 @@ export const TOOL_PERMISSIONS: Record<ApcsRole, ToolName[]> = {
 
 **Files to create in:** `apps/web/src/components/ai-elements/apcs/`
 
-| Component | Purpose |
-|-----------|---------|
-| `container-list.tsx` | Display carrier's containers |
-| `container-selector.tsx` | Interactive container selection |
-| `slot-suggestions.tsx` | Show optimal slot recommendations |
-| `slot-calendar.tsx` | Availability calendar view |
-| `booking-confirmation-card.tsx` | Booking result with status |
-| `truck-selector.tsx` | Truck selection for booking |
-| `booking-summary.tsx` | Expandable booking details |
+| Component                       | Purpose                           |
+| ------------------------------- | --------------------------------- |
+| `container-list.tsx`            | Display carrier's containers      |
+| `container-selector.tsx`        | Interactive container selection   |
+| `slot-suggestions.tsx`          | Show optimal slot recommendations |
+| `slot-calendar.tsx`             | Availability calendar view        |
+| `booking-confirmation-card.tsx` | Booking result with status        |
+| `truck-selector.tsx`            | Truck selection for booking       |
+| `booking-summary.tsx`           | Expandable booking details        |
 
 ### Files to Create/Modify
 
-| File | Action |
-|------|--------|
-| `packages/backend/convex/ai/agent.ts` | Modify (French instructions) |
-| `packages/backend/convex/ai/registry.ts` | Modify (add new tools) |
-| `packages/backend/convex/ai/tools/types.ts` | Modify (permissions) |
-| `packages/backend/convex/ai/tools/containers.ts` | Create |
-| `packages/backend/convex/ai/tools/slots.ts` | Create |
-| `packages/backend/convex/ai/tools/booking-flow.ts` | Create |
-| `packages/backend/convex/ai/tools/trucks.ts` | Create |
-| `packages/backend/convex/ai/mutations.ts` | Create |
-| `packages/backend/convex/ai/internalQueries.ts` | Major update |
-| `apps/web/src/components/ai-elements/apcs/*.tsx` | Create (7 files) |
+| File                                               | Action                       |
+| -------------------------------------------------- | ---------------------------- |
+| `packages/backend/convex/ai/agent.ts`              | Modify (French instructions) |
+| `packages/backend/convex/ai/registry.ts`           | Modify (add new tools)       |
+| `packages/backend/convex/ai/tools/types.ts`        | Modify (permissions)         |
+| `packages/backend/convex/ai/tools/containers.ts`   | Create                       |
+| `packages/backend/convex/ai/tools/slots.ts`        | Create                       |
+| `packages/backend/convex/ai/tools/booking-flow.ts` | Create                       |
+| `packages/backend/convex/ai/tools/trucks.ts`       | Create                       |
+| `packages/backend/convex/ai/mutations.ts`          | Create                       |
+| `packages/backend/convex/ai/internalQueries.ts`    | Major update                 |
+| `apps/web/src/components/ai-elements/apcs/*.tsx`   | Create (7 files)             |
 
 ---
 
@@ -2855,7 +2929,7 @@ export const copyDayTemplate = mutation({
     const sourceSlots = await ctx.db
       .query("timeSlots")
       .withIndex("by_terminal_and_date", (q) =>
-        q.eq("terminalId", args.terminalId).eq("date", args.sourceDate)
+        q.eq("terminalId", args.terminalId).eq("date", args.sourceDate),
       )
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect();
@@ -2876,7 +2950,7 @@ export const copyDayTemplate = mutation({
         const existing = await ctx.db
           .query("timeSlots")
           .withIndex("by_terminal_and_date", (q) =>
-            q.eq("terminalId", args.terminalId).eq("date", targetDate)
+            q.eq("terminalId", args.terminalId).eq("date", targetDate),
           )
           .first();
         if (existing) {
@@ -2917,12 +2991,14 @@ export const createWeeklyPattern = mutation({
     startDate: v.string(),
     endDate: v.string(),
     daysOfWeek: v.array(v.number()), // 0=Sunday, 1=Monday, etc.
-    slots: v.array(v.object({
-      startTime: v.string(),
-      endTime: v.string(),
-      maxCapacity: v.number(),
-      autoValidationThreshold: v.number(),
-    })),
+    slots: v.array(
+      v.object({
+        startTime: v.string(),
+        endTime: v.string(),
+        maxCapacity: v.number(),
+        autoValidationThreshold: v.number(),
+      }),
+    ),
     skipExisting: v.boolean(),
   },
   returns: v.object({
@@ -2955,7 +3031,7 @@ export const createWeeklyPattern = mutation({
         const existing = await ctx.db
           .query("timeSlots")
           .withIndex("by_terminal_and_date", (q) =>
-            q.eq("terminalId", args.terminalId).eq("date", date)
+            q.eq("terminalId", args.terminalId).eq("date", date),
           )
           .first();
         if (existing) {
@@ -3001,16 +3077,16 @@ export const bulkUpdateCapacity = mutation({
     await requireTerminalAccess(ctx, user, args.terminalId);
 
     let slotsToUpdate;
-    
+
     if (args.slotIds) {
       slotsToUpdate = await Promise.all(
-        args.slotIds.map((id) => ctx.db.get(id))
+        args.slotIds.map((id) => ctx.db.get(id)),
       );
     } else {
       slotsToUpdate = await ctx.db
         .query("timeSlots")
         .withIndex("by_terminal_and_date", (q) =>
-          q.eq("terminalId", args.terminalId).eq("date", args.date)
+          q.eq("terminalId", args.terminalId).eq("date", args.date),
         )
         .collect();
     }
@@ -3020,7 +3096,7 @@ export const bulkUpdateCapacity = mutation({
 
     for (const slot of slotsToUpdate) {
       if (!slot) continue;
-      
+
       // Can't reduce below current bookings
       if (args.maxCapacity < slot.currentBookings) {
         continue;
@@ -3028,7 +3104,8 @@ export const bulkUpdateCapacity = mutation({
 
       await ctx.db.patch(slot._id, {
         maxCapacity: args.maxCapacity,
-        autoValidationThreshold: args.autoValidationThreshold ?? slot.autoValidationThreshold,
+        autoValidationThreshold:
+          args.autoValidationThreshold ?? slot.autoValidationThreshold,
         updatedAt: now,
       });
       updated++;
@@ -3043,23 +3120,23 @@ export const bulkUpdateCapacity = mutation({
 
 **Files to create in:** `apps/web/src/features/time-slots/`
 
-| File | Purpose |
-|------|---------|
-| `components/slot-editor.tsx` | Individual slot editing |
-| `components/bulk-slot-editor.tsx` | Bulk editing interface |
-| `components/day-template-picker.tsx` | Copy day template modal |
+| File                                   | Purpose                      |
+| -------------------------------------- | ---------------------------- |
+| `components/slot-editor.tsx`           | Individual slot editing      |
+| `components/bulk-slot-editor.tsx`      | Bulk editing interface       |
+| `components/day-template-picker.tsx`   | Copy day template modal      |
 | `components/weekly-pattern-wizard.tsx` | Weekly pattern configuration |
-| `components/slot-calendar-view.tsx` | Calendar view of all slots |
-| `hooks/use-slot-editing.ts` | State management for editing |
+| `components/slot-calendar-view.tsx`    | Calendar view of all slots   |
+| `hooks/use-slot-editing.ts`            | State management for editing |
 
 ### Files to Create/Modify
 
-| File | Action |
-|------|--------|
-| `packages/backend/convex/timeSlots/mutations.ts` | Major update |
-| `packages/backend/convex/timeSlots/queries.ts` | Add bulk queries |
-| `apps/web/src/features/time-slots/` | Create directory + 6 files |
-| `apps/web/src/routes/operator/slots.tsx` | Create |
+| File                                             | Action                     |
+| ------------------------------------------------ | -------------------------- |
+| `packages/backend/convex/timeSlots/mutations.ts` | Major update               |
+| `packages/backend/convex/timeSlots/queries.ts`   | Add bulk queries           |
+| `apps/web/src/features/time-slots/`              | Create directory + 6 files |
+| `apps/web/src/routes/operator/slots.tsx`         | Create                     |
 
 ---
 
@@ -3089,7 +3166,7 @@ export interface AutoValidationResult {
 export async function checkAutoValidation(
   ctx: QueryCtx,
   terminalId: Id<"terminals">,
-  slotId: Id<"timeSlots">
+  slotId: Id<"timeSlots">,
 ): Promise<AutoValidationResult> {
   const slot = await ctx.db.get(slotId);
   if (!slot) {
@@ -3104,10 +3181,11 @@ export async function checkAutoValidation(
 
   // Get terminal for potential override
   const terminal = await ctx.db.get(terminalId);
-  const thresholdPercent = terminal?.autoValidationThreshold ?? slot.autoValidationThreshold;
-  
+  const thresholdPercent =
+    terminal?.autoValidationThreshold ?? slot.autoValidationThreshold;
+
   const autoValidationLimit = Math.floor(
-    (slot.maxCapacity * thresholdPercent) / 100
+    (slot.maxCapacity * thresholdPercent) / 100,
   );
 
   // Count current auto-validated bookings for this slot
@@ -3117,8 +3195,8 @@ export async function checkAutoValidation(
     .filter((q) =>
       q.and(
         q.eq(q.field("wasAutoValidated"), true),
-        q.eq(q.field("status"), "confirmed")
-      )
+        q.eq(q.field("status"), "confirmed"),
+      ),
     )
     .collect();
 
@@ -3163,7 +3241,10 @@ export const confirmBooking = mutation({
 
     const booking = await ctx.db.get(args.bookingId);
     if (!booking) {
-      throw new ConvexError({ code: "NOT_FOUND", message: "Réservation non trouvée" });
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "Réservation non trouvée",
+      });
     }
 
     await requireTerminalAccess(ctx, user, booking.terminalId);
@@ -3181,12 +3262,20 @@ export const confirmBooking = mutation({
       // Validate specified gate
       const gate = await ctx.db.get(args.gateId);
       if (!gate || gate.terminalId !== booking.terminalId) {
-        throw new ConvexError({ code: "INVALID_INPUT", message: "Portail invalide" });
+        throw new ConvexError({
+          code: "INVALID_INPUT",
+          message: "Portail invalide",
+        });
       }
       gateId = args.gateId;
     } else {
       // Auto-assign gate
-      gateId = await assignGateToBooking(ctx, args.bookingId, booking.terminalId, booking.timeSlotId!);
+      gateId = await assignGateToBooking(
+        ctx,
+        args.bookingId,
+        booking.terminalId,
+        booking.timeSlotId!,
+      );
     }
 
     const now = Date.now();
@@ -3231,22 +3320,22 @@ export const confirmBooking = mutation({
 
 **Files to create in:** `apps/web/src/features/approvals/`
 
-| File | Purpose |
-|------|---------|
-| `components/approval-queue.tsx` | List of pending bookings |
-| `components/approval-card.tsx` | Single booking approval UI |
-| `components/bulk-approval.tsx` | Approve multiple bookings |
-| `components/gate-assignment-modal.tsx` | Manual gate selection |
-| `hooks/use-approvals.ts` | Approval state management |
+| File                                   | Purpose                    |
+| -------------------------------------- | -------------------------- |
+| `components/approval-queue.tsx`        | List of pending bookings   |
+| `components/approval-card.tsx`         | Single booking approval UI |
+| `components/bulk-approval.tsx`         | Approve multiple bookings  |
+| `components/gate-assignment-modal.tsx` | Manual gate selection      |
+| `hooks/use-approvals.ts`               | Approval state management  |
 
 ### Files to Create/Modify
 
-| File | Action |
-|------|--------|
-| `packages/backend/convex/lib/autoValidation.ts` | Create |
-| `packages/backend/convex/bookings/mutations.ts` | Update confirm logic |
-| `apps/web/src/features/approvals/` | Create directory + 5 files |
-| `apps/web/src/routes/operator/approvals.tsx` | Create |
+| File                                            | Action                     |
+| ----------------------------------------------- | -------------------------- |
+| `packages/backend/convex/lib/autoValidation.ts` | Create                     |
+| `packages/backend/convex/bookings/mutations.ts` | Update confirm logic       |
+| `apps/web/src/features/approvals/`              | Create directory + 5 files |
+| `apps/web/src/routes/operator/approvals.tsx`    | Create                     |
 
 ---
 
@@ -3268,11 +3357,13 @@ import { v } from "convex/values";
 const NOTIFICATION_TEMPLATES = {
   booking_created: {
     titleFr: "Réservation créée",
-    bodyFr: "Votre réservation {reference} a été créée et est en attente de confirmation.",
+    bodyFr:
+      "Votre réservation {reference} a été créée et est en attente de confirmation.",
   },
   booking_confirmed: {
     titleFr: "Réservation confirmée",
-    bodyFr: "Votre réservation {reference} a été confirmée pour le {date} à {time}. Portail: {gate}.",
+    bodyFr:
+      "Votre réservation {reference} a été confirmée pour le {date} à {time}. Portail: {gate}.",
   },
   booking_rejected: {
     titleFr: "Réservation refusée",
@@ -3284,11 +3375,13 @@ const NOTIFICATION_TEMPLATES = {
   },
   booking_reminder: {
     titleFr: "Rappel de réservation",
-    bodyFr: "Rappel: Votre réservation {reference} est prévue dans {hours} heures.",
+    bodyFr:
+      "Rappel: Votre réservation {reference} est prévue dans {hours} heures.",
   },
   capacity_alert: {
     titleFr: "Alerte de capacité",
-    bodyFr: "Le terminal {terminal} atteint {percent}% de capacité pour le {date}.",
+    bodyFr:
+      "Le terminal {terminal} atteint {percent}% de capacité pour le {date}.",
   },
 };
 
@@ -3314,7 +3407,7 @@ export const sendNotification = action({
   },
   handler: async (ctx, args) => {
     const template = NOTIFICATION_TEMPLATES[args.type];
-    
+
     // Replace placeholders
     let bodyFr = template.bodyFr;
     for (const [key, value] of Object.entries(args.data)) {
@@ -3341,10 +3434,13 @@ export const sendNotification = action({
         titleEn: template.titleFr, // French-only for now
         bodyFr,
         bodyEn: bodyFr,
-        relatedEntityType: args.data.bookingId ? "booking" : 
-                          args.data.terminalId ? "terminal" : undefined,
+        relatedEntityType: args.data.bookingId
+          ? "booking"
+          : args.data.terminalId
+            ? "terminal"
+            : undefined,
         relatedEntityId: args.data.bookingId ?? args.data.terminalId,
-      }
+      },
     );
 
     // Send email if enabled
@@ -3497,6 +3593,7 @@ Let me read the full plan output that was generated:
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/.local/share/opencode/tool-output/tool_c34212b0d001zHbr5LxSB1sFlE",
@@ -3506,37 +3603,38 @@ Let me read the full plan output that was generated:
 ```
 
 **Output:**
-```
+
+````
 <file>
 00001| Now I have a comprehensive understanding of the existing codebase. Let me create a detailed implementation plan.
-00002| 
+00002|
 00003| # APCS Maritime Port Booking System - Implementation Plan
-00004| 
+00004|
 00005| ## Executive Summary
-00006| 
+00006|
 00007| This document outlines a phased implementation plan for transforming the existing APCS system based on the comprehensive requirements. The plan is organized into 11 phases, prioritized by dependencies and business value.
-00008| 
+00008|
 00009| ---
-00010| 
+00010|
 00011| ## Phase 1: Schema Refactoring (Foundation)
-00012| 
-00013| **Duration:** 3-5 days  
+00012|
+00013| **Duration:** 3-5 days
 00014| **Priority:** Critical - All subsequent phases depend on this
-00015| 
+00015|
 00016| ### 1.1 Remove Carrier Company Concept
-00017| 
+00017|
 00018| **File:** `packages/backend/convex/schema.ts`
-00019| 
+00019|
 00020| **Changes:**
 00021| - Remove `carrierCompanies` table
 00022| - Remove `carrierUsers` table
 00023| - Modify `trucks` table: remove `carrierCompanyId`, add `ownerId: v.string()` (Better Auth user ID)
-00024| 
+00024|
 00025| ```typescript
 00026| // REMOVE these tables:
 00027| // - carrierCompanies
 00028| // - carrierUsers
-00029| 
+00029|
 00030| // MODIFY trucks table:
 00031| trucks: defineTable({
 00032|   ownerId: v.string(), // Better Auth user ID (carrier)
@@ -3549,11 +3647,11 @@ Let me read the full plan output that was generated:
 00039|   .index("by_owner_and_active", ["ownerId", "isActive"])
 00040|   // ... rest remains
 00041| ```
-00042| 
+00042|
 00043| ### 1.2 Add Containers Table
-00044| 
+00044|
 00045| **File:** `packages/backend/convex/schema.ts`
-00046| 
+00046|
 00047| ```typescript
 00048| // Add new validators
 00049| export const containerTypeValidator = v.union(
@@ -3564,26 +3662,26 @@ Let me read the full plan output that was generated:
 00054|   v.literal("tank"),
 00055|   v.literal("hazardous")
 00056| );
-00057| 
+00057|
 00058| export const containerDimensionsValidator = v.union(
 00059|   v.literal("20ft"),
 00060|   v.literal("40ft"),
 00061|   v.literal("40ft_hc"),
 00062|   v.literal("45ft")
 00063| );
-00064| 
+00064|
 00065| export const containerOperationValidator = v.union(
 00066|   v.literal("pick_up"),
 00067|   v.literal("drop_off")
 00068| );
-00069| 
+00069|
 00070| export const containerWeightClassValidator = v.union(
 00071|   v.literal("light"),    // < 10t
 00072|   v.literal("medium"),   // 10-20t
 00073|   v.literal("heavy"),    // 20-30t
 00074|   v.literal("max")       // > 30t
 00075| );
-00076| 
+00076|
 00077| // New table
 00078| containers: defineTable({
 00079|   ownerId: v.string(), // Carrier user ID
@@ -3612,11 +3710,11 @@ Let me read the full plan output that was generated:
 00102|   .index("by_operation_type", ["operationType"])
 00103|   .index("by_type", ["type"]),
 00104| ```
-00105| 
+00105|
 00106| ### 1.3 Refactor Bookings Table
-00107| 
+00107|
 00108| **File:** `packages/backend/convex/schema.ts`
-00109| 
+00109|
 00110| ```typescript
 00111| bookings: defineTable({
 00112|   // References (simplified)
@@ -3626,39 +3724,39 @@ Let me read the full plan output that was generated:
 00116|   // Gate assigned at approval (not at booking time)
 00117|   gateId: v.optional(v.id("gates")),
 00118|   timeSlotId: v.optional(v.id("timeSlots")), // Optional until gate assigned
-00119|   
+00119|
 00120|   // Booking reference: TER1-BK-001234 (terminal-prefixed)
 00121|   bookingReference: v.string(),
-00122|   
+00122|
 00123|   // Status
 00124|   status: bookingStatusValidator,
-00125|   
+00125|
 00126|   // Auto-validation flag
 00127|   wasAutoValidated: v.boolean(),
-00128|   
+00128|
 00129|   // Container IDs (1:N relationship)
 00130|   containerIds: v.array(v.id("containers")),
-00131|   
+00131|
 00132|   // QR Code (generated on approval)
 00133|   qrCode: v.optional(v.string()),
 00134|   qrCodeStorageId: v.optional(v.id("_storage")),
-00135|   
+00135|
 00136|   // Driver info
 00137|   driverName: v.optional(v.string()),
 00138|   driverPhone: v.optional(v.string()),
 00139|   driverIdNumber: v.optional(v.string()),
-00140|   
+00140|
 00141|   // Slot preference (before gate assignment)
 00142|   preferredDate: v.string(), // YYYY-MM-DD
 00143|   preferredTimeStart: v.string(), // HH:mm
 00144|   preferredTimeEnd: v.string(), // HH:mm
-00145|   
+00145|
 00146|   // Scan tracking
 00147|   entryScannedAt: v.optional(v.number()),
 00148|   exitScannedAt: v.optional(v.number()),
 00149|   entryScannedBy: v.optional(v.string()),
 00150|   exitScannedBy: v.optional(v.string()),
-00151|   
+00151|
 00152|   // Timestamps
 00153|   bookedAt: v.number(),
 00154|   confirmedAt: v.optional(v.number()),
@@ -3666,10 +3764,10 @@ Let me read the full plan output that was generated:
 00156|   cancelledAt: v.optional(v.number()),
 00157|   consumedAt: v.optional(v.number()),
 00158|   expiredAt: v.optional(v.number()),
-00159|   
+00159|
 00160|   // Rejection/cancellation reason
 00161|   statusReason: v.optional(v.string()),
-00162|   
+00162|
 00163|   // Who processed
 00164|   processedBy: v.optional(v.string()),
 00165|   createdBy: v.string(),
@@ -3687,11 +3785,11 @@ Let me read the full plan output that was generated:
 00177|   .index("by_status", ["status"])
 00178|   .index("by_created_by", ["createdBy"]),
 00179| ```
-00180| 
+00180|
 00181| ### 1.4 Update Time Slots for Terminal-Level Capacity
-00182| 
+00182|
 00183| **File:** `packages/backend/convex/schema.ts`
-00184| 
+00184|
 00185| ```typescript
 00186| // Time slots now belong to terminal, not gate
 00187| timeSlots: defineTable({
@@ -3714,11 +3812,11 @@ Let me read the full plan output that was generated:
 00204|   .index("by_date", ["date"])
 00205|   .index("by_terminal_and_active", ["terminalId", "isActive"]),
 00206| ```
-00207| 
+00207|
 00208| ### 1.5 Add System Configuration for Auto-Validation
-00209| 
+00209|
 00210| **File:** `packages/backend/convex/schema.ts`
-00211| 
+00211|
 00212| Update `systemConfig`:
 00213| ```typescript
 00214| systemConfig: defineTable({
@@ -3727,26 +3825,26 @@ Let me read the full plan output that was generated:
 00217|   maxAdvanceBookingDays: v.number(),
 00218|   minAdvanceBookingHours: v.number(),
 00219|   reminderHoursBefore: v.array(v.number()),
-00220|   
+00220|
 00221|   // NEW: Auto-validation threshold (global default, can be overridden per terminal)
 00222|   defaultAutoValidationThreshold: v.number(), // 0-100 (percentage)
-00223|   
+00223|
 00224|   // NEW: Grace period for no-shows (minutes after slot start)
 00225|   noShowGracePeriodMinutes: v.number(),
-00226|   
+00226|
 00227|   // NEW: Booking window settings
 00228|   minBookingWindowHours: v.number(), // Minimum hours before slot
 00229|   maxBookingWindowDays: v.number(), // Maximum days in advance
-00230|   
+00230|
 00231|   updatedAt: v.number(),
 00232|   updatedBy: v.string(),
 00233| }),
 00234| ```
-00235| 
+00235|
 00236| ### 1.6 Add Audit Log Table
-00237| 
+00237|
 00238| **File:** `packages/backend/convex/schema.ts`
-00239| 
+00239|
 00240| ```typescript
 00241| export const auditActionValidator = v.union(
 00242|   v.literal("query"),
@@ -3757,26 +3855,26 @@ Let me read the full plan output that was generated:
 00247|   v.literal("failed_auth"),
 00248|   v.literal("permission_denied")
 00249| );
-00250| 
+00250|
 00251| auditLogs: defineTable({
 00252|   userId: v.optional(v.string()), // null for anonymous/failed auth
 00253|   action: auditActionValidator,
 00254|   resource: v.string(), // Function name or resource type
 00255|   resourceId: v.optional(v.string()), // Entity ID if applicable
-00256|   
+00256|
 00257|   // Request details
 00258|   args: v.optional(v.string()), // JSON stringified (sanitized)
 00259|   result: v.optional(v.string()), // Success/failure/error message
-00260|   
+00260|
 00261|   // Context
 00262|   ipAddress: v.optional(v.string()),
 00263|   userAgent: v.optional(v.string()),
 00264|   sessionId: v.optional(v.string()),
-00265|   
+00265|
 00266|   // AI-specific
 00267|   aiThreadId: v.optional(v.string()),
 00268|   aiToolName: v.optional(v.string()),
-00269|   
+00269|
 00270|   // Timing
 00271|   timestamp: v.number(),
 00272|   durationMs: v.optional(v.number()),
@@ -3787,11 +3885,11 @@ Let me read the full plan output that was generated:
 00277|   .index("by_timestamp", ["timestamp"])
 00278|   .index("by_user_and_timestamp", ["userId", "timestamp"]),
 00279| ```
-00280| 
+00280|
 00281| ### 1.7 Terminal Configuration Updates
-00282| 
+00282|
 00283| **File:** `packages/backend/convex/schema.ts`
-00284| 
+00284|
 00285| ```typescript
 00286| terminals: defineTable({
 00287|   // Existing fields...
@@ -3800,23 +3898,23 @@ Let me read the full plan output that was generated:
 00290|   address: v.optional(v.string()),
 00291|   timezone: v.string(),
 00292|   isActive: v.boolean(),
-00293|   
+00293|
 00294|   // NEW: Terminal-specific settings
 00295|   autoValidationThreshold: v.optional(v.number()), // Overrides global if set
 00296|   capacityAlertThresholds: v.optional(v.array(v.number())), // e.g., [70, 85, 95]
-00297|   
+00297|
 00298|   // NEW: Operating hours (null = 24/7)
 00299|   operatingHoursStart: v.optional(v.string()), // HH:mm
 00300|   operatingHoursEnd: v.optional(v.string()), // HH:mm
-00301|   
+00301|
 00302|   createdAt: v.number(),
 00303|   updatedAt: v.number(),
 00304|   createdBy: v.string(),
 00305| })
 00306| ```
-00307| 
+00307|
 00308| ### Files to Create/Modify
-00309| 
+00309|
 00310| | File | Action |
 00311| |------|--------|
 00312| | `packages/backend/convex/schema.ts` | Modify (major changes) |
@@ -3827,18 +3925,18 @@ Let me read the full plan output that was generated:
 00317| | `packages/backend/convex/audit/` | Create new directory |
 00318| | `packages/backend/convex/audit/mutations.ts` | Create |
 00319| | `packages/backend/convex/audit/queries.ts` | Create |
-00320| 
+00320|
 00321| ---
-00322| 
+00322|
 00323| ## Phase 2: Core Backend Functions Refactoring
-00324| 
-00325| **Duration:** 5-7 days  
+00324|
+00325| **Duration:** 5-7 days
 00326| **Dependencies:** Phase 1
-00327| 
+00327|
 00328| ### 2.1 Update Permissions System
-00329| 
+00329|
 00330| **File:** `packages/backend/convex/lib/permissions.ts`
-00331| 
+00331|
 00332| ```typescript
 00333| // Update AuthenticatedUser type
 00334| export type AuthenticatedUser = {
@@ -3849,11 +3947,11 @@ Let me read the full plan output that was generated:
 00339|   // Remove carrierCompanyId, add:
 00340|   isCarrier: boolean;
 00341| };
-00342| 
+00342|
 00343| // Remove carrier company related functions
 00344| // Update canViewCarrier -> canViewCarrierUser
 00345| // Update canManageCarrier -> canManageCarrierUser
-00346| 
+00346|
 00347| export async function canManageTruck(
 00348|   ctx: PermissionContext,
 00349|   user: AuthenticatedUser,
@@ -3861,23 +3959,23 @@ Let me read the full plan output that was generated:
 00351| ): Promise<boolean> {
 00352|   const truck = await ctx.db.get(truckId);
 00353|   if (!truck) return false;
-00354|   
+00354|
 00355|   // Port admin can manage all
 00356|   if (user.apcsRole === "port_admin") return true;
-00357|   
+00357|
 00358|   // Carrier can only manage their own trucks
 00359|   if (user.apcsRole === "carrier") {
 00360|     return truck.ownerId === user.userId;
 00361|   }
-00362|   
+00362|
 00363|   return false;
 00364| }
 00365| ```
-00366| 
+00366|
 00367| ### 2.2 Update Capacity Engine
-00368| 
+00368|
 00369| **File:** `packages/backend/convex/lib/capacity.ts`
-00370| 
+00370|
 00371| ```typescript
 00372| /**
 00373|  * Get terminal capacity for a time slot
@@ -3909,11 +4007,11 @@ Let me read the full plan output that was generated:
 00399|       )
 00400|     )
 00401|     .first();
-00402| 
+00402|
 00403|   if (!slot) {
 00404|     return { available: 0, total: 0, booked: 0, autoValidationLimit: 0, pendingCount: 0 };
 00405|   }
-00406| 
+00406|
 00407|   // Count pending bookings
 00408|   const pendingBookings = await ctx.db
 00409|     .query("bookings")
@@ -3927,11 +4025,11 @@ Let me read the full plan output that was generated:
 00417|       )
 00418|     )
 00419|     .collect();
-00420| 
+00420|
 00421|   const autoValidationLimit = Math.floor(
 00422|     (slot.maxCapacity * slot.autoValidationThreshold) / 100
 00423|   );
-00424| 
+00424|
 00425|   return {
 00426|     available: Math.max(0, slot.maxCapacity - slot.currentBookings),
 00427|     total: slot.maxCapacity,
@@ -3940,7 +4038,7 @@ Let me read the full plan output that was generated:
 00430|     pendingCount: pendingBookings.length,
 00431|   };
 00432| }
-00433| 
+00433|
 00434| /**
 00435|  * Check if booking should be auto-validated
 00436|  */
@@ -3951,7 +4049,7 @@ Let me read the full plan output that was generated:
 00441| ): Promise<boolean> {
 00442|   const slot = await ctx.db.get(slotId);
 00443|   if (!slot) return false;
-00444| 
+00444|
 00445|   // Get confirmed bookings count for this slot
 00446|   const confirmedCount = await ctx.db
 00447|     .query("bookings")
@@ -3959,26 +4057,26 @@ Let me read the full plan output that was generated:
 00449|       q.eq("timeSlotId", slotId).eq("status", "confirmed")
 00450|     )
 00451|     .collect();
-00452| 
+00452|
 00453|   const autoValidationLimit = Math.floor(
 00454|     (slot.maxCapacity * slot.autoValidationThreshold) / 100
 00455|   );
-00456| 
+00456|
 00457|   return confirmedCount.length < autoValidationLimit;
 00458| }
 00459| ```
-00460| 
+00460|
 00461| ### 2.3 Update Booking Mutations
-00462| 
+00462|
 00463| **File:** `packages/backend/convex/bookings/mutations.ts`
-00464| 
+00464|
 00465| Major changes:
 00466| - Remove carrier company references
 00467| - Add container selection
 00468| - Implement auto-validation logic
 00469| - Gate assignment at approval time
 00470| - Generate terminal-prefixed references
-00471| 
+00471|
 00472| ```typescript
 00473| /**
 00474|  * Generate booking reference with terminal prefix
@@ -3990,20 +4088,20 @@ Let me read the full plan output that was generated:
 00480| ): Promise<string> {
 00481|   const today = new Date();
 00482|   const dateStr = today.toISOString().split("T")[0].replace(/-/g, "");
-00483|   
+00483|
 00484|   // Count bookings for this terminal today
 00485|   const count = await ctx.db
 00486|     .query("bookings")
 00487|     .withIndex("by_terminal", (q) => q.eq("terminalId", terminalId))
-00488|     .filter((q) => 
+00488|     .filter((q) =>
 00489|       q.gte(q.field("bookedAt"), new Date(today.setHours(0,0,0,0)).getTime())
 00490|     )
 00491|     .collect();
-00492| 
+00492|
 00493|   const sequence = String(count.length + 1).padStart(6, "0");
 00494|   return `${terminalCode}-BK-${sequence}`;
 00495| }
-00496| 
+00496|
 00497| /**
 00498|  * Create booking (carrier only)
 00499|  * One booking = one truck + multiple containers
@@ -4011,7 +4109,7 @@ Let me read the full plan output that was generated:
 
 (File has more lines. Use 'offset' parameter to read beyond line 500)
 </file>
-```
+````
 
 ---
 
@@ -4020,6 +4118,7 @@ Let me read the full plan output that was generated:
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/.local/share/opencode/tool-output/tool_c34212b0d001zHbr5LxSB1sFlE",
@@ -4029,7 +4128,8 @@ Let me read the full plan output that was generated:
 ```
 
 **Output:**
-```
+
+````
 <file>
 00501| export const create = mutation({
 00502|   args: {
@@ -4051,7 +4151,7 @@ Let me read the full plan output that was generated:
 00518|   handler: async (ctx, args) => {
 00519|     const user = await getAuthenticatedUser(ctx);
 00520|     requireRole(user, ["carrier"]);
-00521| 
+00521|
 00522|     // Validate truck ownership
 00523|     const truck = await ctx.db.get(args.truckId);
 00524|     if (!truck || truck.ownerId !== user.userId) {
@@ -4060,7 +4160,7 @@ Let me read the full plan output that was generated:
 00527|         message: "You can only book with your own trucks",
 00528|       });
 00529|     }
-00530| 
+00530|
 00531|     // Validate containers
 00532|     for (const containerId of args.containerIds) {
 00533|       const container = await ctx.db.get(containerId);
@@ -4077,7 +4177,7 @@ Let me read the full plan output that was generated:
 00544|         });
 00545|       }
 00546|     }
-00547| 
+00547|
 00548|     // Check terminal capacity
 00549|     const capacity = await getTerminalSlotCapacity(
 00550|       ctx,
@@ -4086,14 +4186,14 @@ Let me read the full plan output that was generated:
 00553|       args.preferredTimeStart,
 00554|       args.preferredTimeEnd
 00555|     );
-00556| 
+00556|
 00557|     if (capacity.available <= 0) {
 00558|       throw new ConvexError({
 00559|         code: "CAPACITY_FULL",
 00560|         message: "No capacity available for this time slot",
 00561|       });
 00562|     }
-00563| 
+00563|
 00564|     // Determine if auto-validation applies
 00565|     const slot = await ctx.db
 00566|       .query("timeSlots")
@@ -4107,20 +4207,20 @@ Let me read the full plan output that was generated:
 00574|         )
 00575|       )
 00576|       .first();
-00577| 
+00577|
 00578|     if (!slot) {
 00579|       throw new ConvexError({
 00580|         code: "NOT_FOUND",
 00581|         message: "Time slot not found",
 00582|       });
 00583|     }
-00584| 
+00584|
 00585|     const shouldAutoValidate = await shouldAutoValidate(ctx, args.terminalId, slot._id);
-00586| 
+00586|
 00587|     const terminal = await ctx.db.get(args.terminalId);
 00588|     const bookingReference = await generateBookingReference(ctx, terminal!.code);
 00589|     const now = Date.now();
-00590| 
+00590|
 00591|     const bookingId = await ctx.db.insert("bookings", {
 00592|       terminalId: args.terminalId,
 00593|       carrierId: user.userId,
@@ -4141,24 +4241,24 @@ Let me read the full plan output that was generated:
 00608|       createdBy: user.userId,
 00609|       updatedAt: now,
 00610|     });
-00611| 
+00611|
 00612|     // Update containers
 00613|     for (const containerId of args.containerIds) {
 00614|       await ctx.db.patch(containerId, { bookingId, updatedAt: now });
 00615|     }
-00616| 
+00616|
 00617|     // Update slot capacity
 00618|     await ctx.db.patch(slot._id, {
 00619|       currentBookings: slot.currentBookings + 1,
 00620|       updatedAt: now,
 00621|     });
-00622| 
+00622|
 00623|     // If auto-validated, assign gate and generate QR
 00624|     if (shouldAutoValidate) {
 00625|       await assignGateToBooking(ctx, bookingId, args.terminalId, slot._id);
 00626|       await generateAndStoreQRCode(ctx, bookingId, bookingReference);
 00627|     }
-00628| 
+00628|
 00629|     return {
 00630|       bookingId,
 00631|       status: shouldAutoValidate ? "confirmed" : "pending",
@@ -4167,11 +4267,11 @@ Let me read the full plan output that was generated:
 00634|   },
 00635| });
 00636| ```
-00637| 
+00637|
 00638| ### 2.4 Gate Assignment Logic
-00639| 
+00639|
 00640| **File:** `packages/backend/convex/bookings/internal.ts`
-00641| 
+00641|
 00642| ```typescript
 00643| /**
 00644|  * Assign an available gate to a booking
@@ -4185,7 +4285,7 @@ Let me read the full plan output that was generated:
 00652| ): Promise<Id<"gates">> {
 00653|   const booking = await ctx.db.get(bookingId);
 00654|   const truck = await ctx.db.get(booking!.truckId);
-00655|   
+00655|
 00656|   // Get all active gates for terminal
 00657|   const gates = await ctx.db
 00658|     .query("gates")
@@ -4193,24 +4293,24 @@ Let me read the full plan output that was generated:
 00660|       q.eq("terminalId", terminalId).eq("isActive", true)
 00661|     )
 00662|     .collect();
-00663| 
+00663|
 00664|   // Filter gates compatible with truck
 00665|   const compatibleGates = gates.filter((gate) =>
 00666|     gate.allowedTruckTypes.includes(truck!.truckType) &&
 00667|     gate.allowedTruckClasses.includes(truck!.truckClass)
 00668|   );
-00669| 
+00669|
 00670|   if (compatibleGates.length === 0) {
 00671|     throw new ConvexError({
 00672|       code: "NO_COMPATIBLE_GATE",
 00673|       message: "No gates available that support this truck type",
 00674|     });
 00675|   }
-00676| 
+00676|
 00677|   // Find gate with lowest current load for this slot
 00678|   let selectedGate = compatibleGates[0];
 00679|   let lowestLoad = Infinity;
-00680| 
+00680|
 00681|   for (const gate of compatibleGates) {
 00682|     const gateBookings = await ctx.db
 00683|       .query("bookings")
@@ -4225,24 +4325,24 @@ Let me read the full plan output that was generated:
 00692|         )
 00693|       )
 00694|       .collect();
-00695| 
+00695|
 00696|     if (gateBookings.length < lowestLoad) {
 00697|       lowestLoad = gateBookings.length;
 00698|       selectedGate = gate;
 00699|     }
 00700|   }
-00701| 
+00701|
 00702|   await ctx.db.patch(bookingId, {
 00703|     gateId: selectedGate._id,
 00704|     updatedAt: Date.now(),
 00705|   });
-00706| 
+00706|
 00707|   return selectedGate._id;
 00708| }
 00709| ```
-00710| 
+00710|
 00711| ### Files to Create/Modify
-00712| 
+00712|
 00713| | File | Action |
 00714| |------|--------|
 00715| | `packages/backend/convex/lib/permissions.ts` | Modify |
@@ -4254,27 +4354,27 @@ Let me read the full plan output that was generated:
 00721| | `packages/backend/convex/trucks/queries.ts` | Modify |
 00722| | `packages/backend/convex/containers/mutations.ts` | Create |
 00723| | `packages/backend/convex/containers/queries.ts` | Create |
-00724| 
+00724|
 00725| ---
-00726| 
+00726|
 00727| ## Phase 3: AI Tools and Conversational Flows
-00728| 
-00729| **Duration:** 7-10 days  
+00728|
+00729| **Duration:** 7-10 days
 00730| **Dependencies:** Phase 1, Phase 2
-00731| 
+00731|
 00732| ### 3.1 Update Agent Configuration (French-only)
-00733| 
+00733|
 00734| **File:** `packages/backend/convex/ai/agent.ts`
-00735| 
+00735|
 00736| ```typescript
 00737| export const apcsAgent = new Agent(components.agent, {
 00738|   name: "Assistant APCS",
 00739|   languageModel: google("gemini-2.0-flash"),
 00740|   instructions: `Tu es l'assistant du système APCS (Advanced Port Container System).
 00741| Tu aides les utilisateurs à gérer les opérations portuaires, les réservations de camions et la logistique.
-00742| 
+00742|
 00743| IMPORTANT: Tu dois TOUJOURS répondre en français, quelle que soit la langue de l'utilisateur.
-00744| 
+00744|
 00745| Informations clés:
 00746| - Le système gère des terminaux, chacun avec des créneaux horaires pour les réservations de camions.
 00747| - Il y a trois rôles: port_admin (administrateur portuaire), terminal_operator (opérateur terminal), carrier (transporteur).
@@ -4282,13 +4382,13 @@ Let me read the full plan output that was generated:
 00749| - Une réservation = un camion + plusieurs conteneurs.
 00750| - La capacité est gérée au niveau du terminal (nombre de camions par créneau).
 00751| - Les premiers N% de créneaux sont auto-validés (N configurable par admin).
-00752| 
+00752|
 00753| Pour les transporteurs (carriers):
 00754| - Guide-les dans le processus de réservation étape par étape.
 00755| - Demande d'abord les conteneurs à transporter.
 00756| - Suggère les créneaux optimaux (équilibrage de charge, urgence, temps d'attente minimal).
 00757| - Affiche les widgets de données intégrés pour visualiser les informations.
-00758| 
+00758|
 00759| Guidelines:
 00760| - Utilise TOUJOURS les outils disponibles pour obtenir des données réelles. Ne jamais inventer d'informations.
 00761| - Présente les données de manière structurée et claire.
@@ -4299,11 +4399,11 @@ Let me read the full plan output that was generated:
 00766|   maxSteps: 10,
 00767| });
 00768| ```
-00769| 
+00769|
 00770| ### 3.2 New AI Tools for Carriers
-00771| 
+00771|
 00772| **File:** `packages/backend/convex/ai/tools/containers.ts`
-00773| 
+00773|
 00774| ```typescript
 00775| /**
 00776|  * List carrier's containers
@@ -4324,7 +4424,7 @@ Let me read the full plan output that was generated:
 00791|   handler: async (ctx, args): Promise<unknown> => {
 00792|     const denied = await checkToolAccess(ctx, "listMyContainers");
 00793|     if (denied) return denied;
-00794| 
+00794|
 00795|     return await ctx.runQuery(
 00796|       internal.ai.internalQueries.listMyContainers,
 00797|       {
@@ -4336,7 +4436,7 @@ Let me read the full plan output that was generated:
 00803|     );
 00804|   },
 00805| });
-00806| 
+00806|
 00807| /**
 00808|  * Select containers for booking
 00809|  * Widget: <ContainerSelector />
@@ -4352,7 +4452,7 @@ Let me read the full plan output that was generated:
 00819|   handler: async (ctx, args): Promise<unknown> => {
 00820|     const denied = await checkToolAccess(ctx, "selectContainersForBooking");
 00821|     if (denied) return denied;
-00822| 
+00822|
 00823|     // Validate containers belong to user and are available
 00824|     return await ctx.runQuery(
 00825|       internal.ai.internalQueries.validateContainerSelection,
@@ -4364,9 +4464,9 @@ Let me read the full plan output that was generated:
 00831|   },
 00832| });
 00833| ```
-00834| 
+00834|
 00835| **File:** `packages/backend/convex/ai/tools/slots.ts`
-00836| 
+00836|
 00837| ```typescript
 00838| /**
 00839|  * Get optimal slot suggestions
@@ -4388,7 +4488,7 @@ Let me read the full plan output that was generated:
 00855|   handler: async (ctx, args): Promise<unknown> => {
 00856|     const denied = await checkToolAccess(ctx, "suggestOptimalSlots");
 00857|     if (denied) return denied;
-00858| 
+00858|
 00859|     return await ctx.runQuery(
 00860|       internal.ai.internalQueries.suggestOptimalSlots,
 00861|       {
@@ -4400,7 +4500,7 @@ Let me read the full plan output that was generated:
 00867|     );
 00868|   },
 00869| });
-00870| 
+00870|
 00871| /**
 00872|  * Get slot availability for a terminal
 00873|  * Widget: <SlotCalendar />
@@ -4417,7 +4517,7 @@ Let me read the full plan output that was generated:
 00884|   handler: async (ctx, args): Promise<unknown> => {
 00885|     const denied = await checkToolAccess(ctx, "getSlotAvailability");
 00886|     if (denied) return denied;
-00887| 
+00887|
 00888|     return await ctx.runQuery(
 00889|       internal.ai.internalQueries.getSlotAvailability,
 00890|       {
@@ -4430,9 +4530,9 @@ Let me read the full plan output that was generated:
 00897|   },
 00898| });
 00899| ```
-00900| 
+00900|
 00901| **File:** `packages/backend/convex/ai/tools/booking-flow.ts`
-00902| 
+00902|
 00903| ```typescript
 00904| /**
 00905|  * Create booking via AI (mutation tool)
@@ -4455,7 +4555,7 @@ Let me read the full plan output that was generated:
 00922|   handler: async (ctx, args): Promise<unknown> => {
 00923|     const denied = await checkToolAccess(ctx, "createBookingViaAI");
 00924|     if (denied) return denied;
-00925| 
+00925|
 00926|     return await ctx.runMutation(
 00927|       internal.ai.mutations.createBooking,
 00928|       {
@@ -4472,7 +4572,7 @@ Let me read the full plan output that was generated:
 00939|     );
 00940|   },
 00941| });
-00942| 
+00942|
 00943| /**
 00944|  * Cancel booking via AI
 00945|  */
@@ -4489,7 +4589,7 @@ Let me read the full plan output that was generated:
 00956|   handler: async (ctx, args): Promise<unknown> => {
 00957|     const denied = await checkToolAccess(ctx, "cancelBookingViaAI");
 00958|     if (denied) return denied;
-00959| 
+00959|
 00960|     return await ctx.runMutation(
 00961|       internal.ai.mutations.cancelBooking,
 00962|       {
@@ -4501,11 +4601,11 @@ Let me read the full plan output that was generated:
 00968|   },
 00969| });
 00970| ```
-00971| 
+00971|
 00972| ### 3.3 Update Tool Registry
-00973| 
+00973|
 00974| **File:** `packages/backend/convex/ai/registry.ts`
-00975| 
+00975|
 00976| ```typescript
 00977| import {
 00978|   listMyBookings,
@@ -4534,7 +4634,7 @@ Let me read the full plan output that was generated:
 
 (File has more lines. Use 'offset' parameter to read beyond line 1000)
 </file>
-```
+````
 
 ---
 
@@ -4543,6 +4643,7 @@ Let me read the full plan output that was generated:
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/.local/share/opencode/tool-output/tool_c34212b0d001zHbr5LxSB1sFlE",
@@ -4552,12 +4653,13 @@ Let me read the full plan output that was generated:
 ```
 
 **Output:**
-```
+
+````
 <file>
 01001|   listMyTrucks,
 01002| } from "./tools/trucks";
 01003| import { getSystemConfig } from "./tools/config";
-01004| 
+01004|
 01005| export const ALL_TOOLS = {
 01006|   // Queries
 01007|   listMyBookings,
@@ -4572,18 +4674,18 @@ Let me read the full plan output that was generated:
 01016|   suggestOptimalSlots,
 01017|   getSlotAvailability,
 01018|   getSystemConfig,
-01019|   
+01019|
 01020|   // Mutations
 01021|   createBookingViaAI,
 01022|   cancelBookingViaAI,
 01023|   changeTruckViaAI,
 01024| } as const;
 01025| ```
-01026| 
+01026|
 01027| ### 3.4 Update Tool Permissions
-01028| 
+01028|
 01029| **File:** `packages/backend/convex/ai/tools/types.ts`
-01030| 
+01030|
 01031| ```typescript
 01032| export const TOOL_PERMISSIONS: Record<ApcsRole, ToolName[]> = {
 01033|   carrier: [
@@ -4630,11 +4732,11 @@ Let me read the full plan output that was generated:
 01074|   ],
 01075| };
 01076| ```
-01077| 
+01077|
 01078| ### 3.5 AI Chat Widget Components
-01079| 
+01079|
 01080| **Files to create in:** `apps/web/src/components/ai-elements/apcs/`
-01081| 
+01081|
 01082| | Component | Purpose |
 01083| |-----------|---------|
 01084| | `container-list.tsx` | Display carrier's containers |
@@ -4644,9 +4746,9 @@ Let me read the full plan output that was generated:
 01088| | `booking-confirmation-card.tsx` | Booking result with status |
 01089| | `truck-selector.tsx` | Truck selection for booking |
 01090| | `booking-summary.tsx` | Expandable booking details |
-01091| 
+01091|
 01092| ### Files to Create/Modify
-01093| 
+01093|
 01094| | File | Action |
 01095| |------|--------|
 01096| | `packages/backend/convex/ai/agent.ts` | Modify (French instructions) |
@@ -4659,18 +4761,18 @@ Let me read the full plan output that was generated:
 01103| | `packages/backend/convex/ai/mutations.ts` | Create |
 01104| | `packages/backend/convex/ai/internalQueries.ts` | Major update |
 01105| | `apps/web/src/components/ai-elements/apcs/*.tsx` | Create (7 files) |
-01106| 
+01106|
 01107| ---
-01108| 
+01108|
 01109| ## Phase 4: Time Slot Bulk Editing System
-01110| 
-01111| **Duration:** 4-5 days  
+01110|
+01111| **Duration:** 4-5 days
 01112| **Dependencies:** Phase 1, Phase 2
-01113| 
+01113|
 01114| ### 4.1 Bulk Edit Mutations
-01115| 
+01115|
 01116| **File:** `packages/backend/convex/timeSlots/mutations.ts`
-01117| 
+01117|
 01118| ```typescript
 01119| /**
 01120|  * Bulk create slots from a day template
@@ -4691,7 +4793,7 @@ Let me read the full plan output that was generated:
 01135|     const user = await getAuthenticatedUser(ctx);
 01136|     requireRole(user, ["port_admin", "terminal_operator"]);
 01137|     await requireTerminalAccess(ctx, user, args.terminalId);
-01138| 
+01138|
 01139|     // Get source day's slots
 01140|     const sourceSlots = await ctx.db
 01141|       .query("timeSlots")
@@ -4700,18 +4802,18 @@ Let me read the full plan output that was generated:
 01144|       )
 01145|       .filter((q) => q.eq(q.field("isActive"), true))
 01146|       .collect();
-01147| 
+01147|
 01148|     if (sourceSlots.length === 0) {
 01149|       throw new ConvexError({
 01150|         code: "NOT_FOUND",
 01151|         message: "No slots found for source date",
 01152|       });
 01153|     }
-01154| 
+01154|
 01155|     let created = 0;
 01156|     let skipped = 0;
 01157|     const now = Date.now();
-01158| 
+01158|
 01159|     for (const targetDate of args.targetDates) {
 01160|       if (args.skipExisting) {
 01161|         const existing = await ctx.db
@@ -4725,7 +4827,7 @@ Let me read the full plan output that was generated:
 01169|           continue;
 01170|         }
 01171|       }
-01172| 
+01172|
 01173|       for (const slot of sourceSlots) {
 01174|         await ctx.db.insert("timeSlots", {
 01175|           terminalId: args.terminalId,
@@ -4743,11 +4845,11 @@ Let me read the full plan output that was generated:
 01187|         created++;
 01188|       }
 01189|     }
-01190| 
+01190|
 01191|     return { created, skipped };
 01192|   },
 01193| });
-01194| 
+01194|
 01195| /**
 01196|  * Create weekly recurring pattern
 01197|  * Apply same slots for specific days of week
@@ -4774,23 +4876,23 @@ Let me read the full plan output that was generated:
 01218|     const user = await getAuthenticatedUser(ctx);
 01219|     requireRole(user, ["port_admin", "terminal_operator"]);
 01220|     await requireTerminalAccess(ctx, user, args.terminalId);
-01221| 
+01221|
 01222|     // Generate all dates in range that match daysOfWeek
 01223|     const dates: string[] = [];
 01224|     const current = new Date(args.startDate);
 01225|     const end = new Date(args.endDate);
-01226| 
+01226|
 01227|     while (current <= end) {
 01228|       if (args.daysOfWeek.includes(current.getDay())) {
 01229|         dates.push(current.toISOString().split("T")[0]);
 01230|       }
 01231|       current.setDate(current.getDate() + 1);
 01232|     }
-01233| 
+01233|
 01234|     let created = 0;
 01235|     let skipped = 0;
 01236|     const now = Date.now();
-01237| 
+01237|
 01238|     for (const date of dates) {
 01239|       if (args.skipExisting) {
 01240|         const existing = await ctx.db
@@ -4804,7 +4906,7 @@ Let me read the full plan output that was generated:
 01248|           continue;
 01249|         }
 01250|       }
-01251| 
+01251|
 01252|       for (const slotTemplate of args.slots) {
 01253|         await ctx.db.insert("timeSlots", {
 01254|           terminalId: args.terminalId,
@@ -4819,11 +4921,11 @@ Let me read the full plan output that was generated:
 01263|         created++;
 01264|       }
 01265|     }
-01266| 
+01266|
 01267|     return { created, skipped };
 01268|   },
 01269| });
-01270| 
+01270|
 01271| /**
 01272|  * Bulk update capacity for multiple slots
 01273|  */
@@ -4840,9 +4942,9 @@ Let me read the full plan output that was generated:
 01284|     const user = await getAuthenticatedUser(ctx);
 01285|     requireRole(user, ["port_admin", "terminal_operator"]);
 01286|     await requireTerminalAccess(ctx, user, args.terminalId);
-01287| 
+01287|
 01288|     let slotsToUpdate;
-01289|     
+01289|
 01290|     if (args.slotIds) {
 01291|       slotsToUpdate = await Promise.all(
 01292|         args.slotIds.map((id) => ctx.db.get(id))
@@ -4855,18 +4957,18 @@ Let me read the full plan output that was generated:
 01299|         )
 01300|         .collect();
 01301|     }
-01302| 
+01302|
 01303|     const now = Date.now();
 01304|     let updated = 0;
-01305| 
+01305|
 01306|     for (const slot of slotsToUpdate) {
 01307|       if (!slot) continue;
-01308|       
+01308|
 01309|       // Can't reduce below current bookings
 01310|       if (args.maxCapacity < slot.currentBookings) {
 01311|         continue;
 01312|       }
-01313| 
+01313|
 01314|       await ctx.db.patch(slot._id, {
 01315|         maxCapacity: args.maxCapacity,
 01316|         autoValidationThreshold: args.autoValidationThreshold ?? slot.autoValidationThreshold,
@@ -4874,16 +4976,16 @@ Let me read the full plan output that was generated:
 01318|       });
 01319|       updated++;
 01320|     }
-01321| 
+01321|
 01322|     return updated;
 01323|   },
 01324| });
 01325| ```
-01326| 
+01326|
 01327| ### 4.2 Slot Management UI Components
-01328| 
+01328|
 01329| **Files to create in:** `apps/web/src/features/time-slots/`
-01330| 
+01330|
 01331| | File | Purpose |
 01332| |------|---------|
 01333| | `components/slot-editor.tsx` | Individual slot editing |
@@ -4892,33 +4994,33 @@ Let me read the full plan output that was generated:
 01336| | `components/weekly-pattern-wizard.tsx` | Weekly pattern configuration |
 01337| | `components/slot-calendar-view.tsx` | Calendar view of all slots |
 01338| | `hooks/use-slot-editing.ts` | State management for editing |
-01339| 
+01339|
 01340| ### Files to Create/Modify
-01341| 
+01341|
 01342| | File | Action |
 01343| |------|--------|
 01344| | `packages/backend/convex/timeSlots/mutations.ts` | Major update |
 01345| | `packages/backend/convex/timeSlots/queries.ts` | Add bulk queries |
 01346| | `apps/web/src/features/time-slots/` | Create directory + 6 files |
 01347| | `apps/web/src/routes/operator/slots.tsx` | Create |
-01348| 
+01348|
 01349| ---
-01350| 
+01350|
 01351| ## Phase 5: Auto-Validation and Booking Approval Workflows
-01352| 
-01353| **Duration:** 3-4 days  
+01352|
+01353| **Duration:** 3-4 days
 01354| **Dependencies:** Phase 1, Phase 2, Phase 4
-01355| 
+01355|
 01356| ### 5.1 Auto-Validation Engine
-01357| 
+01357|
 01358| **File:** `packages/backend/convex/lib/autoValidation.ts`
-01359| 
+01359|
 01360| ```typescript
 01361| /**
 01362|  * Auto-validation engine
 01363|  * Determines if a booking should be auto-approved based on threshold
 01364|  */
-01365| 
+01365|
 01366| export interface AutoValidationResult {
 01367|   shouldAutoValidate: boolean;
 01368|   reason: string;
@@ -4926,7 +5028,7 @@ Let me read the full plan output that was generated:
 01370|   autoValidationLimit: number;
 01371|   thresholdPercent: number;
 01372| }
-01373| 
+01373|
 01374| export async function checkAutoValidation(
 01375|   ctx: QueryCtx,
 01376|   terminalId: Id<"terminals">,
@@ -4942,15 +5044,15 @@ Let me read the full plan output that was generated:
 01386|       thresholdPercent: 0,
 01387|     };
 01388|   }
-01389| 
+01389|
 01390|   // Get terminal for potential override
 01391|   const terminal = await ctx.db.get(terminalId);
 01392|   const thresholdPercent = terminal?.autoValidationThreshold ?? slot.autoValidationThreshold;
-01393|   
+01393|
 01394|   const autoValidationLimit = Math.floor(
 01395|     (slot.maxCapacity * thresholdPercent) / 100
 01396|   );
-01397| 
+01397|
 01398|   // Count current auto-validated bookings for this slot
 01399|   const autoValidatedBookings = await ctx.db
 01400|     .query("bookings")
@@ -4962,10 +5064,10 @@ Let me read the full plan output that was generated:
 01406|       )
 01407|     )
 01408|     .collect();
-01409| 
+01409|
 01410|   const currentAutoValidatedCount = autoValidatedBookings.length;
 01411|   const shouldAutoValidate = currentAutoValidatedCount < autoValidationLimit;
-01412| 
+01412|
 01413|   return {
 01414|     shouldAutoValidate,
 01415|     reason: shouldAutoValidate
@@ -4977,11 +5079,11 @@ Let me read the full plan output that was generated:
 01421|   };
 01422| }
 01423| ```
-01424| 
+01424|
 01425| ### 5.2 Manual Approval Workflow
-01426| 
+01426|
 01427| **File:** `packages/backend/convex/bookings/mutations.ts`
-01428| 
+01428|
 01429| ```typescript
 01430| /**
 01431|  * Confirm a pending booking (terminal operator/admin)
@@ -5001,21 +5103,21 @@ Let me read the full plan output that was generated:
 01445|   handler: async (ctx, args) => {
 01446|     const user = await getAuthenticatedUser(ctx);
 01447|     requireRole(user, ["port_admin", "terminal_operator"]);
-01448| 
+01448|
 01449|     const booking = await ctx.db.get(args.bookingId);
 01450|     if (!booking) {
 01451|       throw new ConvexError({ code: "NOT_FOUND", message: "Réservation non trouvée" });
 01452|     }
-01453| 
+01453|
 01454|     await requireTerminalAccess(ctx, user, booking.terminalId);
-01455| 
+01455|
 01456|     if (booking.status !== "pending") {
 01457|       throw new ConvexError({
 01458|         code: "INVALID_STATE",
 01459|         message: `Impossible de confirmer une réservation avec le statut "${booking.status}"`,
 01460|       });
 01461|     }
-01462| 
+01462|
 01463|     // Assign gate
 01464|     let gateId: Id<"gates">;
 01465|     if (args.gateId) {
@@ -5029,9 +5131,9 @@ Let me read the full plan output that was generated:
 01473|       // Auto-assign gate
 01474|       gateId = await assignGateToBooking(ctx, args.bookingId, booking.terminalId, booking.timeSlotId!);
 01475|     }
-01476| 
+01476|
 01477|     const now = Date.now();
-01478| 
+01478|
 01479|     // Update booking
 01480|     await ctx.db.patch(args.bookingId, {
 01481|       status: "confirmed",
@@ -5040,10 +5142,10 @@ Let me read the full plan output that was generated:
 01484|       processedBy: user.userId,
 01485|       updatedAt: now,
 01486|     });
-01487| 
+01487|
 01488|     // Generate QR code
 01489|     await generateAndStoreQRCode(ctx, args.bookingId, booking.bookingReference);
-01490| 
+01490|
 01491|     // Record history
 01492|     await recordBookingHistory(ctx, args.bookingId, "status_changed", {
 01493|       previousValue: "pending",
@@ -5051,13 +5153,13 @@ Let me read the full plan output that was generated:
 01495|       note: args.note,
 01496|       changedBy: user.userId,
 01497|     });
-01498| 
+01498|
 01499|     // Send notification
 01500|     await scheduleNotification(ctx, {
 
 (File has more lines. Use 'offset' parameter to read beyond line 1500)
 </file>
-```
+````
 
 ---
 
@@ -5066,6 +5168,7 @@ Let me read the full plan output that was generated:
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/.local/share/opencode/tool-output/tool_c34212b0d001zHbr5LxSB1sFlE",
@@ -5075,13 +5178,14 @@ Let me read the full plan output that was generated:
 ```
 
 **Output:**
-```
+
+````
 <file>
 01501|       userId: booking.carrierId,
 01502|       type: "booking_confirmed",
 01503|       bookingId: args.bookingId,
 01504|     });
-01505| 
+01505|
 01506|     return {
 01507|       success: true,
 01508|       gateAssigned: gateId,
@@ -5090,11 +5194,11 @@ Let me read the full plan output that was generated:
 01511|   },
 01512| });
 01513| ```
-01514| 
+01514|
 01515| ### 5.3 Approval Queue UI
-01516| 
+01516|
 01517| **Files to create in:** `apps/web/src/features/approvals/`
-01518| 
+01518|
 01519| | File | Purpose |
 01520| |------|---------|
 01521| | `components/approval-queue.tsx` | List of pending bookings |
@@ -5102,32 +5206,32 @@ Let me read the full plan output that was generated:
 01523| | `components/bulk-approval.tsx` | Approve multiple bookings |
 01524| | `components/gate-assignment-modal.tsx` | Manual gate selection |
 01525| | `hooks/use-approvals.ts` | Approval state management |
-01526| 
+01526|
 01527| ### Files to Create/Modify
-01528| 
+01528|
 01529| | File | Action |
 01530| |------|--------|
 01531| | `packages/backend/convex/lib/autoValidation.ts` | Create |
 01532| | `packages/backend/convex/bookings/mutations.ts` | Update confirm logic |
 01533| | `apps/web/src/features/approvals/` | Create directory + 5 files |
 01534| | `apps/web/src/routes/operator/approvals.tsx` | Create |
-01535| 
+01535|
 01536| ---
-01537| 
+01537|
 01538| ## Phase 6: Notification System with Email Integration
-01539| 
-01540| **Duration:** 4-5 days  
+01539|
+01540| **Duration:** 4-5 days
 01541| **Dependencies:** Phase 1, Phase 5
-01542| 
+01542|
 01543| ### 6.1 Notification Service
-01544| 
+01544|
 01545| **File:** `packages/backend/convex/notifications/service.ts`
-01546| 
+01546|
 01547| ```typescript
 01548| import { action } from "../_generated/server";
 01549| import { internal } from "../_generated/api";
 01550| import { v } from "convex/values";
-01551| 
+01551|
 01552| // Notification templates (French)
 01553| const NOTIFICATION_TEMPLATES = {
 01554|   booking_created: {
@@ -5155,7 +5259,7 @@ Let me read the full plan output that was generated:
 01576|     bodyFr: "Le terminal {terminal} atteint {percent}% de capacité pour le {date}.",
 01577|   },
 01578| };
-01579| 
+01579|
 01580| /**
 01581|  * Send notification (in-app + email)
 01582|  */
@@ -5178,7 +5282,7 @@ Let me read the full plan output that was generated:
 01599|   },
 01600|   handler: async (ctx, args) => {
 01601|     const template = NOTIFICATION_TEMPLATES[args.type];
-01602|     
+01602|
 01603|     // Replace placeholders
 01604|     let bodyFr = template.bodyFr;
 01605|     for (const [key, value] of Object.entries(args.data)) {
@@ -5186,14 +5290,14 @@ Let me read the full plan output that was generated:
 01607|         bodyFr = bodyFr.replace(`{${key}}`, String(value));
 01608|       }
 01609|     }
-01610| 
+01610|
 01611|     // Get user preferences
 01612|     const userProfile = await ctx.runQuery(internal.users.queries.getProfile, {
 01613|       userId: args.userId,
 01614|     });
-01615| 
+01615|
 01616|     const channel = userProfile?.notificationChannel ?? "both";
-01617| 
+01617|
 01618|     // Create in-app notification
 01619|     const notificationId = await ctx.runMutation(
 01620|       internal.notifications.internal.create,
@@ -5205,18 +5309,18 @@ Let me read the full plan output that was generated:
 01626|         titleEn: template.titleFr, // French-only for now
 01627|         bodyFr,
 01628|         bodyEn: bodyFr,
-01629|         relatedEntityType: args.data.bookingId ? "booking" : 
+01629|         relatedEntityType: args.data.bookingId ? "booking" :
 01630|                           args.data.terminalId ? "terminal" : undefined,
 01631|         relatedEntityId: args.data.bookingId ?? args.data.terminalId,
 01632|       }
 01633|     );
-01634| 
+01634|
 01635|     // Send email if enabled
 01636|     if (channel === "email" || channel === "both") {
 01637|       const user = await ctx.runQuery(internal.users.queries.getById, {
 01638|         userId: args.userId,
 01639|       });
-01640| 
+01640|
 01641|       if (user?.email) {
 01642|         await ctx.runAction(internal.email.sendEmail, {
 01643|           to: user.email,
@@ -5226,24 +5330,24 @@ Let me read the full plan output that was generated:
 01647|         });
 01648|       }
 01649|     }
-01650| 
+01650|
 01651|     return notificationId;
 01652|   },
 01653| });
 01654| ```
-01655| 
+01655|
 01656| ### 6.2 Email Service (Resend)
-01657| 
+01657|
 01658| **File:** `packages/backend/convex/email/index.ts`
-01659| 
+01659|
 01660| ```typescript
 01661| "use node";
 01662| import { action } from "../_generated/server";
 01663| import { v } from "convex/values";
 01664| import { Resend } from "resend";
-01665| 
+01665|
 01666| const resend = new Resend(process.env.RESEND_API_KEY);
-01667| 
+01667|
 01668| export const sendEmail = action({
 01669|   args: {
 01670|     to: v.string(),
@@ -5271,7 +5375,7 @@ Let me read the full plan output that was generated:
 01692|           </div>
 01693|         `,
 01694|       });
-01695| 
+01695|
 01696|       // Update notification with email status
 01697|       if (args.notificationId) {
 01698|         await ctx.runMutation(internal.notifications.internal.markEmailSent, {
@@ -5279,7 +5383,7 @@ Let me read the full plan output that was generated:
 01700|           success: true,
 01701|         });
 01702|       }
-01703| 
+01703|
 01704|       return { success: true, id: result.id };
 01705|     } catch (error) {
 01706|       // Log error and update notification
@@ -5295,11 +5399,11 @@ Let me read the full plan output that was generated:
 01716|   },
 01717| });
 01718| ```
-01719| 
+01719|
 01720| ### 6.3 Capacity Alert System
-01721| 
+01721|
 01722| **File:** `packages/backend/convex/scheduled.ts`
-01723| 
+01723|
 01724| ```typescript
 01725| /**
 01726|  * Check capacity thresholds and send alerts
@@ -5313,14 +5417,14 @@ Let me read the full plan output that was generated:
 01734|       .query("terminals")
 01735|       .filter((q) => q.eq(q.field("isActive"), true))
 01736|       .collect();
-01737| 
+01737|
 01738|     const tomorrow = new Date();
 01739|     tomorrow.setDate(tomorrow.getDate() + 1);
 01740|     const tomorrowStr = tomorrow.toISOString().split("T")[0];
-01741| 
+01741|
 01742|     for (const terminal of terminals) {
 01743|       if (!terminal.capacityAlertThresholds?.length) continue;
-01744| 
+01744|
 01745|       // Get tomorrow's slots
 01746|       const slots = await ctx.db
 01747|         .query("timeSlots")
@@ -5328,12 +5432,12 @@ Let me read the full plan output that was generated:
 01749|           q.eq("terminalId", terminal._id).eq("date", tomorrowStr)
 01750|         )
 01751|         .collect();
-01752| 
+01752|
 01753|       for (const slot of slots) {
 01754|         const utilization = Math.round(
 01755|           (slot.currentBookings / slot.maxCapacity) * 100
 01756|         );
-01757| 
+01757|
 01758|         // Check if utilization crosses any threshold
 01759|         for (const threshold of terminal.capacityAlertThresholds) {
 01760|           if (utilization >= threshold) {
@@ -5344,7 +5448,7 @@ Let me read the full plan output that was generated:
 01765|                 q.eq("terminalId", terminal._id).eq("isActive", true)
 01766|               )
 01767|               .collect();
-01768| 
+01768|
 01769|             for (const op of operators) {
 01770|               await ctx.scheduler.runAfter(0, internal.notifications.service.sendNotification, {
 01771|                 userId: op.userId,
@@ -5365,9 +5469,9 @@ Let me read the full plan output that was generated:
 01786|   },
 01787| });
 01788| ```
-01789| 
+01789|
 01790| ### Files to Create/Modify
-01791| 
+01791|
 01792| | File | Action |
 01793| |------|--------|
 01794| | `packages/backend/convex/notifications/service.ts` | Create |
@@ -5375,24 +5479,24 @@ Let me read the full plan output that was generated:
 01796| | `packages/backend/convex/email/index.ts` | Create |
 01797| | `packages/backend/convex/scheduled.ts` | Update |
 01798| | `packages/backend/convex/crons.ts` | Update |
-01799| 
+01799|
 01800| ---
-01801| 
+01801|
 01802| ## Phase 7: QR Code Generation and Scanning
-01803| 
-01804| **Duration:** 3-4 days  
+01803|
+01804| **Duration:** 3-4 days
 01805| **Dependencies:** Phase 5
-01806| 
+01806|
 01807| ### 7.1 QR Code Generation
-01808| 
+01808|
 01809| **File:** `packages/backend/convex/qr/index.ts`
-01810| 
+01810|
 01811| ```typescript
 01812| "use node";
 01813| import { action, internalMutation } from "../_generated/server";
 01814| import { v } from "convex/values";
 01815| import QRCode from "qrcode";
-01816| 
+01816|
 01817| /**
 01818|  * Generate QR code for a booking
 01819|  * Contains only the booking reference (lookup required)
@@ -5412,7 +5516,7 @@ Let me read the full plan output that was generated:
 01833|       ref: args.bookingReference,
 01834|       type: "APCS_BOOKING",
 01835|     });
-01836| 
+01836|
 01837|     // Generate as PNG buffer
 01838|     const buffer = await QRCode.toBuffer(qrData, {
 01839|       type: "png",
@@ -5423,28 +5527,28 @@ Let me read the full plan output that was generated:
 01844|         light: "#FFFFFF",
 01845|       },
 01846|     });
-01847| 
+01847|
 01848|     // Store in Convex file storage
 01849|     const blob = new Blob([buffer], { type: "image/png" });
 01850|     const storageId = await ctx.storage.store(blob);
-01851| 
+01851|
 01852|     // Also generate data URL for immediate display
 01853|     const dataUrl = await QRCode.toDataURL(qrData, {
 01854|       width: 200,
 01855|       margin: 1,
 01856|     });
-01857| 
+01857|
 01858|     // Update booking with QR code info
 01859|     await ctx.runMutation(internal.qr.updateBookingQR, {
 01860|       bookingId: args.bookingId,
 01861|       storageId,
 01862|       dataUrl,
 01863|     });
-01864| 
+01864|
 01865|     return { storageId, dataUrl };
 01866|   },
 01867| });
-01868| 
+01868|
 01869| export const updateBookingQR = internalMutation({
 01870|   args: {
 01871|     bookingId: v.id("bookings"),
@@ -5460,11 +5564,11 @@ Let me read the full plan output that was generated:
 01881|   },
 01882| });
 01883| ```
-01884| 
+01884|
 01885| ### 7.2 QR Code Scanning (Entry/Exit)
-01886| 
+01886|
 01887| **File:** `packages/backend/convex/qr/scan.ts`
-01888| 
+01888|
 01889| ```typescript
 01890| /**
 01891|  * Process QR code scan
@@ -5490,7 +5594,7 @@ Let me read the full plan output that was generated:
 01911|   handler: async (ctx, args) => {
 01912|     const user = await getAuthenticatedUser(ctx);
 01913|     requireRole(user, ["port_admin", "terminal_operator"]);
-01914| 
+01914|
 01915|     // Parse QR data
 01916|     let qrPayload: { ref: string; type: string };
 01917|     try {
@@ -5501,38 +5605,38 @@ Let me read the full plan output that was generated:
 01922|     } catch {
 01923|       return { success: false, error: "Impossible de lire le code QR" };
 01924|     }
-01925| 
+01925|
 01926|     // Find booking by reference
 01927|     const booking = await ctx.db
 01928|       .query("bookings")
 01929|       .withIndex("by_reference", (q) => q.eq("bookingReference", qrPayload.ref))
 01930|       .unique();
-01931| 
+01931|
 01932|     if (!booking) {
 01933|       return { success: false, error: "Réservation non trouvée" };
 01934|     }
-01935| 
+01935|
 01936|     // Verify gate access
 01937|     const gate = await ctx.db.get(args.gateId);
 01938|     if (!gate || gate.terminalId !== booking.terminalId) {
 01939|       return { success: false, error: "Portail non autorisé pour cette réservation" };
 01940|     }
-01941| 
+01941|
 01942|     await requireTerminalAccess(ctx, user, booking.terminalId);
-01943| 
+01943|
 01944|     const truck = await ctx.db.get(booking.truckId);
 01945|     const now = Date.now();
-01946| 
+01946|
 01947|     if (args.scanType === "entry") {
 01948|       // Entry scan
 01949|       if (booking.status !== "confirmed") {
 01950|         return { success: false, error: `Statut invalide: ${booking.status}` };
 01951|       }
-01952| 
+01952|
 01953|       if (booking.entryScannedAt) {
 01954|         return { success: false, error: "Entrée déjà enregistrée" };
 01955|       }
-01956| 
+01956|
 01957|       await ctx.db.patch(booking._id, {
 01958|         entryScannedAt: now,
 01959|         entryScannedBy: user.userId,
@@ -5540,30 +5644,30 @@ Let me read the full plan output that was generated:
 01961|         consumedAt: now,
 01962|         updatedAt: now,
 01963|       });
-01964| 
+01964|
 01965|       await recordBookingHistory(ctx, booking._id, "status_changed", {
 01966|         previousValue: "confirmed",
 01967|         newValue: "consumed",
 01968|         note: `Entrée scannée au portail ${gate.code}`,
 01969|         changedBy: user.userId,
 01970|       });
-01971| 
+01971|
 01972|     } else {
 01973|       // Exit scan
 01974|       if (booking.status !== "consumed") {
 01975|         return { success: false, error: `Le véhicule doit d'abord entrer` };
 01976|       }
-01977| 
+01977|
 01978|       if (booking.exitScannedAt) {
 01979|         return { success: false, error: "Sortie déjà enregistrée" };
 01980|       }
-01981| 
+01981|
 01982|       await ctx.db.patch(booking._id, {
 01983|         exitScannedAt: now,
 01984|         exitScannedBy: user.userId,
 01985|         updatedAt: now,
 01986|       });
-01987| 
+01987|
 01988|       await recordBookingHistory(ctx, booking._id, "details_updated", {
 01989|         previousValue: "entry only",
 01990|         newValue: "entry + exit",
@@ -5571,7 +5675,7 @@ Let me read the full plan output that was generated:
 01992|         changedBy: user.userId,
 01993|       });
 01994|     }
-01995| 
+01995|
 01996|     return {
 01997|       success: true,
 01998|       booking: {
@@ -5580,7 +5684,7 @@ Let me read the full plan output that was generated:
 
 (File has more lines. Use 'offset' parameter to read beyond line 2000)
 </file>
-```
+````
 
 ---
 
@@ -5589,6 +5693,7 @@ Let me read the full plan output that was generated:
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/.local/share/opencode/tool-output/tool_c34212b0d001zHbr5LxSB1sFlE",
@@ -5598,7 +5703,8 @@ Let me read the full plan output that was generated:
 ```
 
 **Output:**
-```
+
+````
 <file>
 02001|         truckLicensePlate: truck?.licensePlate ?? "N/A",
 02002|         driverName: booking.driverName,
@@ -5608,19 +5714,19 @@ Let me read the full plan output that was generated:
 02006|   },
 02007| });
 02008| ```
-02009| 
+02009|
 02010| ### 7.3 Scanner UI Component
-02011| 
+02011|
 02012| **File:** `apps/web/src/features/scanner/components/qr-scanner.tsx`
-02013| 
+02013|
 02014| ```typescript
 02015| // Uses react-qr-reader or similar library
 02016| // Displays scan result with booking details
 02017| // Shows different UI for entry vs exit mode
 02018| ```
-02019| 
+02019|
 02020| ### Files to Create/Modify
-02021| 
+02021|
 02022| | File | Action |
 02023| |------|--------|
 02024| | `packages/backend/convex/qr/index.ts` | Create |
@@ -5629,56 +5735,56 @@ Let me read the full plan output that was generated:
 02027| | `apps/web/src/features/scanner/components/qr-scanner.tsx` | Create |
 02028| | `apps/web/src/features/scanner/components/scan-result.tsx` | Create |
 02029| | `apps/web/src/routes/operator/scanner.tsx` | Create |
-02030| 
+02030|
 02031| ---
-02032| 
+02032|
 02033| ## Phase 8: Dashboard UI Components
-02034| 
-02035| **Duration:** 5-7 days  
+02034|
+02035| **Duration:** 5-7 days
 02036| **Dependencies:** Phase 1-7
-02037| 
+02037|
 02038| ### 8.1 Dashboard Layout with Chat Sidebar
-02039| 
+02039|
 02040| **File:** `apps/web/src/layouts/dashboard-layout.tsx`
-02041| 
+02041|
 02042| ```typescript
 02043| export function DashboardLayout({ children }: { children: React.ReactNode }) {
 02044|   const [isChatOpen, setIsChatOpen] = useState(true);
-02045| 
+02045|
 02046|   return (
 02047|     <div className="flex h-screen">
 02048|       {/* Main sidebar (navigation) */}
 02049|       <DashboardSidebar />
-02050|       
+02050|
 02051|       {/* Main content */}
 02052|       <main className="flex-1 overflow-auto">
 02053|         {children}
 02054|       </main>
-02055| 
+02055|
 02056|       {/* Chat sidebar (closeable) */}
-02057|       <ChatSidebar 
-02058|         isOpen={isChatOpen} 
-02059|         onToggle={() => setIsChatOpen(!isChatOpen)} 
+02057|       <ChatSidebar
+02058|         isOpen={isChatOpen}
+02059|         onToggle={() => setIsChatOpen(!isChatOpen)}
 02060|       />
 02061|     </div>
 02062|   );
 02063| }
 02064| ```
-02065| 
+02065|
 02066| ### 8.2 Role-Specific Dashboards
-02067| 
+02067|
 02068| **Files to create:**
-02069| 
+02069|
 02070| | File | Role | Purpose |
 02071| |------|------|---------|
 02072| | `apps/web/src/routes/admin/dashboard.tsx` | port_admin | Global overview, system config |
 02073| | `apps/web/src/routes/operator/dashboard.tsx` | terminal_operator | Terminal-specific metrics |
 02074| | `apps/web/src/routes/carrier/dashboard.tsx` | carrier | Personal bookings, trucks, containers |
-02075| 
+02075|
 02076| ### 8.3 Dashboard Components
-02077| 
+02077|
 02078| **Files in:** `apps/web/src/features/dashboard/`
-02079| 
+02079|
 02080| | Component | Purpose |
 02081| |-----------|---------|
 02082| | `components/stats-card.tsx` | Metric card with trend |
@@ -5689,9 +5795,9 @@ Let me read the full plan output that was generated:
 02087| | `components/terminal-overview.tsx` | Terminal status grid |
 02088| | `components/date-range-picker.tsx` | Custom date range selection |
 02089| | `components/export-button.tsx` | CSV/PDF export |
-02090| 
+02090|
 02091| ### Files to Create/Modify
-02092| 
+02092|
 02093| | File | Action |
 02094| |------|--------|
 02095| | `apps/web/src/layouts/dashboard-layout.tsx` | Create |
@@ -5700,25 +5806,25 @@ Let me read the full plan output that was generated:
 02098| | `apps/web/src/routes/operator/dashboard.tsx` | Create |
 02099| | `apps/web/src/routes/carrier/dashboard.tsx` | Create |
 02100| | `apps/web/src/features/dashboard/` | Create directory + 8 components |
-02101| 
+02101|
 02102| ---
-02103| 
+02103|
 02104| ## Phase 9: Analytics with Aggregations
-02105| 
-02106| **Duration:** 5-7 days  
+02105|
+02106| **Duration:** 5-7 days
 02107| **Dependencies:** Phase 8
-02108| 
+02108|
 02109| ### 9.1 Analytics Tables (Convex Aggregate Component)
-02110| 
+02110|
 02111| **File:** `packages/backend/convex/analytics/schema.ts`
-02112| 
+02112|
 02113| ```typescript
 02114| // Pre-computed aggregates for performance
 02115| bookingAggregates: defineTable({
 02116|   terminalId: v.id("terminals"),
 02117|   date: v.string(), // YYYY-MM-DD
 02118|   hour: v.optional(v.number()), // 0-23 for hourly, null for daily
-02119|   
+02119|
 02120|   // Counts
 02121|   totalBookings: v.number(),
 02122|   pendingCount: v.number(),
@@ -5728,31 +5834,31 @@ Let me read the full plan output that was generated:
 02126|   cancelledCount: v.number(),
 02127|   expiredCount: v.number(),
 02128|   autoValidatedCount: v.number(),
-02129|   
+02129|
 02130|   // Capacity metrics
 02131|   avgCapacityUtilization: v.number(), // 0-100
 02132|   peakUtilization: v.number(),
-02133|   
+02133|
 02134|   // Container metrics
 02135|   totalContainers: v.number(),
 02136|   pickupContainers: v.number(),
 02137|   dropoffContainers: v.number(),
-02138|   
+02138|
 02139|   // Timing
 02140|   avgWaitTimeMinutes: v.optional(v.number()),
 02141|   avgProcessingTimeMinutes: v.optional(v.number()),
-02142|   
+02142|
 02143|   computedAt: v.number(),
 02144| })
 02145|   .index("by_terminal_and_date", ["terminalId", "date"])
 02146|   .index("by_terminal_date_hour", ["terminalId", "date", "hour"])
 02147|   .index("by_date", ["date"]),
 02148| ```
-02149| 
+02149|
 02150| ### 9.2 Aggregation Jobs
-02151| 
+02151|
 02152| **File:** `packages/backend/convex/analytics/compute.ts`
-02153| 
+02153|
 02154| ```typescript
 02155| /**
 02156|  * Compute hourly aggregates
@@ -5764,19 +5870,19 @@ Let me read the full plan output that was generated:
 02162|     const now = new Date();
 02163|     const currentHour = now.getHours();
 02164|     const today = now.toISOString().split("T")[0];
-02165| 
+02165|
 02166|     const terminals = await ctx.db
 02167|       .query("terminals")
 02168|       .filter((q) => q.eq(q.field("isActive"), true))
 02169|       .collect();
-02170| 
+02170|
 02171|     for (const terminal of terminals) {
 02172|       // Get bookings for this hour
 02173|       const hourStart = new Date(now);
 02174|       hourStart.setMinutes(0, 0, 0);
 02175|       const hourEnd = new Date(hourStart);
 02176|       hourEnd.setHours(hourEnd.getHours() + 1);
-02177| 
+02177|
 02178|       const bookings = await ctx.db
 02179|         .query("bookings")
 02180|         .withIndex("by_terminal", (q) => q.eq("terminalId", terminal._id))
@@ -5787,7 +5893,7 @@ Let me read the full plan output that was generated:
 02185|           )
 02186|         )
 02187|         .collect();
-02188| 
+02188|
 02189|       // Compute aggregates
 02190|       const aggregates = {
 02191|         totalBookings: bookings.length,
@@ -5801,7 +5907,7 @@ Let me read the full plan output that was generated:
 02199|         totalContainers: bookings.reduce((sum, b) => sum + b.containerIds.length, 0),
 02200|         // ... more metrics
 02201|       };
-02202| 
+02202|
 02203|       // Upsert aggregate
 02204|       const existing = await ctx.db
 02205|         .query("bookingAggregates")
@@ -5809,7 +5915,7 @@ Let me read the full plan output that was generated:
 02207|           q.eq("terminalId", terminal._id).eq("date", today).eq("hour", currentHour)
 02208|         )
 02209|         .unique();
-02210| 
+02210|
 02211|       if (existing) {
 02212|         await ctx.db.patch(existing._id, { ...aggregates, computedAt: Date.now() });
 02213|       } else {
@@ -5829,11 +5935,11 @@ Let me read the full plan output that was generated:
 02227|   },
 02228| });
 02229| ```
-02230| 
+02230|
 02231| ### 9.3 Analytics Queries
-02232| 
+02232|
 02233| **File:** `packages/backend/convex/analytics/queries.ts`
-02234| 
+02234|
 02235| ```typescript
 02236| /**
 02237|  * Get dashboard metrics for date range
@@ -5852,7 +5958,7 @@ Let me read the full plan output that was generated:
 02250|     confirmationRate: v.number(),
 02251|     autoValidationRate: v.number(),
 02252|     avgCapacityUtilization: v.number(),
-02253|     
+02253|
 02254|     // Time series data
 02255|     timeSeries: v.array(v.object({
 02256|       period: v.string(),
@@ -5860,7 +5966,7 @@ Let me read the full plan output that was generated:
 02258|       utilization: v.number(),
 02259|       containers: v.number(),
 02260|     })),
-02261|     
+02261|
 02262|     // Status breakdown
 02263|     statusBreakdown: v.object({
 02264|       pending: v.number(),
@@ -5873,7 +5979,7 @@ Let me read the full plan output that was generated:
 02271|   }),
 02272|   handler: async (ctx, args) => {
 02273|     const user = await getAuthenticatedUser(ctx);
-02274|     
+02274|
 02275|     // Check permission based on role
 02276|     if (args.terminalId) {
 02277|       if (!await canManageTerminal(ctx, user, args.terminalId)) {
@@ -5882,7 +5988,7 @@ Let me read the full plan output that was generated:
 02280|     } else if (!isPortAdmin(user)) {
 02281|       throw new ConvexError({ code: "FORBIDDEN", message: "Global metrics require admin role" });
 02282|     }
-02283| 
+02283|
 02284|     // Query aggregates
 02285|     let aggregates;
 02286|     if (args.terminalId) {
@@ -5910,17 +6016,17 @@ Let me read the full plan output that was generated:
 02308|         )
 02309|         .collect();
 02310|     }
-02311| 
+02311|
 02312|     // Process and return metrics...
 02313|     return processAggregates(aggregates, args.aggregation);
 02314|   },
 02315| });
 02316| ```
-02317| 
+02317|
 02318| ### 9.4 Export Functionality
-02319| 
+02319|
 02320| **File:** `packages/backend/convex/analytics/export.ts`
-02321| 
+02321|
 02322| ```typescript
 02323| /**
 02324|  * Export analytics data to CSV
@@ -5939,9 +6045,9 @@ Let me read the full plan output that was generated:
 02337|   },
 02338| });
 02339| ```
-02340| 
+02340|
 02341| ### Files to Create/Modify
-02342| 
+02342|
 02343| | File | Action |
 02344| |------|--------|
 02345| | `packages/backend/convex/analytics/schema.ts` | Create (add to main schema) |
@@ -5951,22 +6057,22 @@ Let me read the full plan output that was generated:
 02349| | `packages/backend/convex/crons.ts` | Update (add hourly aggregation) |
 02350| | `apps/web/src/features/analytics/` | Create directory |
 02351| | `apps/web/src/features/analytics/components/` | Create chart components |
-02352| 
+02352|
 02353| ---
-02354| 
+02354|
 02355| ## Phase 10: Audit Logging System
-02356| 
-02357| **Duration:** 3-4 days  
+02356|
+02357| **Duration:** 3-4 days
 02358| **Dependencies:** Phase 1
-02359| 
+02359|
 02360| ### 10.1 Audit Logger Utility
-02361| 
+02361|
 02362| **File:** `packages/backend/convex/lib/auditLog.ts`
-02363| 
+02363|
 02364| ```typescript
 02365| import { MutationCtx } from "../_generated/server";
 02366| import { Id } from "../_generated/dataModel";
-02367| 
+02367|
 02368| export interface AuditLogEntry {
 02369|   userId?: string;
 02370|   action: "query" | "mutation" | "ai_tool_call" | "login" | "logout" | "failed_auth" | "permission_denied";
@@ -5981,7 +6087,7 @@ Let me read the full plan output that was generated:
 02379|   aiToolName?: string;
 02380|   durationMs?: number;
 02381| }
-02382| 
+02382|
 02383| /**
 02384|  * Log an audit entry
 02385|  */
@@ -5993,36 +6099,36 @@ Let me read the full plan output that was generated:
 02391|   const sanitizedArgs = entry.args
 02392|     ? JSON.stringify(sanitizeArgs(entry.args))
 02393|     : undefined;
-02394| 
+02394|
 02395|   return await ctx.db.insert("auditLogs", {
 02396|     ...entry,
 02397|     args: sanitizedArgs,
 02398|     timestamp: Date.now(),
 02399|   });
 02400| }
-02401| 
+02401|
 02402| function sanitizeArgs(args: Record<string, unknown>): Record<string, unknown> {
 02403|   const sensitiveKeys = ["password", "token", "secret", "apiKey", "creditCard"];
 02404|   const sanitized = { ...args };
-02405|   
+02405|
 02406|   for (const key of Object.keys(sanitized)) {
 02407|     if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {
 02408|       sanitized[key] = "[REDACTED]";
 02409|     }
 02410|   }
-02411|   
+02411|
 02412|   return sanitized;
 02413| }
 02414| ```
-02415| 
+02415|
 02416| ### 10.2 Audit Wrapper for Mutations
-02417| 
+02417|
 02418| **File:** `packages/backend/convex/lib/withAudit.ts`
-02419| 
+02419|
 02420| ```typescript
 02421| import { mutation } from "../_generated/server";
 02422| import { logAudit } from "./auditLog";
-02423| 
+02423|
 02424| /**
 02425|  * Wrapper to add audit logging to mutations
 02426|  */
@@ -6034,10 +6140,10 @@ Let me read the full plan output that was generated:
 02432|     const startTime = Date.now();
 02433|     let result: Returns;
 02434|     let error: unknown;
-02435| 
+02435|
 02436|     try {
 02437|       result = await handler(ctx, args);
-02438|       
+02438|
 02439|       // Log success
 02440|       await logAudit(ctx, {
 02441|         userId: ctx.auth?.getUserIdentity()?.subject,
@@ -6047,11 +6153,11 @@ Let me read the full plan output that was generated:
 02445|         result: "success",
 02446|         durationMs: Date.now() - startTime,
 02447|       });
-02448| 
+02448|
 02449|       return result;
 02450|     } catch (e) {
 02451|       error = e;
-02452|       
+02452|
 02453|       // Log failure
 02454|       await logAudit(ctx, {
 02455|         userId: ctx.auth?.getUserIdentity()?.subject,
@@ -6061,17 +6167,17 @@ Let me read the full plan output that was generated:
 02459|         result: `error: ${String(e)}`,
 02460|         durationMs: Date.now() - startTime,
 02461|       });
-02462| 
+02462|
 02463|       throw e;
 02464|     }
 02465|   };
 02466| }
 02467| ```
-02468| 
+02468|
 02469| ### 10.3 Audit Log Queries
-02470| 
+02470|
 02471| **File:** `packages/backend/convex/audit/queries.ts`
-02472| 
+02472|
 02473| ```typescript
 02474| export const getAuditLogs = query({
 02475|   args: {
@@ -6086,9 +6192,9 @@ Let me read the full plan output that was generated:
 02484|   handler: async (ctx, args) => {
 02485|     const user = await getAuthenticatedUser(ctx);
 02486|     requireRole(user, ["port_admin"]); // Only admins can view audit logs
-02487| 
+02487|
 02488|     let query = ctx.db.query("auditLogs");
-02489| 
+02489|
 02490|     if (args.userId) {
 02491|       query = query.withIndex("by_user", (q) => q.eq("userId", args.userId));
 02492|     } else if (args.action) {
@@ -6096,14 +6202,14 @@ Let me read the full plan output that was generated:
 02494|     } else {
 02495|       query = query.withIndex("by_timestamp");
 02496|     }
-02497| 
+02497|
 02498|     // Apply additional filters
 02499|     if (args.startDate) {
 02500|       query = query.filter((q) => q.gte(q.field("timestamp"), args.startDate));
 
 (File has more lines. Use 'offset' parameter to read beyond line 2500)
 </file>
-```
+````
 
 ---
 
@@ -6112,6 +6218,7 @@ Let me read the full plan output that was generated:
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/.local/share/opencode/tool-output/tool_c34212b0d001zHbr5LxSB1sFlE",
@@ -6121,20 +6228,21 @@ Let me read the full plan output that was generated:
 ```
 
 **Output:**
-```
+
+````
 <file>
 02501|     }
 02502|     if (args.endDate) {
 02503|       query = query.filter((q) => q.lte(q.field("timestamp"), args.endDate));
 02504|     }
-02505| 
+02505|
 02506|     return await query.order("desc").take(args.limit ?? 100);
 02507|   },
 02508| });
 02509| ```
-02510| 
+02510|
 02511| ### Files to Create/Modify
-02512| 
+02512|
 02513| | File | Action |
 02514| |------|--------|
 02515| | `packages/backend/convex/lib/auditLog.ts` | Create |
@@ -6143,22 +6251,22 @@ Let me read the full plan output that was generated:
 02518| | `packages/backend/convex/audit/mutations.ts` | Create (cleanup) |
 02519| | `apps/web/src/features/audit/` | Create directory |
 02520| | `apps/web/src/routes/admin/audit-logs.tsx` | Create |
-02521| 
+02521|
 02522| ---
-02523| 
+02523|
 02524| ## Phase 11: Seed Data Generation
-02525| 
-02526| **Duration:** 2-3 days  
+02525|
+02526| **Duration:** 2-3 days
 02527| **Dependencies:** All previous phases
-02528| 
+02528|
 02529| ### 11.1 Seed Script
-02530| 
+02530|
 02531| **File:** `packages/backend/convex/seed/index.ts`
-02532| 
+02532|
 02533| ```typescript
 02534| import { internalMutation } from "../_generated/server";
 02535| import { faker } from "@faker-js/faker";
-02536| 
+02536|
 02537| /**
 02538|  * Generate realistic seed data
 02539|  * ~500-1000 containers, proportional trucks, bookings
@@ -6168,28 +6276,28 @@ Let me read the full plan output that was generated:
 02543|   handler: async (ctx) => {
 02544|     // 1. Create terminals (3-5)
 02545|     const terminals = await seedTerminals(ctx, 4);
-02546| 
+02546|
 02547|     // 2. Create gates per terminal (2-4 each)
 02548|     const gates = await seedGates(ctx, terminals);
-02549| 
+02549|
 02550|     // 3. Create time slots (next 30 days, 1-hour slots)
 02551|     await seedTimeSlots(ctx, terminals);
-02552| 
+02552|
 02553|     // 4. Create carrier users (20-30)
 02554|     const carriers = await seedCarriers(ctx, 25);
-02555| 
+02555|
 02556|     // 5. Create trucks per carrier (2-5 each)
 02557|     const trucks = await seedTrucks(ctx, carriers);
-02558| 
+02558|
 02559|     // 6. Create containers (500-1000)
 02560|     const containers = await seedContainers(ctx, carriers, 750);
-02561| 
+02561|
 02562|     // 7. Create bookings with realistic distribution
 02563|     await seedBookings(ctx, terminals, carriers, trucks, containers);
-02564| 
+02564|
 02565|     // 8. Create terminal operators (5-10)
 02566|     await seedOperators(ctx, terminals, 8);
-02567| 
+02567|
 02568|     return {
 02569|       terminals: terminals.length,
 02570|       gates: Object.values(gates).flat().length,
@@ -6199,11 +6307,11 @@ Let me read the full plan output that was generated:
 02574|     };
 02575|   },
 02576| });
-02577| 
+02577|
 02578| async function seedTerminals(ctx: MutationCtx, count: number) {
 02579|   const terminals: Id<"terminals">[] = [];
 02580|   const portNames = ["Terminal Nord", "Terminal Sud", "Terminal Est", "Terminal Conteneurs", "Terminal Ro-Ro"];
-02581| 
+02581|
 02582|   for (let i = 0; i < count; i++) {
 02583|     const id = await ctx.db.insert("terminals", {
 02584|       name: portNames[i],
@@ -6219,10 +6327,10 @@ Let me read the full plan output that was generated:
 02594|     });
 02595|     terminals.push(id);
 02596|   }
-02597| 
+02597|
 02598|   return terminals;
 02599| }
-02600| 
+02600|
 02601| async function seedContainers(
 02602|   ctx: MutationCtx,
 02603|   carriers: string[],
@@ -6232,11 +6340,11 @@ Let me read the full plan output that was generated:
 02607|   const containerTypes = ["dry", "reefer", "open_top", "flat_rack", "tank", "hazardous"];
 02608|   const dimensions = ["20ft", "40ft", "40ft_hc", "45ft"];
 02609|   const weightClasses = ["light", "medium", "heavy", "max"];
-02610| 
+02610|
 02611|   for (let i = 0; i < count; i++) {
 02612|     const carrierId = faker.helpers.arrayElement(carriers);
 02613|     const operationType = faker.helpers.arrayElement(["pick_up", "drop_off"]);
-02614| 
+02614|
 02615|     const id = await ctx.db.insert("containers", {
 02616|       ownerId: carrierId,
 02617|       containerNumber: generateContainerNumber(),
@@ -6244,8 +6352,8 @@ Let me read the full plan output that was generated:
 02619|       dimensions: faker.helpers.arrayElement(dimensions) as any,
 02620|       weightClass: faker.helpers.arrayElement(weightClasses) as any,
 02621|       operationType: operationType as any,
-02622|       readyDate: operationType === "pick_up" 
-02623|         ? faker.date.soon({ days: 14 }).getTime() 
+02622|       readyDate: operationType === "pick_up"
+02623|         ? faker.date.soon({ days: 14 }).getTime()
 02624|         : undefined,
 02625|       departureDate: operationType === "drop_off"
 02626|         ? faker.date.soon({ days: 30 }).getTime()
@@ -6258,24 +6366,24 @@ Let me read the full plan output that was generated:
 02633|     });
 02634|     containers.push(id);
 02635|   }
-02636| 
+02636|
 02637|   return containers;
 02638| }
-02639| 
+02639|
 02640| function generateContainerNumber(): string {
 02641|   const ownerCode = faker.string.alpha({ length: 4, casing: "upper" });
 02642|   const serial = faker.string.numeric(6);
 02643|   const checkDigit = faker.string.numeric(1);
 02644|   return `${ownerCode}${serial}${checkDigit}`;
 02645| }
-02646| 
+02646|
 02647| // ... more seeding functions
 02648| ```
-02649| 
+02649|
 02650| ### 11.2 Seed Command
-02651| 
+02651|
 02652| **File:** `packages/backend/package.json`
-02653| 
+02653|
 02654| ```json
 02655| {
 02656|   "scripts": {
@@ -6283,9 +6391,9 @@ Let me read the full plan output that was generated:
 02658|   }
 02659| }
 02660| ```
-02661| 
+02661|
 02662| ### Files to Create
-02663| 
+02663|
 02664| | File | Action |
 02665| |------|--------|
 02666| | `packages/backend/convex/seed/index.ts` | Create |
@@ -6293,11 +6401,11 @@ Let me read the full plan output that was generated:
 02668| | `packages/backend/convex/seed/containers.ts` | Create |
 02669| | `packages/backend/convex/seed/bookings.ts` | Create |
 02670| | `packages/backend/convex/seed/users.ts` | Create |
-02671| 
+02671|
 02672| ---
-02673| 
+02673|
 02674| ## Implementation Timeline Summary
-02675| 
+02675|
 02676| | Phase | Duration | Dependencies | Key Deliverables |
 02677| |-------|----------|--------------|------------------|
 02678| | 1. Schema Refactoring | 3-5 days | None | New schema, containers table, audit logs |
@@ -6311,35 +6419,35 @@ Let me read the full plan output that was generated:
 02686| | 9. Analytics | 5-7 days | Phase 8 | Aggregates, charts, exports |
 02687| | 10. Audit Logging | 3-4 days | Phase 1 | Full audit trail, admin UI |
 02688| | 11. Seed Data | 2-3 days | All | Realistic demo dataset |
-02689| 
+02689|
 02690| **Total Estimated Duration:** 45-61 days (9-12 weeks)
-02691| 
+02691|
 02692| ---
-02693| 
+02693|
 02694| ## Risk Mitigation
-02695| 
+02695|
 02696| 1. **Schema Migration Complexity**: Use Convex migrations component for safe schema evolution
 02697| 2. **Performance with Large Data**: Leverage Convex aggregates component for analytics
 02698| 3. **AI Tool Reliability**: Implement fallback messages and error handling in tool handlers
 02699| 4. **Email Deliverability**: Use Resend with proper domain verification
 02700| 5. **QR Code Security**: Only store reference in QR, require server lookup for details
-02701| 
+02701|
 02702| ---
-02703| 
+02703|
 02704| ## Testing Strategy
-02705| 
+02705|
 02706| 1. **Unit Tests**: Jest for utility functions (validators, formatters)
 02707| 2. **Integration Tests**: Convex test client for mutations/queries
 02708| 3. **E2E Tests**: Playwright for critical user flows (booking, approval, scanning)
 02709| 4. **Load Testing**: Verify capacity engine under concurrent bookings
-02710| 
+02710|
 02711| <task_metadata>
 02712| session_id: ses_3cbe38fddffe3HkbBZOttJzpHk
 02713| </task_metadata>
 
 (End of file - total 2713 lines)
 </file>
-```
+````
 
 ---
 
@@ -6350,14 +6458,16 @@ I now have the complete implementation plan. Let me write this to the plan file:
 **Tool: write**
 
 **Input:**
-```json
+
+````json
 {
   "filePath": "/home/sones/projects/monorepo/.opencode/plans/1770398316992-lucky-meadow.md",
   "content": "# APCS Maritime Port Booking System - Implementation Plan\n\n## Overview\n\nThis plan covers the development of a centralized platform to regulate maritime port access through a synchronized booking system and terminal capacity engine with a conversational AI interface.\n\n### Key Requirements Summary\n\n| Aspect | Specification |\n|--------|---------------|\n| **User Roles** | Port Admin, Terminal Operator, Carrier |\n| **Interface** | Conversational AI (chat-centric) + Traditional dashboards in sidebar |\n| **Booking Model** | 1 booking = 1 truck + multiple containers (pick-up/drop-off) |\n| **Capacity** | Terminal-level (truck count), not gate-level |\n| **Auto-Validation** | First N% of slot capacity auto-approved (N configurable) |\n| **Language** | French only (UI + AI responses) |\n| **QR Code** | Reference ID only (server lookup required), double scan (entry + exit) |\n| **Analytics** | Comprehensive with Convex aggregate component, export to CSV/PDF |\n| **Audit Logging** | Full trail (mutations + queries + AI tool calls + failed attempts) |\n\n---\n\n## Phase 1: Schema Refactoring (Foundation)\n**Duration:** 3-5 days | **Priority:** Critical\n\n### Changes\n\n**Remove carrier company concept:**\n- Delete `carrierCompanies` and `carrierUsers` tables\n- Trucks belong directly to carrier users via `ownerId`\n\n**Add containers table:**\n```\ncontainers: {\n  ownerId, containerNumber, type (dry/reefer/open_top/flat_rack/tank/hazardous),\n  dimensions (20ft/40ft/40ft_hc/45ft), weightClass, operationType (pick_up/drop_off),\n  readyDate, departureDate, isEmpty, bookingId, isActive\n}\n```\n\n**Refactor bookings table:**\n```\nbookings: {\n  terminalId, carrierId, truckId, gateId (assigned at approval),\n  bookingReference (TER1-BK-001234), status, wasAutoValidated,\n  containerIds[], preferredDate/Time, entryScannedAt, exitScannedAt,\n  qrCode, qrCodeStorageId, driverInfo\n}\n```\n\n**Update time slots:** Terminal-level capacity (not gate), add `autoValidationThreshold`\n\n**Add audit logs table:** Full audit trail with userId, action, resource, args, result, IP/device info\n\n### Files to Modify/Create\n\n| File | Action |\n|------|--------|\n| `packages/backend/convex/schema.ts` | Major refactor |\n| `packages/backend/convex/lib/validators.ts` | Add new validators |\n| `packages/backend/convex/containers/queries.ts` | Create |\n| `packages/backend/convex/containers/mutations.ts` | Create |\n| `packages/backend/convex/audit/queries.ts` | Create |\n| `packages/backend/convex/audit/mutations.ts` | Create |\n\n---\n\n## Phase 2: Core Backend Functions\n**Duration:** 5-7 days | **Dependencies:** Phase 1\n\n### Key Changes\n\n- **Permissions:** Remove carrier company logic, update `canManageTruck` for direct ownership\n- **Capacity Engine:** Terminal-level capacity with `getTerminalSlotCapacity()`, `shouldAutoValidate()`\n- **Booking Mutations:**\n  - Container validation (ownership, availability)\n  - Auto-validation logic on create\n  - Terminal-prefixed reference generation (`TER1-BK-XXXXXX`)\n  - Gate assignment at approval time (load-balanced across compatible gates)\n\n### Files to Modify\n\n| File | Action |\n|------|--------|\n| `packages/backend/convex/lib/permissions.ts` | Modify |\n| `packages/backend/convex/lib/capacity.ts` | Major refactor |\n| `packages/backend/convex/bookings/mutations.ts` | Major refactor |\n| `packages/backend/convex/bookings/queries.ts` | Modify |\n| `packages/backend/convex/bookings/internal.ts` | Create gate assignment logic |\n| `packages/backend/convex/trucks/mutations.ts` | Remove carrier company refs |\n\n---\n\n## Phase 3: AI Tools and Conversational Flows\n**Duration:** 7-10 days | **Dependencies:** Phase 1, 2\n\n### Agent Configuration\n\n- French-only responses\n- System prompt for booking flow guidance\n- `maxSteps: 10` for complex conversations\n\n### New AI Tools\n\n| Tool | Role | Purpose |\n|------|------|---------|\n| `listMyContainers` | carrier | List carrier's containers with filters |\n| `selectContainersForBooking` | carrier | Interactive container selection widget |\n| `suggestOptimalSlots` | carrier | Slot recommendations (load balancing + urgency) |\n| `getSlotAvailability` | carrier/operator | Calendar view of slot availability |\n| `createBookingViaAI` | carrier | Create booking mutation |\n| `cancelBookingViaAI` | carrier | Cancel booking mutation |\n| `changeTruckViaAI` | carrier | Change truck assignment |\n| `listMyTrucks` | carrier | List carrier's trucks |\n\n### Chat Widget Components\n\nCreate in `apps/web/src/components/ai-elements/apcs/`:\n- `container-list.tsx` - Display containers\n- `container-selector.tsx` - Interactive selection\n- `slot-suggestions.tsx` - Optimal slot recommendations\n- `slot-calendar.tsx` - Availability calendar\n- `booking-confirmation-card.tsx` - Booking result with status\n- `truck-selector.tsx` - Truck selection\n- `booking-summary.tsx` - Expandable booking details\n\n### Files to Create/Modify\n\n| File | Action |\n|------|--------|\n| `packages/backend/convex/ai/agent.ts` | Update (French instructions) |\n| `packages/backend/convex/ai/tools/containers.ts` | Create |\n| `packages/backend/convex/ai/tools/slots.ts` | Create |\n| `packages/backend/convex/ai/tools/booking-flow.ts` | Create |\n| `packages/backend/convex/ai/tools/trucks.ts` | Create |\n| `packages/backend/convex/ai/registry.ts` | Update |\n| `packages/backend/convex/ai/tools/types.ts` | Update permissions |\n| `apps/web/src/components/ai-elements/apcs/*.tsx` | Create 7 files |\n\n---\n\n## Phase 4: Time Slot Bulk Editing\n**Duration:** 4-5 days | **Dependencies:** Phase 1, 2\n\n### Bulk Operations\n\n1. **Same day, multiple slots:** Bulk update capacity for all morning/afternoon slots\n2. **Copy day template:** Apply one day's configuration to other days\n3. **Weekly recurring patterns:** Define patterns that apply to specific days of week\n\n### Mutations\n\n- `copyDayTemplate(terminalId, sourceDate, targetDates[], skipExisting)`\n- `createWeeklyPattern(terminalId, startDate, endDate, daysOfWeek[], slots[], skipExisting)`\n- `bulkUpdateCapacity(terminalId, date, slotIds?, maxCapacity, autoValidationThreshold?)`\n- `bulkToggleActive(terminalId, date, slotIds, isActive)`\n\n### Files to Create\n\n| File | Action |\n|------|--------|\n| `packages/backend/convex/timeSlots/mutations.ts` | Major update |\n| `apps/web/src/features/time-slots/components/slot-editor.tsx` | Create |\n| `apps/web/src/features/time-slots/components/bulk-slot-editor.tsx` | Create |\n| `apps/web/src/features/time-slots/components/day-template-picker.tsx` | Create |\n| `apps/web/src/features/time-slots/components/weekly-pattern-wizard.tsx` | Create |\n| `apps/web/src/routes/operator/slots.tsx` | Create |\n\n---\n\n## Phase 5: Auto-Validation and Approval Workflows\n**Duration:** 3-4 days | **Dependencies:** Phase 1, 2, 4\n\n### Auto-Validation Engine\n\n- Check confirmed auto-validated count vs threshold limit\n- Threshold = `(maxCapacity × autoValidationThreshold) / 100`\n- First N% auto-approved, rest queued for manual review\n\n### Manual Approval Workflow\n\n- `confirmBooking(bookingId, gateId?, note?)` - Assigns gate, generates QR, sends notification\n- `rejectBooking(bookingId, reason)` - Records rejection, sends notification\n- Approval queue UI with FIFO ordering (priority algorithm later)\n\n### Files to Create\n\n| File | Action |\n|------|--------|\n| `packages/backend/convex/lib/autoValidation.ts` | Create |\n| `packages/backend/convex/bookings/mutations.ts` | Update confirm/reject |\n| `apps/web/src/features/approvals/components/approval-queue.tsx` | Create |\n| `apps/web/src/features/approvals/components/approval-card.tsx` | Create |\n| `apps/web/src/features/approvals/components/bulk-approval.tsx` | Create |\n| `apps/web/src/routes/operator/approvals.tsx` | Create |\n\n---\n\n## Phase 6: Notification System with Email\n**Duration:** 4-5 days | **Dependencies:** Phase 1, 5\n\n### Notification Triggers\n\n| Event | Recipients |\n|-------|------------|\n| Booking created | Carrier |\n| Booking confirmed | Carrier |\n| Booking rejected | Carrier |\n| Booking cancelled | Carrier |\n| Slot reminder | Carrier |\n| Capacity alert | Terminal operators |\n\n### Email Integration\n\n- Use Resend for email delivery\n- French templates for all notification types\n- User preference for channel (in-app, email, or both)\n\n### Capacity Alert System\n\n- Configurable thresholds per terminal (e.g., [70, 85, 95])\n- Cron job checks capacity utilization daily\n- Alerts sent to assigned terminal operators\n\n### Files to Create\n\n| File | Action |\n|------|--------|\n| `packages/backend/convex/notifications/service.ts` | Create |\n| `packages/backend/convex/email/index.ts` | Create |\n| `packages/backend/convex/scheduled.ts` | Update (capacity alerts) |\n| `packages/backend/convex/crons.ts` | Update |\n\n---\n\n## Phase 7: QR Code Generation and Scanning\n**Duration:** 3-4 days | **Dependencies:** Phase 5\n\n### QR Code Generation\n\n- Contains only booking reference + type identifier\n- Generated on booking approval (auto or manual)\n- Stored in Convex file storage + data URL for immediate display\n\n### Double Scan System\n\n- Entry scan: Updates status to \"consumed\", records timestamp\n- Exit scan: Records exit timestamp\n- Both scans require terminal operator role\n\n### Scan Validation\n\n- Verify booking reference exists\n- Verify gate belongs to correct terminal\n- Verify booking status allows the scan type\n- Verify user has terminal access\n\n### Files to Create\n\n| File | Action |\n|------|--------|\n| `packages/backend/convex/qr/index.ts` | Create |\n| `packages/backend/convex/qr/scan.ts` | Create |\n| `apps/web/src/features/scanner/components/qr-scanner.tsx` | Create |\n| `apps/web/src/features/scanner/components/scan-result.tsx` | Create |\n| `apps/web/src/routes/operator/scanner.tsx` | Create |\n\n---\n\n## Phase 8: Dashboard UI Components\n**Duration:** 5-7 days | **Dependencies:** Phase 1-7\n\n### Layout\n\n- Main navigation sidebar (left)\n- Content area (center)\n- Closeable chat sidebar (right) - accessible from all dashboard pages\n\n### Role-Specific Dashboards\n\n| Role | Dashboard Features |\n|------|-------------------|\n| Port Admin | Global overview, system config, user management, audit logs |\n| Terminal Operator | Terminal-specific metrics, approval queue, slot management, scanner |\n| Carrier | Personal bookings, truck fleet, container list, booking history |\n\n### Dashboard Components\n\nCreate in `apps/web/src/features/dashboard/`:\n- `stats-card.tsx` - Metric card with trend\n- `booking-chart.tsx` - Booking trends\n- `capacity-gauge.tsx` - Terminal capacity gauge\n- `recent-activity.tsx` - Activity feed\n- `pending-actions.tsx` - Actions needing attention\n- `terminal-overview.tsx` - Terminal status grid\n- `date-range-picker.tsx` - Custom date selection\n- `export-button.tsx` - CSV/PDF export\n\n### Files to Create\n\n| File | Action |\n|------|--------|\n| `apps/web/src/layouts/dashboard-layout.tsx` | Create |\n| `apps/web/src/components/chat-sidebar.tsx` | Create |\n| `apps/web/src/routes/admin/dashboard.tsx` | Create |\n| `apps/web/src/routes/operator/dashboard.tsx` | Create |\n| `apps/web/src/routes/carrier/dashboard.tsx` | Create |\n| `apps/web/src/features/dashboard/components/*.tsx` | Create 8 files |\n\n---\n\n## Phase 9: Analytics with Aggregations\n**Duration:** 5-7 days | **Dependencies:** Phase 8\n\n### Aggregation Tables\n\n```\nbookingAggregates: {\n  terminalId, date, hour?,\n  counts (total, pending, confirmed, rejected, consumed, cancelled, expired, autoValidated),\n  capacity metrics (avg/peak utilization),\n  container metrics (total, pickup, dropoff),\n  timing (avgWaitTime, avgProcessingTime),\n  computedAt\n}\n```\n\n### Aggregation Jobs\n\n- Hourly aggregation cron job\n- Daily rollup aggregation\n- Weekly summary aggregation\n\n### Analytics Features\n\n- Custom date range picker with presets\n- Hourly/daily/weekly aggregation views\n- Terminal-specific vs global metrics\n- Export to CSV and PDF\n\n### Files to Create\n\n| File | Action |\n|------|--------|\n| `packages/backend/convex/schema.ts` | Add bookingAggregates |\n| `packages/backend/convex/analytics/compute.ts` | Create |\n| `packages/backend/convex/analytics/queries.ts` | Create |\n| `packages/backend/convex/analytics/export.ts` | Create |\n| `packages/backend/convex/crons.ts` | Add hourly aggregation |\n| `apps/web/src/features/analytics/components/*.tsx` | Create chart components |\n\n---\n\n## Phase 10: Audit Logging System\n**Duration:** 3-4 days | **Dependencies:** Phase 1\n\n### Audit Entry Structure\n\n```\nauditLogs: {\n  userId?, action, resource, resourceId?, args (sanitized), result,\n  ipAddress?, userAgent?, sessionId?, aiThreadId?, aiToolName?,\n  timestamp, durationMs?\n}\n```\n\n### Audit Actions\n\n- `query`, `mutation`, `ai_tool_call`, `login`, `logout`, `failed_auth`, `permission_denied`\n\n### Implementation\n\n- `logAudit()` utility function with arg sanitization\n- `withAudit()` wrapper for mutations\n- Admin-only audit log viewer with filters\n\n### Files to Create\n\n| File | Action |\n|------|--------|\n| `packages/backend/convex/lib/auditLog.ts` | Create |\n| `packages/backend/convex/lib/withAudit.ts` | Create |\n| `packages/backend/convex/audit/queries.ts` | Create |\n| `apps/web/src/routes/admin/audit-logs.tsx` | Create |\n\n---\n\n## Phase 11: Seed Data Generation\n**Duration:** 2-3 days | **Dependencies:** All previous phases\n\n### Seed Data Scale\n\n| Entity | Count |\n|--------|-------|\n| Terminals | 4 |\n| Gates | 2-4 per terminal |\n| Time Slots | 30 days × 24 hours |\n| Carriers | 25 |\n| Trucks | 2-5 per carrier (~75 total) |\n| Containers | 750 |\n| Terminal Operators | 8 |\n| Bookings | Realistic distribution |\n\n### Container Generation\n\n- ISO 6346 format container numbers\n- Realistic distribution of types, dimensions, weight classes\n- 70% drop-off, 30% pick-up operations\n- 30% empty containers\n\n### Files to Create\n\n| File | Action |\n|------|--------|\n| `packages/backend/convex/seed/index.ts` | Create |\n| `packages/backend/convex/seed/terminals.ts` | Create |\n| `packages/backend/convex/seed/containers.ts` | Create |\n| `packages/backend/convex/seed/bookings.ts` | Create |\n| `packages/backend/convex/seed/users.ts` | Create |\n\n---\n\n## Timeline Summary\n\n| Phase | Duration | Cumulative |\n|-------|----------|------------|\n| 1. Schema Refactoring | 3-5 days | Week 1 |\n| 2. Core Backend | 5-7 days | Week 2 |\n| 3. AI Tools | 7-10 days | Week 3-4 |\n| 4. Time Slot Bulk Editing | 4-5 days | Week 5 |\n| 5. Auto-Validation | 3-4 days | Week 5-6 |\n| 6. Notifications | 4-5 days | Week 6-7 |\n| 7. QR Codes | 3-4 days | Week 7 |\n| 8. Dashboard UI | 5-7 days | Week 8-9 |\n| 9. Analytics | 5-7 days | Week 9-10 |\n| 10. Audit Logging | 3-4 days | Week 10-11 |\n| 11. Seed Data | 2-3 days | Week 11 |\n\n**Total Estimated Duration:** 45-61 days (9-12 weeks)\n\n---\n\n## Verification Strategy\n\n### Unit Tests\n- Validators and utility functions\n- Capacity calculations\n- Auto-validation logic\n\n### Integration Tests\n- Booking creation flow (with auto-validation)\n- Approval workflow\n- QR scan sequences\n\n### E2E Tests (Playwright)\n1. Carrier booking flow via AI chat\n2. Terminal operator approval workflow\n3. QR scan entry/exit sequence\n4. Admin configuration changes\n\n### Performance Tests\n- Concurrent booking creation\n- Capacity engine under load\n- Analytics queries with large datasets\n\n---\n\n## Critical Files Reference\n\n### Backend Core\n- `packages/backend/convex/schema.ts`\n- `packages/backend/convex/lib/permissions.ts`\n- `packages/backend/convex/lib/capacity.ts`\n- `packages/backend/convex/bookings/mutations.ts`\n- `packages/backend/convex/ai/agent.ts`\n- `packages/backend/convex/ai/registry.ts`\n\n### Frontend Core\n- `apps/web/src/layouts/dashboard-layout.tsx`\n- `apps/web/src/components/chat-sidebar.tsx`\n- `apps/web/src/components/ai-elements/apcs/*.tsx`\n- `apps/web/src/features/*/components/*.tsx`\n"
 }
-```
+````
 
 **Output:**
+
 ```
 Wrote file successfully.
 
@@ -6425,25 +6535,27 @@ The implementation plan for **APCS (Advanced Port Container System)** covers **1
 
 ### Key Design Decisions Based on Your Answers
 
-| Decision | Choice |
-|----------|--------|
-| Booking model | 1 truck + multiple containers |
-| Capacity | Terminal-level (truck count) |
-| Auto-validation | First N% of capacity |
-| Gate assignment | At approval time |
+| Decision             | Choice                                                 |
+| -------------------- | ------------------------------------------------------ |
+| Booking model        | 1 truck + multiple containers                          |
+| Capacity             | Terminal-level (truck count)                           |
+| Auto-validation      | First N% of capacity                                   |
+| Gate assignment      | At approval time                                       |
 | Container properties | Type, dimensions (20ft/40ft/40ftHC/45ft), weight class |
-| Language | French only |
-| QR content | Reference ID only |
-| Mobile app | Excluded for now |
+| Language             | French only                                            |
+| QR content           | Reference ID only                                      |
+| Mobile app           | Excluded for now                                       |
 
 **Tool: plan_exit**
 
 **Input:**
+
 ```json
 {}
 ```
 
 **Error:**
+
 ```
 Error: The user dismissed this question
 ```
@@ -6458,44 +6570,45 @@ This is an index skill for Convex development. Use specific skills for detailed 
 
 ## Core Development
 
-| Skill | Command | Use When |
-|-------|---------|----------|
-| Functions | `/convex-functions` | Writing queries, mutations, actions |
-| Schema | `/convex-schema-validator` | Defining database schemas and validators |
-| Realtime | `/convex-realtime` | Building reactive subscriptions |
-| HTTP Actions | `/convex-http-actions` | Webhooks and HTTP endpoints |
+| Skill        | Command                    | Use When                                 |
+| ------------ | -------------------------- | ---------------------------------------- |
+| Functions    | `/convex-functions`        | Writing queries, mutations, actions      |
+| Schema       | `/convex-schema-validator` | Defining database schemas and validators |
+| Realtime     | `/convex-realtime`         | Building reactive subscriptions          |
+| HTTP Actions | `/convex-http-actions`     | Webhooks and HTTP endpoints              |
 
 ## Data & Storage
 
-| Skill | Command | Use When |
-|-------|---------|----------|
-| File Storage | `/convex-file-storage` | File uploads, serving, storage |
-| Migrations | `/convex-migrations` | Schema evolution, data backfills |
+| Skill        | Command                | Use When                         |
+| ------------ | ---------------------- | -------------------------------- |
+| File Storage | `/convex-file-storage` | File uploads, serving, storage   |
+| Migrations   | `/convex-migrations`   | Schema evolution, data backfills |
 
 ## Advanced Patterns
 
-| Skill | Command | Use When |
-|-------|---------|----------|
-| Agents | `/convex-agents` | Building AI agents with tools |
-| Cron Jobs | `/convex-cron-jobs` | Scheduled background tasks |
-| Components | `/convex-component-authoring` | Reusable Convex packages |
+| Skill      | Command                       | Use When                      |
+| ---------- | ----------------------------- | ----------------------------- |
+| Agents     | `/convex-agents`              | Building AI agents with tools |
+| Cron Jobs  | `/convex-cron-jobs`           | Scheduled background tasks    |
+| Components | `/convex-component-authoring` | Reusable Convex packages      |
 
 ## Security
 
-| Skill | Command | Use When |
-|-------|---------|----------|
+| Skill          | Command                  | Use When                       |
+| -------------- | ------------------------ | ------------------------------ |
 | Security Check | `/convex-security-check` | Quick security audit checklist |
-| Security Audit | `/convex-security-audit` | Deep security review |
+| Security Audit | `/convex-security-audit` | Deep security review           |
 
 ## Guidelines
 
-| Skill | Command | Use When |
-|-------|---------|----------|
+| Skill          | Command                  | Use When                        |
+| -------------- | ------------------------ | ------------------------------- |
 | Best Practices | `/convex-best-practices` | General patterns and guidelines |
 
 ## Quick Start
 
 For most tasks:
+
 1. Start with `/convex-best-practices` for general patterns
 2. Use `/convex-functions` for writing backend logic
 3. Use `/convex-schema-validator` for data modeling
@@ -6505,7 +6618,6 @@ For most tasks:
 
 - Primary: https://docs.convex.dev
 - LLM-optimized: https://docs.convex.dev/llms.txt
-
 
 Now write a plan for backend implementation. It should be exhaustive and make the backend ready with full implementation details..
 
@@ -6518,6 +6630,7 @@ _Thinking:_
 The user wants me to create a detailed backend implementation plan. They want it to be exhaustive and ready for full implementation. Let me first load the relevant Convex skills to ensure I follow best practices, then create a comprehensive backend plan.
 
 I should load the key Convex skills to inform the plan:
+
 1. convex-best-practices - for general patterns
 2. convex-functions - for writing backend logic
 3. convex-schema-validator - for data modeling
@@ -6530,6 +6643,7 @@ I'll load the relevant Convex skills to ensure the backend plan follows best pra
 **Tool: skill**
 
 **Input:**
+
 ```json
 {
   "name": "convex-best-practices"
@@ -6537,7 +6651,8 @@ I'll load the relevant Convex skills to ensure the backend plan follows best pra
 ```
 
 **Output:**
-```
+
+````
 <skill_content name="convex-best-practices">
 # Skill: convex-best-practices
 
@@ -6551,16 +6666,14 @@ All patterns in this skill comply with `@convex-dev/eslint-plugin`. Install it f
 
 ```bash
 npm i @convex-dev/eslint-plugin --save-dev
-```
+````
 
 ```js
 // eslint.config.js
 import { defineConfig } from "eslint/config";
 import convexPlugin from "@convex-dev/eslint-plugin";
 
-export default defineConfig([
-  ...convexPlugin.configs.recommended,
-]);
+export default defineConfig([...convexPlugin.configs.recommended]);
 ```
 
 The plugin enforces four rules:
@@ -6916,7 +7029,8 @@ Note: file list is sampled.
 <file>/home/sones/projects/monorepo/.agents/skills/convex-best-practices/assets/large-logo.png</file>
 </skill_files>
 </skill_content>
-```
+
+````
 
 **Tool: skill**
 
@@ -6925,10 +7039,11 @@ Note: file list is sampled.
 {
   "name": "convex-functions"
 }
-```
+````
 
 **Output:**
-```
+
+````
 <skill_content name="convex-functions">
 # Skill: convex-functions
 
@@ -7011,7 +7126,7 @@ export const listUserTasks = query({
       .collect();
   },
 });
-```
+````
 
 ### Mutations
 
@@ -7392,7 +7507,8 @@ Note: file list is sampled.
 <file>/home/sones/projects/monorepo/.agents/skills/convex-functions/assets/small-logo.svg</file>
 </skill_files>
 </skill_content>
-```
+
+````
 
 **Tool: skill**
 
@@ -7401,10 +7517,11 @@ Note: file list is sampled.
 {
   "name": "convex-schema-validator"
 }
-```
+````
 
 **Output:**
-```
+
+````
 <skill_content name="convex-schema-validator">
 # Skill: convex-schema-validator
 
@@ -7437,7 +7554,7 @@ export default defineSchema({
     avatarUrl: v.optional(v.string()),
     createdAt: v.number(),
   }),
-  
+
   tasks: defineTable({
     title: v.string(),
     description: v.optional(v.string()),
@@ -7450,26 +7567,26 @@ export default defineSchema({
     ),
   }),
 });
-```
+````
 
 ### Validator Types
 
-| Validator | TypeScript Type | Example |
-|-----------|----------------|---------|
-| `v.string()` | `string` | `"hello"` |
-| `v.number()` | `number` | `42`, `3.14` |
-| `v.boolean()` | `boolean` | `true`, `false` |
-| `v.null()` | `null` | `null` |
-| `v.int64()` | `bigint` | `9007199254740993n` |
-| `v.bytes()` | `ArrayBuffer` | Binary data |
-| `v.id("table")` | `Id<"table">` | Document reference |
-| `v.array(v)` | `T[]` | `[1, 2, 3]` |
-| `v.object({})` | `{ ... }` | `{ name: "..." }` |
-| `v.optional(v)` | `T \| undefined` | Optional field |
-| `v.union(...)` | `T1 \| T2` | Multiple types |
-| `v.literal(x)` | `"x"` | Exact value |
-| `v.any()` | `any` | Any value |
-| `v.record(k, v)` | `Record<K, V>` | Dynamic keys |
+| Validator        | TypeScript Type  | Example             |
+| ---------------- | ---------------- | ------------------- |
+| `v.string()`     | `string`         | `"hello"`           |
+| `v.number()`     | `number`         | `42`, `3.14`        |
+| `v.boolean()`    | `boolean`        | `true`, `false`     |
+| `v.null()`       | `null`           | `null`              |
+| `v.int64()`      | `bigint`         | `9007199254740993n` |
+| `v.bytes()`      | `ArrayBuffer`    | Binary data         |
+| `v.id("table")`  | `Id<"table">`    | Document reference  |
+| `v.array(v)`     | `T[]`            | `[1, 2, 3]`         |
+| `v.object({})`   | `{ ... }`        | `{ name: "..." }`   |
+| `v.optional(v)`  | `T \| undefined` | Optional field      |
+| `v.union(...)`   | `T1 \| T2`       | Multiple types      |
+| `v.literal(x)`   | `"x"`            | Exact value         |
+| `v.any()`        | `any`            | Any value           |
+| `v.record(k, v)` | `Record<K, V>`   | Dynamic keys        |
 
 ### Index Configuration
 
@@ -7487,17 +7604,16 @@ export default defineSchema({
     .index("by_channel_and_author", ["channelId", "authorId"])
     // Index for sorting
     .index("by_channel_and_time", ["channelId", "sentAt"]),
-    
+
   // Full-text search index
   articles: defineTable({
     title: v.string(),
     body: v.string(),
     category: v.string(),
-  })
-    .searchIndex("search_content", {
-      searchField: "body",
-      filterFields: ["category"],
-    }),
+  }).searchIndex("search_content", {
+    searchField: "body",
+    filterFields: ["category"],
+  }),
 });
 ```
 
@@ -7520,16 +7636,18 @@ export default defineSchema({
   // Arrays of objects
   orders: defineTable({
     customerId: v.id("users"),
-    items: v.array(v.object({
-      productId: v.id("products"),
-      quantity: v.number(),
-      price: v.number(),
-    })),
+    items: v.array(
+      v.object({
+        productId: v.id("products"),
+        quantity: v.number(),
+        price: v.number(),
+      }),
+    ),
     status: v.union(
       v.literal("pending"),
       v.literal("processing"),
       v.literal("shipped"),
-      v.literal("delivered")
+      v.literal("delivered"),
     ),
   }),
 
@@ -7562,8 +7680,8 @@ export default defineSchema({
         type: v.literal("page_view"),
         sessionId: v.string(),
         path: v.string(),
-      })
-    )
+      }),
+    ),
   ).index("by_type", ["type"]),
 });
 ```
@@ -7575,10 +7693,10 @@ export default defineSchema({
   items: defineTable({
     // Optional: field may not exist
     description: v.optional(v.string()),
-    
+
     // Nullable: field exists but can be null
     deletedAt: v.union(v.number(), v.null()),
-    
+
     // Optional and nullable
     notes: v.optional(v.union(v.string(), v.null())),
   }),
@@ -7614,14 +7732,14 @@ export default defineSchema({
 users: defineTable({
   name: v.string(),
   email: v.string(),
-})
+});
 
 // After - add as optional first
 users: defineTable({
   name: v.string(),
   email: v.string(),
   avatarUrl: v.optional(v.string()), // New optional field
-})
+});
 ```
 
 #### Backfilling Data
@@ -7660,7 +7778,7 @@ users: defineTable({
   name: v.string(),
   email: v.string(),
   avatarUrl: v.string(), // Now required after backfill
-})
+});
 ```
 
 ## Examples
@@ -7699,18 +7817,20 @@ export default defineSchema({
 
   orders: defineTable({
     userId: v.id("users"),
-    items: v.array(v.object({
-      productId: v.id("products"),
-      quantity: v.number(),
-      priceAtPurchase: v.number(),
-    })),
+    items: v.array(
+      v.object({
+        productId: v.id("products"),
+        quantity: v.number(),
+        priceAtPurchase: v.number(),
+      }),
+    ),
     total: v.number(),
     status: v.union(
       v.literal("pending"),
       v.literal("paid"),
       v.literal("shipped"),
       v.literal("delivered"),
-      v.literal("cancelled")
+      v.literal("cancelled"),
     ),
     shippingAddress: v.object({
       street: v.string(),
@@ -7765,7 +7885,7 @@ export const get = query({
       inventory: v.number(),
       isActive: v.boolean(),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, args): Promise<Product | null> => {
     return await ctx.db.get(args.productId);
@@ -7790,7 +7910,7 @@ export const get = query({
 2. **Wrong index field order** - Fields must be queried in order defined
 3. **Using v.any() excessively** - Lose type safety benefits
 4. **Not making new fields optional** - Breaks existing data
-5. **Forgetting system fields** - _id and _creationTime are automatic
+5. **Forgetting system fields** - \_id and \_creationTime are automatic
 
 ## References
 
@@ -7810,7 +7930,8 @@ Note: file list is sampled.
 <file>/home/sones/projects/monorepo/.agents/skills/convex-schema-validator/assets/large-logo.png</file>
 </skill_files>
 </skill_content>
-```
+
+````
 
 **Tool: skill**
 
@@ -7819,10 +7940,11 @@ Note: file list is sampled.
 {
   "name": "convex-agents"
 }
-```
+````
 
 **Output:**
-```
+
+````
 <skill_content name="convex-agents">
 # Skill: convex-agents
 
@@ -7852,7 +7974,7 @@ Before implementing, do not assume; fetch the latest documentation:
 
 ```bash
 npm install @convex-dev/agent ai openai
-```
+````
 
 ```typescript
 // convex/agent.ts
@@ -7898,11 +8020,13 @@ export const createThread = mutation({
 // List user's threads
 export const listThreads = query({
   args: { userId: v.id("users") },
-  returns: v.array(v.object({
-    _id: v.id("threads"),
-    title: v.string(),
-    lastMessageAt: v.optional(v.number()),
-  })),
+  returns: v.array(
+    v.object({
+      _id: v.id("threads"),
+      title: v.string(),
+      lastMessageAt: v.optional(v.number()),
+    }),
+  ),
   handler: async (ctx, args) => {
     return await agent.listThreads(ctx, {
       userId: args.userId,
@@ -7913,11 +8037,13 @@ export const listThreads = query({
 // Get thread messages
 export const getMessages = query({
   args: { threadId: v.id("threads") },
-  returns: v.array(v.object({
-    role: v.string(),
-    content: v.string(),
-    createdAt: v.number(),
-  })),
+  returns: v.array(
+    v.object({
+      role: v.string(),
+      content: v.string(),
+      createdAt: v.number(),
+    }),
+  ),
   handler: async (ctx, args) => {
     return await agent.getMessages(ctx, {
       threadId: args.threadId,
@@ -8028,7 +8154,7 @@ export const getWeather = tool({
   }),
   handler: async (ctx, args) => {
     const response = await fetch(
-      `https://api.weather.com/current?location=${encodeURIComponent(args.location)}`
+      `https://api.weather.com/current?location=${encodeURIComponent(args.location)}`,
     );
     return await response.json();
   },
@@ -8080,10 +8206,12 @@ export const addDocument = mutation({
   args: {
     title: v.string(),
     content: v.string(),
-    metadata: v.optional(v.object({
-      source: v.optional(v.string()),
-      category: v.optional(v.string()),
-    })),
+    metadata: v.optional(
+      v.object({
+        source: v.optional(v.string()),
+        category: v.optional(v.string()),
+      }),
+    ),
   },
   returns: v.id("documents"),
   handler: async (ctx, args) => {
@@ -8106,12 +8234,14 @@ export const search = query({
     query: v.string(),
     limit: v.optional(v.number()),
   },
-  returns: v.array(v.object({
-    _id: v.id("documents"),
-    title: v.string(),
-    content: v.string(),
-    score: v.number(),
-  })),
+  returns: v.array(
+    v.object({
+      _id: v.id("documents"),
+      title: v.string(),
+      content: v.string(),
+      score: v.number(),
+    }),
+  ),
   handler: async (ctx, args) => {
     const results = await agent.search(ctx, {
       query: args.query,
@@ -8147,11 +8277,14 @@ export const researchTopic = action({
   returns: v.id("research"),
   handler: async (ctx, args) => {
     // Create research record
-    const researchId = await ctx.runMutation(internal.workflows.createResearch, {
-      topic: args.topic,
-      userId: args.userId,
-      status: "searching",
-    });
+    const researchId = await ctx.runMutation(
+      internal.workflows.createResearch,
+      {
+        topic: args.topic,
+        userId: args.userId,
+        status: "searching",
+      },
+    );
 
     // Step 1: Search for relevant documents
     const searchResults = await agent.search(ctx, {
@@ -8167,13 +8300,16 @@ export const researchTopic = action({
 
     // Step 2: Analyze and synthesize
     const analysis = await agent.chat(ctx, {
-      messages: [{
-        role: "user",
-        content: `Analyze these sources about "${args.topic}" and provide a comprehensive summary:\n\n${
-          searchResults.map((r) => r.content).join("\n\n---\n\n")
-        }`,
-      }],
-      systemPrompt: "You are a research assistant. Provide thorough, well-cited analysis.",
+      messages: [
+        {
+          role: "user",
+          content: `Analyze these sources about "${args.topic}" and provide a comprehensive summary:\n\n${searchResults
+            .map((r) => r.content)
+            .join("\n\n---\n\n")}`,
+        },
+      ],
+      systemPrompt:
+        "You are a research assistant. Provide thorough, well-cited analysis.",
     });
 
     // Step 3: Generate key insights
@@ -8183,10 +8319,12 @@ export const researchTopic = action({
     });
 
     const insights = await agent.chat(ctx, {
-      messages: [{
-        role: "user",
-        content: `Based on this analysis, list 5 key insights:\n\n${analysis.content}`,
-      }],
+      messages: [
+        {
+          role: "user",
+          content: `Based on this analysis, list 5 key insights:\n\n${analysis.content}`,
+        },
+      ],
     });
 
     // Save final results
@@ -8221,13 +8359,21 @@ export default defineSchema({
 
   messages: defineTable({
     threadId: v.id("threads"),
-    role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),
+    role: v.union(
+      v.literal("user"),
+      v.literal("assistant"),
+      v.literal("system"),
+    ),
     content: v.string(),
-    toolCalls: v.optional(v.array(v.object({
-      name: v.string(),
-      arguments: v.any(),
-      result: v.optional(v.any()),
-    }))),
+    toolCalls: v.optional(
+      v.array(
+        v.object({
+          name: v.string(),
+          arguments: v.any(),
+          result: v.optional(v.any()),
+        }),
+      ),
+    ),
     createdAt: v.number(),
   }).index("by_thread", ["threadId"]),
 
@@ -8344,7 +8490,8 @@ Note: file list is sampled.
 <file>/home/sones/projects/monorepo/.agents/skills/convex-agents/assets/small-logo.svg</file>
 </skill_files>
 </skill_content>
-```
+
+````
 
 ---
 
@@ -8359,10 +8506,11 @@ Now let me also load the remaining important skills for a complete backend plan:
 {
   "name": "convex-file-storage"
 }
-```
+````
 
 **Output:**
-```
+
+````
 <skill_content name="convex-file-storage">
 # Skill: convex-file-storage
 
@@ -8403,7 +8551,7 @@ export const generateUploadUrl = mutation({
     return await ctx.storage.generateUploadUrl();
   },
 });
-```
+````
 
 ### Client-Side Upload
 
@@ -8511,14 +8659,14 @@ export const getFile = query({
       fileSize: v.number(),
       url: v.union(v.string(), v.null()),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, args) => {
     const file = await ctx.db.get(args.fileId);
     if (!file) return null;
 
     const url = await ctx.storage.getUrl(file.storageId);
-    
+
     return {
       _id: file._id,
       fileName: file.fileName,
@@ -8638,7 +8786,7 @@ export const getFileMetadata = query({
       sha256: v.string(),
       size: v.number(),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, args) => {
     const metadata = await ctx.db.system.get(args.storageId);
@@ -8740,7 +8888,7 @@ function ImageUploader({ onUpload }: { onUpload: (id: Id<"files">) => void }) {
         onChange={handleFileSelect}
         style={{ display: "none" }}
       />
-      
+
       <button
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
@@ -8835,7 +8983,8 @@ Note: file list is sampled.
 <file>/home/sones/projects/monorepo/.agents/skills/convex-file-storage/assets/small-logo.svg</file>
 </skill_files>
 </skill_content>
-```
+
+````
 
 **Tool: skill**
 
@@ -8844,10 +8993,11 @@ Note: file list is sampled.
 {
   "name": "convex-cron-jobs"
 }
-```
+````
 
 **Output:**
-```
+
+````
 <skill_content name="convex-cron-jobs">
 # Skill: convex-cron-jobs
 
@@ -8901,7 +9051,7 @@ crons.cron(
 );
 
 export default crons;
-```
+````
 
 ### Interval-Based Scheduling
 
@@ -8919,7 +9069,7 @@ crons.interval(
   "sync external data",
   { minutes: 5 },
   internal.sync.fetchExternalData,
-  {}
+  {},
 );
 
 // Every 2 hours
@@ -8927,7 +9077,7 @@ crons.interval(
   "cleanup temp files",
   { hours: 2 },
   internal.files.cleanupTempFiles,
-  {}
+  {},
 );
 
 // Every 30 seconds (minimum interval)
@@ -8935,7 +9085,7 @@ crons.interval(
   "health check",
   { seconds: 30 },
   internal.monitoring.healthCheck,
-  {}
+  {},
 );
 
 export default crons;
@@ -8957,7 +9107,7 @@ crons.cron(
   "morning notifications",
   "0 9 * * *",
   internal.notifications.sendMorningDigest,
-  {}
+  {},
 );
 
 // Every Monday at 8 AM UTC
@@ -8965,7 +9115,7 @@ crons.cron(
   "weekly summary",
   "0 8 * * 1",
   internal.reports.generateWeeklySummary,
-  {}
+  {},
 );
 
 // First day of every month at midnight
@@ -8973,16 +9123,11 @@ crons.cron(
   "monthly billing",
   "0 0 1 * *",
   internal.billing.processMonthlyBilling,
-  {}
+  {},
 );
 
 // Every 15 minutes
-crons.cron(
-  "frequent sync",
-  "*/15 * * * *",
-  internal.sync.syncData,
-  {}
-);
+crons.cron("frequent sync", "*/15 * * * *", internal.sync.syncData, {});
 
 export default crons;
 ```
@@ -9000,6 +9145,7 @@ export default crons;
 ```
 
 Common patterns:
+
 - `* * * * *` - Every minute
 - `0 * * * *` - Every hour
 - `0 0 * * *` - Every day at midnight
@@ -9023,7 +9169,7 @@ export const cleanupExpiredSessions = internalMutation({
   returns: v.number(),
   handler: async (ctx) => {
     const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    
+
     const expiredSessions = await ctx.db
       .query("sessions")
       .withIndex("by_lastActive")
@@ -9053,7 +9199,7 @@ export const processPendingTasks = internalMutation({
         status: "processing",
         startedAt: Date.now(),
       });
-      
+
       // Schedule the actual processing
       await ctx.scheduler.runAfter(0, internal.tasks.processTask, {
         taskId: task._id,
@@ -9081,14 +9227,14 @@ crons.interval(
   "cleanup temp files",
   { hours: 1 },
   internal.cleanup.cleanupByType,
-  { fileType: "temp", maxAge: 3600000 }
+  { fileType: "temp", maxAge: 3600000 },
 );
 
 crons.interval(
   "cleanup cache files",
   { hours: 24 },
   internal.cleanup.cleanupByType,
-  { fileType: "cache", maxAge: 86400000 }
+  { fileType: "cache", maxAge: 86400000 },
 );
 
 export default crons;
@@ -9107,11 +9253,11 @@ export const cleanupByType = internalMutation({
   returns: v.number(),
   handler: async (ctx, args) => {
     const cutoff = Date.now() - args.maxAge;
-    
+
     const oldFiles = await ctx.db
       .query("files")
-      .withIndex("by_type_and_created", (q) => 
-        q.eq("type", args.fileType).lt("createdAt", cutoff)
+      .withIndex("by_type_and_created", (q) =>
+        q.eq("type", args.fileType).lt("createdAt", cutoff),
       )
       .collect();
 
@@ -9297,7 +9443,7 @@ crons.interval(
   "sync external data",
   { minutes: 15 },
   internal.sync.syncExternalData,
-  {}
+  {},
 );
 
 export default crons;
@@ -9323,7 +9469,7 @@ export default defineSchema({
     status: v.union(
       v.literal("success"),
       v.literal("partial"),
-      v.literal("failed")
+      v.literal("failed"),
     ),
     error: v.optional(v.string()),
   })
@@ -9347,7 +9493,7 @@ export default defineSchema({
       v.literal("pending"),
       v.literal("processing"),
       v.literal("completed"),
-      v.literal("failed")
+      v.literal("failed"),
     ),
     data: v.any(),
     createdAt: v.number(),
@@ -9373,45 +9519,27 @@ crons.interval(
   "cleanup expired sessions",
   { hours: 1 },
   internal.cleanup.expiredSessions,
-  {}
+  {},
 );
 
-crons.interval(
-  "cleanup old logs",
-  { hours: 24 },
-  internal.cleanup.oldLogs,
-  { maxAgeDays: 30 }
-);
+crons.interval("cleanup old logs", { hours: 24 }, internal.cleanup.oldLogs, {
+  maxAgeDays: 30,
+});
 
 // Sync jobs
-crons.interval(
-  "sync user data",
-  { minutes: 15 },
-  internal.sync.userData,
-  {}
-);
+crons.interval("sync user data", { minutes: 15 }, internal.sync.userData, {});
 
 // Report jobs
-crons.cron(
-  "daily analytics",
-  "0 1 * * *",
-  internal.reports.dailyAnalytics,
-  {}
-);
+crons.cron("daily analytics", "0 1 * * *", internal.reports.dailyAnalytics, {});
 
-crons.cron(
-  "weekly summary",
-  "0 9 * * 1",
-  internal.reports.weeklySummary,
-  {}
-);
+crons.cron("weekly summary", "0 9 * * 1", internal.reports.weeklySummary, {});
 
 // Health checks
 crons.interval(
   "service health check",
   { minutes: 5 },
   internal.monitoring.healthCheck,
-  {}
+  {},
 );
 
 export default crons;
@@ -9457,7 +9585,8 @@ Note: file list is sampled.
 <file>/home/sones/projects/monorepo/.agents/skills/convex-cron-jobs/assets/small-logo.svg</file>
 </skill_files>
 </skill_content>
-```
+
+````
 
 **Tool: skill**
 
@@ -9466,10 +9595,11 @@ Note: file list is sampled.
 {
   "name": "convex-http-actions"
 }
-```
+````
 
 **Output:**
-```
+
+````
 <skill_content name="convex-http-actions">
 # Skill: convex-http-actions
 
@@ -9520,7 +9650,7 @@ http.route({
 });
 
 export default http;
-```
+````
 
 ### Request Handling
 
@@ -9538,10 +9668,10 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     // Parse JSON body
     const body = await request.json();
-    
+
     // Access headers
     const authHeader = request.headers.get("Authorization");
-    
+
     // Access URL parameters
     const url = new URL(request.url);
     const queryParam = url.searchParams.get("filter");
@@ -9551,7 +9681,7 @@ http.route({
       {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   }),
 });
@@ -9565,13 +9695,10 @@ http.route({
     const name = formData.get("name");
     const email = formData.get("email");
 
-    return new Response(
-      JSON.stringify({ name, email }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ name, email }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }),
 });
 
@@ -9581,19 +9708,17 @@ http.route({
   method: "POST",
   handler: httpAction(async (ctx, request) => {
     const bytes = await request.bytes();
-    const contentType = request.headers.get("Content-Type") ?? "application/octet-stream";
-    
+    const contentType =
+      request.headers.get("Content-Type") ?? "application/octet-stream";
+
     // Store in Convex storage
     const blob = new Blob([bytes], { type: contentType });
     const storageId = await ctx.storage.store(blob);
 
-    return new Response(
-      JSON.stringify({ storageId }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ storageId }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }),
 });
 
@@ -9620,13 +9745,10 @@ http.route({
     // Extract user ID from path: /api/users/123 -> "123"
     const userId = url.pathname.replace("/api/users/", "");
 
-    return new Response(
-      JSON.stringify({ userId }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ userId }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }),
 });
 
@@ -9669,16 +9791,13 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const body = await request.json();
 
-    return new Response(
-      JSON.stringify({ success: true, data: body }),
-      {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          ...corsHeaders,
-        },
-      }
-    );
+    return new Response(JSON.stringify({ success: true, data: body }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders,
+      },
+    });
   }),
 });
 
@@ -9728,7 +9847,7 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const event = request.headers.get("X-GitHub-Event");
     const signature = request.headers.get("X-Hub-Signature-256");
-    
+
     if (!signature) {
       return new Response("Missing signature", { status: 400 });
     }
@@ -9774,7 +9893,7 @@ export const verifyAndProcessWebhook = internalAction({
     const event = stripe.webhooks.constructEvent(
       args.body,
       args.signature,
-      webhookSecret
+      webhookSecret,
     );
 
     // Process based on event type
@@ -9815,12 +9934,12 @@ http.route({
   method: "GET",
   handler: httpAction(async (ctx, request) => {
     const apiKey = request.headers.get("X-API-Key");
-    
+
     if (!apiKey) {
-      return new Response(
-        JSON.stringify({ error: "Missing API key" }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Missing API key" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     // Validate API key
@@ -9829,19 +9948,19 @@ http.route({
     });
 
     if (!isValid) {
-      return new Response(
-        JSON.stringify({ error: "Invalid API key" }),
-        { status: 403, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Invalid API key" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     // Process authenticated request
     const data = await ctx.runQuery(internal.data.getProtectedData, {});
 
-    return new Response(
-      JSON.stringify(data),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }),
 });
 
@@ -9851,11 +9970,11 @@ http.route({
   method: "GET",
   handler: httpAction(async (ctx, request) => {
     const authHeader = request.headers.get("Authorization");
-    
+
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({ error: "Missing or invalid Authorization header" }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
+        { status: 401, headers: { "Content-Type": "application/json" } },
       );
     }
 
@@ -9865,16 +9984,16 @@ http.route({
     const user = await ctx.runQuery(internal.auth.validateToken, { token });
 
     if (!user) {
-      return new Response(
-        JSON.stringify({ error: "Invalid token" }),
-        { status: 403, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
-    return new Response(
-      JSON.stringify(user),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify(user), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }),
 });
 
@@ -9906,10 +10025,10 @@ http.route({
     // Query the created item
     const item = await ctx.runQuery(internal.items.get, { id: itemId });
 
-    return new Response(
-      JSON.stringify(item),
-      { status: 201, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify(item), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    });
   }),
 });
 
@@ -9922,10 +10041,10 @@ http.route({
 
     const items = await ctx.runQuery(internal.items.list, { limit });
 
-    return new Response(
-      JSON.stringify(items),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify(items), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }),
 });
 
@@ -10102,7 +10221,9 @@ export const verifyAndProcess = internalAction({
       case "user.created":
         await ctx.runMutation(internal.users.create, {
           clerkId: event.data.id as string,
-          email: (event.data.email_addresses as Array<{ email_address: string }>)[0]?.email_address,
+          email: (
+            event.data.email_addresses as Array<{ email_address: string }>
+          )[0]?.email_address,
           name: `${event.data.first_name} ${event.data.last_name}`,
         });
         break;
@@ -10110,7 +10231,9 @@ export const verifyAndProcess = internalAction({
       case "user.updated":
         await ctx.runMutation(internal.users.update, {
           clerkId: event.data.id as string,
-          email: (event.data.email_addresses as Array<{ email_address: string }>)[0]?.email_address,
+          email: (
+            event.data.email_addresses as Array<{ email_address: string }>
+          )[0]?.email_address,
           name: `${event.data.first_name} ${event.data.last_name}`,
         });
         break;
@@ -10151,10 +10274,7 @@ export default defineSchema({
     eventType: v.string(),
     payload: v.any(),
     processedAt: v.number(),
-    status: v.union(
-      v.literal("success"),
-      v.literal("failed")
-    ),
+    status: v.union(v.literal("success"), v.literal("failed")),
     error: v.optional(v.string()),
   })
     .index("by_source", ["source"])
@@ -10208,7 +10328,8 @@ Note: file list is sampled.
 <file>/home/sones/projects/monorepo/.agents/skills/convex-http-actions/assets/large-logo.png</file>
 </skill_files>
 </skill_content>
-```
+
+````
 
 ---
 
@@ -10223,25 +10344,26 @@ Now let me read the current existing schema and backend structure to understand 
 {
   "filePath": "/home/sones/projects/monorepo/packages/backend/convex/schema.ts"
 }
-```
+````
 
 **Output:**
+
 ```
 <file>
 00001| import { defineSchema, defineTable } from "convex/server";
 00002| import { v } from "convex/values";
-00003| 
+00003|
 00004| // ============================================================================
 00005| // SHARED VALIDATORS (exported for reuse in functions)
 00006| // ============================================================================
-00007| 
+00007|
 00008| /** APCS user roles */
 00009| export const apcsRoleValidator = v.union(
 00010|   v.literal("port_admin"),
 00011|   v.literal("terminal_operator"),
 00012|   v.literal("carrier")
 00013| );
-00014| 
+00014|
 00015| /** Booking status lifecycle */
 00016| export const bookingStatusValidator = v.union(
 00017|   v.literal("pending"),
@@ -10251,7 +10373,7 @@ Now let me read the current existing schema and backend structure to understand 
 00021|   v.literal("cancelled"),
 00022|   v.literal("expired")
 00023| );
-00024| 
+00024|
 00025| /** Truck size/weight class */
 00026| export const truckClassValidator = v.union(
 00027|   v.literal("light"), // < 3.5t
@@ -10259,7 +10381,7 @@ Now let me read the current existing schema and backend structure to understand 
 00029|   v.literal("heavy"), // 7.5t - 18t
 00030|   v.literal("super_heavy") // > 18t
 00031| );
-00032| 
+00032|
 00033| /** Truck type */
 00034| export const truckTypeValidator = v.union(
 00035|   v.literal("container"),
@@ -10269,7 +10391,7 @@ Now let me read the current existing schema and backend structure to understand 
 00039|   v.literal("bulk"),
 00040|   v.literal("general")
 00041| );
-00042| 
+00042|
 00043| /** Notification type */
 00044| export const notificationTypeValidator = v.union(
 00045|   v.literal("booking_created"),
@@ -10282,17 +10404,17 @@ Now let me read the current existing schema and backend structure to understand 
 00052|   v.literal("capacity_alert"),
 00053|   v.literal("system_announcement")
 00054| );
-00055| 
+00055|
 00056| /** Notification channel */
 00057| export const notificationChannelValidator = v.union(
 00058|   v.literal("in_app"),
 00059|   v.literal("email"),
 00060|   v.literal("both")
 00061| );
-00062| 
+00062|
 00063| /** Language preference */
 00064| export const languageValidator = v.union(v.literal("en"), v.literal("fr"));
-00065| 
+00065|
 00066| /** Booking history change types */
 00067| export const bookingChangeTypeValidator = v.union(
 00068|   v.literal("created"),
@@ -10302,16 +10424,16 @@ Now let me read the current existing schema and backend structure to understand 
 00072|   v.literal("driver_updated"),
 00073|   v.literal("details_updated")
 00074| );
-00075| 
+00075|
 00076| // ============================================================================
 00077| // SCHEMA DEFINITION
 00078| // ============================================================================
-00079| 
+00079|
 00080| export default defineSchema({
 00081|   // --------------------------------------------------------------------------
 00082|   // TERMINALS & GATES
 00083|   // --------------------------------------------------------------------------
-00084| 
+00084|
 00085|   /**
 00086|    * Terminals - Physical port terminals
 00087|    * Created by: port_admin
@@ -10329,7 +10451,7 @@ Now let me read the current existing schema and backend structure to understand 
 00099|     .index("by_code", ["code"])
 00100|     .index("by_active", ["isActive"])
 00101|     .index("by_created_by", ["createdBy"]),
-00102| 
+00102|
 00103|   /**
 00104|    * Gates - Entry points at terminals with capacity
 00105|    * Created by: port_admin or terminal_operator
@@ -10353,7 +10475,7 @@ Now let me read the current existing schema and backend structure to understand 
 00123|     .index("by_terminal", ["terminalId"])
 00124|     .index("by_terminal_and_active", ["terminalId", "isActive"])
 00125|     .index("by_code", ["code"]),
-00126| 
+00126|
 00127|   /**
 00128|    * TimeSlots - Bookable time windows per gate
 00129|    * Non-overlapping within the same gate
@@ -10377,11 +10499,11 @@ Now let me read the current existing schema and backend structure to understand 
 00147|     .index("by_gate_and_date", ["gateId", "date"])
 00148|     .index("by_date", ["date"])
 00149|     .index("by_gate_and_active", ["gateId", "isActive"]),
-00150| 
+00150|
 00151|   // --------------------------------------------------------------------------
 00152|   // TERMINAL OPERATOR ASSIGNMENTS (Many-to-Many)
 00153|   // --------------------------------------------------------------------------
-00154| 
+00154|
 00155|   /**
 00156|    * TerminalOperatorAssignments - Links operators to terminals
 00157|    * An operator can manage multiple terminals
@@ -10398,11 +10520,11 @@ Now let me read the current existing schema and backend structure to understand 
 00168|     .index("by_terminal", ["terminalId"])
 00169|     .index("by_terminal_and_active", ["terminalId", "isActive"])
 00170|     .index("by_user_and_terminal", ["userId", "terminalId"]),
-00171| 
+00171|
 00172|   // --------------------------------------------------------------------------
 00173|   // CARRIER COMPANIES & TRUCKS
 00174|   // --------------------------------------------------------------------------
-00175| 
+00175|
 00176|   /**
 00177|    * CarrierCompanies - Organizations that own trucks
 00178|    * Created by: port_admin or self-registered
@@ -10425,7 +10547,7 @@ Now let me read the current existing schema and backend structure to understand 
 00195|     .index("by_code", ["code"])
 00196|     .index("by_active", ["isActive"])
 00197|     .index("by_name", ["name"]),
-00198| 
+00198|
 00199|   /**
 00200|    * CarrierUsers - Links Better Auth users to carrier companies
 00201|    * A user with 'carrier' role belongs to exactly one company
@@ -10441,7 +10563,7 @@ Now let me read the current existing schema and backend structure to understand 
 00211|     .index("by_user", ["userId"])
 00212|     .index("by_company", ["carrierCompanyId"])
 00213|     .index("by_company_and_active", ["carrierCompanyId", "isActive"]),
-00214| 
+00214|
 00215|   /**
 00216|    * Trucks - Vehicles owned by carrier companies
 00217|    */
@@ -10467,11 +10589,11 @@ Now let me read the current existing schema and backend structure to understand 
 00237|     .index("by_license_plate", ["licensePlate"])
 00238|     .index("by_type", ["truckType"])
 00239|     .index("by_class", ["truckClass"]),
-00240| 
+00240|
 00241|   // --------------------------------------------------------------------------
 00242|   // BOOKINGS
 00243|   // --------------------------------------------------------------------------
-00244| 
+00244|
 00245|   /**
 00246|    * Bookings - Truck time slot reservations
 00247|    * Full lifecycle: pending -> confirmed/rejected -> consumed/cancelled/expired
@@ -10522,7 +10644,7 @@ Now let me read the current existing schema and backend structure to understand 
 00292|     .index("by_gate_and_status", ["gateId", "status"])
 00293|     .index("by_status", ["status"])
 00294|     .index("by_created_by", ["createdBy"]),
-00295| 
+00295|
 00296|   /**
 00297|    * BookingHistory - Audit trail for all booking changes
 00298|    * Immutable log of all modifications
@@ -10546,11 +10668,11 @@ Now let me read the current existing schema and backend structure to understand 
 00316|     .index("by_booking_and_type", ["bookingId", "changeType"])
 00317|     .index("by_changed_by", ["changedBy"])
 00318|     .index("by_changed_at", ["changedAt"]),
-00319| 
+00319|
 00320|   // --------------------------------------------------------------------------
 00321|   // NOTIFICATIONS
 00322|   // --------------------------------------------------------------------------
-00323| 
+00323|
 00324|   /**
 00325|    * Notifications - In-app and email notifications
 00326|    * Bilingual support (EN/FR)
@@ -10589,11 +10711,11 @@ Now let me read the current existing schema and backend structure to understand 
 00359|     .index("by_user_and_read", ["userId", "isRead"])
 00360|     .index("by_user_and_type", ["userId", "type"])
 00361|     .index("by_created_at", ["createdAt"]),
-00362| 
+00362|
 00363|   // --------------------------------------------------------------------------
 00364|   // SYSTEM CONFIGURATION
 00365|   // --------------------------------------------------------------------------
-00366| 
+00366|
 00367|   /**
 00368|    * SystemConfig - Global system settings
 00369|    * Singleton table (should have only one document)
@@ -10610,11 +10732,11 @@ Now let me read the current existing schema and backend structure to understand 
 00380|     updatedAt: v.number(),
 00381|     updatedBy: v.string(), // Better Auth user ID
 00382|   }),
-00383| 
+00383|
 00384|   // --------------------------------------------------------------------------
 00385|   // USER PROFILE EXTENSION
 00386|   // --------------------------------------------------------------------------
-00387| 
+00387|
 00388|   /**
 00389|    * UserProfiles - Extended user data beyond Better Auth
 00390|    * One-to-one with Better Auth user table
@@ -10633,7 +10755,7 @@ Now let me read the current existing schema and backend structure to understand 
 00403|   })
 00404|     .index("by_user", ["userId"]),
 00405| });
-00406| 
+00406|
 
 (End of file - total 406 lines)
 </file>
@@ -10642,6 +10764,7 @@ Now let me read the current existing schema and backend structure to understand 
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/packages/backend/convex/ai/agent.ts"
@@ -10649,6 +10772,7 @@ Now let me read the current existing schema and backend structure to understand 
 ```
 
 **Output:**
+
 ```
 <file>
 00001| "use node";
@@ -10666,11 +10790,11 @@ Now let me read the current existing schema and backend structure to understand 
 00013| import { Agent } from "@convex-dev/agent";
 00014| import { components } from "../_generated/api";
 00015| import { ALL_TOOLS } from "./registry";
-00016| 
+00016|
 00017| // ============================================================================
 00018| // AGENT
 00019| // ============================================================================
-00020| 
+00020|
 00021| /**
 00022|  * The main APCS assistant agent.
 00023|  *
@@ -10682,13 +10806,13 @@ Now let me read the current existing schema and backend structure to understand 
 00029|   languageModel: google("gemini-2.0-flash"),
 00030|   instructions: `You are the APCS (Advanced Port Container System) assistant.
 00031| You help users manage port terminal operations, truck bookings, and logistics.
-00032| 
+00032|
 00033| Key facts:
 00034| - The system has terminals, each with gates. Gates have time slots for truck bookings.
 00035| - There are three user roles: port_admin, terminal_operator, and carrier.
 00036| - Bookings follow a lifecycle: pending → confirmed/rejected → consumed/cancelled/expired.
 00037| - Trucks are classified by type (container, flatbed, tanker, etc.) and class (light, medium, heavy, super_heavy).
-00038| 
+00038|
 00039| Guidelines:
 00040| - Always use the available tools to fetch real data. Never make up information.
 00041| - When showing bookings, terminals, or slots, present data in a clear structured way.
@@ -10700,7 +10824,7 @@ Now let me read the current existing schema and backend structure to understand 
 00047|   tools: ALL_TOOLS,
 00048|   maxSteps: 5,
 00049| });
-00050| 
+00050|
 
 (End of file - total 50 lines)
 </file>
@@ -10726,26 +10850,27 @@ We are building **APCS (Advanced Port Container System)** - a centralized platfo
 
 I asked ~40 clarifying questions to define the system. Key decisions made:
 
-| Aspect | Decision |
-|--------|----------|
-| **Booking Model** | 1 booking = 1 truck + multiple containers (pick-up/drop-off) |
-| **Capacity** | Terminal-level (truck count), NOT gate-level |
-| **Gate Assignment** | At approval time, not booking time |
-| **Auto-Validation** | First N% of slot capacity auto-approved (N configurable by admin) |
-| **Container Properties** | Type (dry/reefer/open_top/flat_rack/tank/hazardous), dimensions (20ft/40ft/40ft_hc/45ft), weight class |
-| **Carrier Model** | NO carrier companies - trucks belong directly to carrier users |
-| **Language** | French only (UI + AI responses) |
-| **QR Code** | Reference ID only (server lookup required), double scan (entry + exit) |
-| **Analytics** | Comprehensive with Convex aggregate component, export CSV/PDF |
-| **Audit Logging** | Full trail (mutations + queries + AI tool calls + failed attempts) |
-| **Mobile App** | Excluded for now (web only) |
-| **Booking Modifications** | Can only change truck; other changes require cancel + rebook |
-| **Cancellation** | Allowed anytime |
-| **No-shows** | Grace period then auto-expire |
+| Aspect                    | Decision                                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **Booking Model**         | 1 booking = 1 truck + multiple containers (pick-up/drop-off)                                           |
+| **Capacity**              | Terminal-level (truck count), NOT gate-level                                                           |
+| **Gate Assignment**       | At approval time, not booking time                                                                     |
+| **Auto-Validation**       | First N% of slot capacity auto-approved (N configurable by admin)                                      |
+| **Container Properties**  | Type (dry/reefer/open_top/flat_rack/tank/hazardous), dimensions (20ft/40ft/40ft_hc/45ft), weight class |
+| **Carrier Model**         | NO carrier companies - trucks belong directly to carrier users                                         |
+| **Language**              | French only (UI + AI responses)                                                                        |
+| **QR Code**               | Reference ID only (server lookup required), double scan (entry + exit)                                 |
+| **Analytics**             | Comprehensive with Convex aggregate component, export CSV/PDF                                          |
+| **Audit Logging**         | Full trail (mutations + queries + AI tool calls + failed attempts)                                     |
+| **Mobile App**            | Excluded for now (web only)                                                                            |
+| **Booking Modifications** | Can only change truck; other changes require cancel + rebook                                           |
+| **Cancellation**          | Allowed anytime                                                                                        |
+| **No-shows**              | Grace period then auto-expire                                                                          |
 
 ### 2. Created High-Level Implementation Plan
 
 A plan file was created at:
+
 ```
 /home/sones/projects/monorepo/.opencode/plans/1770398316992-lucky-meadow.md
 ```
@@ -10755,6 +10880,7 @@ This covers 11 phases over ~9-12 weeks.
 ### 3. Loaded Convex Skills
 
 The following skills were loaded for best practices:
+
 - `convex-best-practices`
 - `convex-functions`
 - `convex-schema-validator`
@@ -10766,6 +10892,7 @@ The following skills were loaded for best practices:
 ### 4. Current State Assessment
 
 **Existing codebase structure:**
+
 - Monorepo: `apps/web` (TanStack Start + Vite), `packages/backend` (Convex)
 - Schema exists at `packages/backend/convex/schema.ts` with:
   - `terminals`, `gates`, `timeSlots`, `bookings`, `bookingHistory`
@@ -10780,6 +10907,7 @@ The following skills were loaded for best practices:
 The user requested an **exhaustive backend implementation plan** with full implementation details. This means creating a detailed plan that covers:
 
 ### Schema Changes Required
+
 1. **Remove** `carrierCompanies` and `carrierUsers` tables
 2. **Add** `containers` table with: containerNumber, type, dimensions, weightClass, operationType, readyDate/departureDate, isEmpty, bookingId, ownerId
 3. **Refactor** `trucks` table: remove `carrierCompanyId`, add `ownerId` (carrier user ID)
@@ -10791,6 +10919,7 @@ The user requested an **exhaustive backend implementation plan** with full imple
 9. **Update** `systemConfig` table: add `defaultAutoValidationThreshold`, `noShowGracePeriodMinutes`, booking window settings
 
 ### Backend Functions Required
+
 - Container CRUD (queries/mutations)
 - Refactored booking mutations with auto-validation logic
 - Gate assignment at approval time
@@ -10802,6 +10931,7 @@ The user requested an **exhaustive backend implementation plan** with full imple
 - Seed data generation (~750 containers)
 
 ### AI Tools Required
+
 - French-only agent instructions
 - `listMyContainers`, `selectContainersForBooking`
 - `suggestOptimalSlots` (load balancing + urgency optimization)
@@ -10812,6 +10942,7 @@ The user requested an **exhaustive backend implementation plan** with full imple
 ## Files To Modify/Create
 
 ### Critical Backend Files
+
 ```
 packages/backend/convex/
 ├── schema.ts                          # MAJOR REFACTOR
@@ -10925,6 +11056,7 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/.opencode/plans/1770398316992-lucky-meadow.md"
@@ -10932,16 +11064,17 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 ```
 
 **Output:**
-```
+
+````
 <file>
 00001| # APCS Maritime Port Booking System - Implementation Plan
-00002| 
+00002|
 00003| ## Overview
-00004| 
+00004|
 00005| This plan covers the development of a centralized platform to regulate maritime port access through a synchronized booking system and terminal capacity engine with a conversational AI interface.
-00006| 
+00006|
 00007| ### Key Requirements Summary
-00008| 
+00008|
 00009| | Aspect | Specification |
 00010| |--------|---------------|
 00011| | **User Roles** | Port Admin, Terminal Operator, Carrier |
@@ -10953,18 +11086,18 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00017| | **QR Code** | Reference ID only (server lookup required), double scan (entry + exit) |
 00018| | **Analytics** | Comprehensive with Convex aggregate component, export to CSV/PDF |
 00019| | **Audit Logging** | Full trail (mutations + queries + AI tool calls + failed attempts) |
-00020| 
+00020|
 00021| ---
-00022| 
+00022|
 00023| ## Phase 1: Schema Refactoring (Foundation)
 00024| **Duration:** 3-5 days | **Priority:** Critical
-00025| 
+00025|
 00026| ### Changes
-00027| 
+00027|
 00028| **Remove carrier company concept:**
 00029| - Delete `carrierCompanies` and `carrierUsers` tables
 00030| - Trucks belong directly to carrier users via `ownerId`
-00031| 
+00031|
 00032| **Add containers table:**
 00033| ```
 00034| containers: {
@@ -10973,7 +11106,7 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00037|   readyDate, departureDate, isEmpty, bookingId, isActive
 00038| }
 00039| ```
-00040| 
+00040|
 00041| **Refactor bookings table:**
 00042| ```
 00043| bookings: {
@@ -10983,13 +11116,13 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00047|   qrCode, qrCodeStorageId, driverInfo
 00048| }
 00049| ```
-00050| 
+00050|
 00051| **Update time slots:** Terminal-level capacity (not gate), add `autoValidationThreshold`
-00052| 
+00052|
 00053| **Add audit logs table:** Full audit trail with userId, action, resource, args, result, IP/device info
-00054| 
+00054|
 00055| ### Files to Modify/Create
-00056| 
+00056|
 00057| | File | Action |
 00058| |------|--------|
 00059| | `packages/backend/convex/schema.ts` | Major refactor |
@@ -10998,14 +11131,14 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00062| | `packages/backend/convex/containers/mutations.ts` | Create |
 00063| | `packages/backend/convex/audit/queries.ts` | Create |
 00064| | `packages/backend/convex/audit/mutations.ts` | Create |
-00065| 
+00065|
 00066| ---
-00067| 
+00067|
 00068| ## Phase 2: Core Backend Functions
 00069| **Duration:** 5-7 days | **Dependencies:** Phase 1
-00070| 
+00070|
 00071| ### Key Changes
-00072| 
+00072|
 00073| - **Permissions:** Remove carrier company logic, update `canManageTruck` for direct ownership
 00074| - **Capacity Engine:** Terminal-level capacity with `getTerminalSlotCapacity()`, `shouldAutoValidate()`
 00075| - **Booking Mutations:**
@@ -11013,9 +11146,9 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00077|   - Auto-validation logic on create
 00078|   - Terminal-prefixed reference generation (`TER1-BK-XXXXXX`)
 00079|   - Gate assignment at approval time (load-balanced across compatible gates)
-00080| 
+00080|
 00081| ### Files to Modify
-00082| 
+00082|
 00083| | File | Action |
 00084| |------|--------|
 00085| | `packages/backend/convex/lib/permissions.ts` | Modify |
@@ -11024,20 +11157,20 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00088| | `packages/backend/convex/bookings/queries.ts` | Modify |
 00089| | `packages/backend/convex/bookings/internal.ts` | Create gate assignment logic |
 00090| | `packages/backend/convex/trucks/mutations.ts` | Remove carrier company refs |
-00091| 
+00091|
 00092| ---
-00093| 
+00093|
 00094| ## Phase 3: AI Tools and Conversational Flows
 00095| **Duration:** 7-10 days | **Dependencies:** Phase 1, 2
-00096| 
+00096|
 00097| ### Agent Configuration
-00098| 
+00098|
 00099| - French-only responses
 00100| - System prompt for booking flow guidance
 00101| - `maxSteps: 10` for complex conversations
-00102| 
+00102|
 00103| ### New AI Tools
-00104| 
+00104|
 00105| | Tool | Role | Purpose |
 00106| |------|------|---------|
 00107| | `listMyContainers` | carrier | List carrier's containers with filters |
@@ -11048,9 +11181,9 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00112| | `cancelBookingViaAI` | carrier | Cancel booking mutation |
 00113| | `changeTruckViaAI` | carrier | Change truck assignment |
 00114| | `listMyTrucks` | carrier | List carrier's trucks |
-00115| 
+00115|
 00116| ### Chat Widget Components
-00117| 
+00117|
 00118| Create in `apps/web/src/components/ai-elements/apcs/`:
 00119| - `container-list.tsx` - Display containers
 00120| - `container-selector.tsx` - Interactive selection
@@ -11059,9 +11192,9 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00123| - `booking-confirmation-card.tsx` - Booking result with status
 00124| - `truck-selector.tsx` - Truck selection
 00125| - `booking-summary.tsx` - Expandable booking details
-00126| 
+00126|
 00127| ### Files to Create/Modify
-00128| 
+00128|
 00129| | File | Action |
 00130| |------|--------|
 00131| | `packages/backend/convex/ai/agent.ts` | Update (French instructions) |
@@ -11072,27 +11205,27 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00136| | `packages/backend/convex/ai/registry.ts` | Update |
 00137| | `packages/backend/convex/ai/tools/types.ts` | Update permissions |
 00138| | `apps/web/src/components/ai-elements/apcs/*.tsx` | Create 7 files |
-00139| 
+00139|
 00140| ---
-00141| 
+00141|
 00142| ## Phase 4: Time Slot Bulk Editing
 00143| **Duration:** 4-5 days | **Dependencies:** Phase 1, 2
-00144| 
+00144|
 00145| ### Bulk Operations
-00146| 
+00146|
 00147| 1. **Same day, multiple slots:** Bulk update capacity for all morning/afternoon slots
 00148| 2. **Copy day template:** Apply one day's configuration to other days
 00149| 3. **Weekly recurring patterns:** Define patterns that apply to specific days of week
-00150| 
+00150|
 00151| ### Mutations
-00152| 
+00152|
 00153| - `copyDayTemplate(terminalId, sourceDate, targetDates[], skipExisting)`
 00154| - `createWeeklyPattern(terminalId, startDate, endDate, daysOfWeek[], slots[], skipExisting)`
 00155| - `bulkUpdateCapacity(terminalId, date, slotIds?, maxCapacity, autoValidationThreshold?)`
 00156| - `bulkToggleActive(terminalId, date, slotIds, isActive)`
-00157| 
+00157|
 00158| ### Files to Create
-00159| 
+00159|
 00160| | File | Action |
 00161| |------|--------|
 00162| | `packages/backend/convex/timeSlots/mutations.ts` | Major update |
@@ -11101,26 +11234,26 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00165| | `apps/web/src/features/time-slots/components/day-template-picker.tsx` | Create |
 00166| | `apps/web/src/features/time-slots/components/weekly-pattern-wizard.tsx` | Create |
 00167| | `apps/web/src/routes/operator/slots.tsx` | Create |
-00168| 
+00168|
 00169| ---
-00170| 
+00170|
 00171| ## Phase 5: Auto-Validation and Approval Workflows
 00172| **Duration:** 3-4 days | **Dependencies:** Phase 1, 2, 4
-00173| 
+00173|
 00174| ### Auto-Validation Engine
-00175| 
+00175|
 00176| - Check confirmed auto-validated count vs threshold limit
 00177| - Threshold = `(maxCapacity × autoValidationThreshold) / 100`
 00178| - First N% auto-approved, rest queued for manual review
-00179| 
+00179|
 00180| ### Manual Approval Workflow
-00181| 
+00181|
 00182| - `confirmBooking(bookingId, gateId?, note?)` - Assigns gate, generates QR, sends notification
 00183| - `rejectBooking(bookingId, reason)` - Records rejection, sends notification
 00184| - Approval queue UI with FIFO ordering (priority algorithm later)
-00185| 
+00185|
 00186| ### Files to Create
-00187| 
+00187|
 00188| | File | Action |
 00189| |------|--------|
 00190| | `packages/backend/convex/lib/autoValidation.ts` | Create |
@@ -11129,14 +11262,14 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00193| | `apps/web/src/features/approvals/components/approval-card.tsx` | Create |
 00194| | `apps/web/src/features/approvals/components/bulk-approval.tsx` | Create |
 00195| | `apps/web/src/routes/operator/approvals.tsx` | Create |
-00196| 
+00196|
 00197| ---
-00198| 
+00198|
 00199| ## Phase 6: Notification System with Email
 00200| **Duration:** 4-5 days | **Dependencies:** Phase 1, 5
-00201| 
+00201|
 00202| ### Notification Triggers
-00203| 
+00203|
 00204| | Event | Recipients |
 00205| |-------|------------|
 00206| | Booking created | Carrier |
@@ -11145,54 +11278,54 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00209| | Booking cancelled | Carrier |
 00210| | Slot reminder | Carrier |
 00211| | Capacity alert | Terminal operators |
-00212| 
+00212|
 00213| ### Email Integration
-00214| 
+00214|
 00215| - Use Resend for email delivery
 00216| - French templates for all notification types
 00217| - User preference for channel (in-app, email, or both)
-00218| 
+00218|
 00219| ### Capacity Alert System
-00220| 
+00220|
 00221| - Configurable thresholds per terminal (e.g., [70, 85, 95])
 00222| - Cron job checks capacity utilization daily
 00223| - Alerts sent to assigned terminal operators
-00224| 
+00224|
 00225| ### Files to Create
-00226| 
+00226|
 00227| | File | Action |
 00228| |------|--------|
 00229| | `packages/backend/convex/notifications/service.ts` | Create |
 00230| | `packages/backend/convex/email/index.ts` | Create |
 00231| | `packages/backend/convex/scheduled.ts` | Update (capacity alerts) |
 00232| | `packages/backend/convex/crons.ts` | Update |
-00233| 
+00233|
 00234| ---
-00235| 
+00235|
 00236| ## Phase 7: QR Code Generation and Scanning
 00237| **Duration:** 3-4 days | **Dependencies:** Phase 5
-00238| 
+00238|
 00239| ### QR Code Generation
-00240| 
+00240|
 00241| - Contains only booking reference + type identifier
 00242| - Generated on booking approval (auto or manual)
 00243| - Stored in Convex file storage + data URL for immediate display
-00244| 
+00244|
 00245| ### Double Scan System
-00246| 
+00246|
 00247| - Entry scan: Updates status to "consumed", records timestamp
 00248| - Exit scan: Records exit timestamp
 00249| - Both scans require terminal operator role
-00250| 
+00250|
 00251| ### Scan Validation
-00252| 
+00252|
 00253| - Verify booking reference exists
 00254| - Verify gate belongs to correct terminal
 00255| - Verify booking status allows the scan type
 00256| - Verify user has terminal access
-00257| 
+00257|
 00258| ### Files to Create
-00259| 
+00259|
 00260| | File | Action |
 00261| |------|--------|
 00262| | `packages/backend/convex/qr/index.ts` | Create |
@@ -11200,28 +11333,28 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00264| | `apps/web/src/features/scanner/components/qr-scanner.tsx` | Create |
 00265| | `apps/web/src/features/scanner/components/scan-result.tsx` | Create |
 00266| | `apps/web/src/routes/operator/scanner.tsx` | Create |
-00267| 
+00267|
 00268| ---
-00269| 
+00269|
 00270| ## Phase 8: Dashboard UI Components
 00271| **Duration:** 5-7 days | **Dependencies:** Phase 1-7
-00272| 
+00272|
 00273| ### Layout
-00274| 
+00274|
 00275| - Main navigation sidebar (left)
 00276| - Content area (center)
 00277| - Closeable chat sidebar (right) - accessible from all dashboard pages
-00278| 
+00278|
 00279| ### Role-Specific Dashboards
-00280| 
+00280|
 00281| | Role | Dashboard Features |
 00282| |------|-------------------|
 00283| | Port Admin | Global overview, system config, user management, audit logs |
 00284| | Terminal Operator | Terminal-specific metrics, approval queue, slot management, scanner |
 00285| | Carrier | Personal bookings, truck fleet, container list, booking history |
-00286| 
+00286|
 00287| ### Dashboard Components
-00288| 
+00288|
 00289| Create in `apps/web/src/features/dashboard/`:
 00290| - `stats-card.tsx` - Metric card with trend
 00291| - `booking-chart.tsx` - Booking trends
@@ -11231,9 +11364,9 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00295| - `terminal-overview.tsx` - Terminal status grid
 00296| - `date-range-picker.tsx` - Custom date selection
 00297| - `export-button.tsx` - CSV/PDF export
-00298| 
+00298|
 00299| ### Files to Create
-00300| 
+00300|
 00301| | File | Action |
 00302| |------|--------|
 00303| | `apps/web/src/layouts/dashboard-layout.tsx` | Create |
@@ -11242,14 +11375,14 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00306| | `apps/web/src/routes/operator/dashboard.tsx` | Create |
 00307| | `apps/web/src/routes/carrier/dashboard.tsx` | Create |
 00308| | `apps/web/src/features/dashboard/components/*.tsx` | Create 8 files |
-00309| 
+00309|
 00310| ---
-00311| 
+00311|
 00312| ## Phase 9: Analytics with Aggregations
 00313| **Duration:** 5-7 days | **Dependencies:** Phase 8
-00314| 
+00314|
 00315| ### Aggregation Tables
-00316| 
+00316|
 00317| ```
 00318| bookingAggregates: {
 00319|   terminalId, date, hour?,
@@ -11260,22 +11393,22 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00324|   computedAt
 00325| }
 00326| ```
-00327| 
+00327|
 00328| ### Aggregation Jobs
-00329| 
+00329|
 00330| - Hourly aggregation cron job
 00331| - Daily rollup aggregation
 00332| - Weekly summary aggregation
-00333| 
+00333|
 00334| ### Analytics Features
-00335| 
+00335|
 00336| - Custom date range picker with presets
 00337| - Hourly/daily/weekly aggregation views
 00338| - Terminal-specific vs global metrics
 00339| - Export to CSV and PDF
-00340| 
+00340|
 00341| ### Files to Create
-00342| 
+00342|
 00343| | File | Action |
 00344| |------|--------|
 00345| | `packages/backend/convex/schema.ts` | Add bookingAggregates |
@@ -11284,14 +11417,14 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00348| | `packages/backend/convex/analytics/export.ts` | Create |
 00349| | `packages/backend/convex/crons.ts` | Add hourly aggregation |
 00350| | `apps/web/src/features/analytics/components/*.tsx` | Create chart components |
-00351| 
+00351|
 00352| ---
-00353| 
+00353|
 00354| ## Phase 10: Audit Logging System
 00355| **Duration:** 3-4 days | **Dependencies:** Phase 1
-00356| 
+00356|
 00357| ### Audit Entry Structure
-00358| 
+00358|
 00359| ```
 00360| auditLogs: {
 00361|   userId?, action, resource, resourceId?, args (sanitized), result,
@@ -11299,33 +11432,33 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00363|   timestamp, durationMs?
 00364| }
 00365| ```
-00366| 
+00366|
 00367| ### Audit Actions
-00368| 
+00368|
 00369| - `query`, `mutation`, `ai_tool_call`, `login`, `logout`, `failed_auth`, `permission_denied`
-00370| 
+00370|
 00371| ### Implementation
-00372| 
+00372|
 00373| - `logAudit()` utility function with arg sanitization
 00374| - `withAudit()` wrapper for mutations
 00375| - Admin-only audit log viewer with filters
-00376| 
+00376|
 00377| ### Files to Create
-00378| 
+00378|
 00379| | File | Action |
 00380| |------|--------|
 00381| | `packages/backend/convex/lib/auditLog.ts` | Create |
 00382| | `packages/backend/convex/lib/withAudit.ts` | Create |
 00383| | `packages/backend/convex/audit/queries.ts` | Create |
 00384| | `apps/web/src/routes/admin/audit-logs.tsx` | Create |
-00385| 
+00385|
 00386| ---
-00387| 
+00387|
 00388| ## Phase 11: Seed Data Generation
 00389| **Duration:** 2-3 days | **Dependencies:** All previous phases
-00390| 
+00390|
 00391| ### Seed Data Scale
-00392| 
+00392|
 00393| | Entity | Count |
 00394| |--------|-------|
 00395| | Terminals | 4 |
@@ -11336,16 +11469,16 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00400| | Containers | 750 |
 00401| | Terminal Operators | 8 |
 00402| | Bookings | Realistic distribution |
-00403| 
+00403|
 00404| ### Container Generation
-00405| 
+00405|
 00406| - ISO 6346 format container numbers
 00407| - Realistic distribution of types, dimensions, weight classes
 00408| - 70% drop-off, 30% pick-up operations
 00409| - 30% empty containers
-00410| 
+00410|
 00411| ### Files to Create
-00412| 
+00412|
 00413| | File | Action |
 00414| |------|--------|
 00415| | `packages/backend/convex/seed/index.ts` | Create |
@@ -11353,11 +11486,11 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00417| | `packages/backend/convex/seed/containers.ts` | Create |
 00418| | `packages/backend/convex/seed/bookings.ts` | Create |
 00419| | `packages/backend/convex/seed/users.ts` | Create |
-00420| 
+00420|
 00421| ---
-00422| 
+00422|
 00423| ## Timeline Summary
-00424| 
+00424|
 00425| | Phase | Duration | Cumulative |
 00426| |-------|----------|------------|
 00427| | 1. Schema Refactoring | 3-5 days | Week 1 |
@@ -11371,38 +11504,38 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00435| | 9. Analytics | 5-7 days | Week 9-10 |
 00436| | 10. Audit Logging | 3-4 days | Week 10-11 |
 00437| | 11. Seed Data | 2-3 days | Week 11 |
-00438| 
+00438|
 00439| **Total Estimated Duration:** 45-61 days (9-12 weeks)
-00440| 
+00440|
 00441| ---
-00442| 
+00442|
 00443| ## Verification Strategy
-00444| 
+00444|
 00445| ### Unit Tests
 00446| - Validators and utility functions
 00447| - Capacity calculations
 00448| - Auto-validation logic
-00449| 
+00449|
 00450| ### Integration Tests
 00451| - Booking creation flow (with auto-validation)
 00452| - Approval workflow
 00453| - QR scan sequences
-00454| 
+00454|
 00455| ### E2E Tests (Playwright)
 00456| 1. Carrier booking flow via AI chat
 00457| 2. Terminal operator approval workflow
 00458| 3. QR scan entry/exit sequence
 00459| 4. Admin configuration changes
-00460| 
+00460|
 00461| ### Performance Tests
 00462| - Concurrent booking creation
 00463| - Capacity engine under load
 00464| - Analytics queries with large datasets
-00465| 
+00465|
 00466| ---
-00467| 
+00467|
 00468| ## Critical Files Reference
-00469| 
+00469|
 00470| ### Backend Core
 00471| - `packages/backend/convex/schema.ts`
 00472| - `packages/backend/convex/lib/permissions.ts`
@@ -11410,21 +11543,22 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00474| - `packages/backend/convex/bookings/mutations.ts`
 00475| - `packages/backend/convex/ai/agent.ts`
 00476| - `packages/backend/convex/ai/registry.ts`
-00477| 
+00477|
 00478| ### Frontend Core
 00479| - `apps/web/src/layouts/dashboard-layout.tsx`
 00480| - `apps/web/src/components/chat-sidebar.tsx`
 00481| - `apps/web/src/components/ai-elements/apcs/*.tsx`
 00482| - `apps/web/src/features/*/components/*.tsx`
-00483| 
+00483|
 
 (End of file - total 483 lines)
 </file>
-```
+````
 
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/packages/backend/convex/schema.ts"
@@ -11432,22 +11566,23 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 ```
 
 **Output:**
+
 ```
 <file>
 00001| import { defineSchema, defineTable } from "convex/server";
 00002| import { v } from "convex/values";
-00003| 
+00003|
 00004| // ============================================================================
 00005| // SHARED VALIDATORS (exported for reuse in functions)
 00006| // ============================================================================
-00007| 
+00007|
 00008| /** APCS user roles */
 00009| export const apcsRoleValidator = v.union(
 00010|   v.literal("port_admin"),
 00011|   v.literal("terminal_operator"),
 00012|   v.literal("carrier")
 00013| );
-00014| 
+00014|
 00015| /** Booking status lifecycle */
 00016| export const bookingStatusValidator = v.union(
 00017|   v.literal("pending"),
@@ -11457,7 +11592,7 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00021|   v.literal("cancelled"),
 00022|   v.literal("expired")
 00023| );
-00024| 
+00024|
 00025| /** Truck size/weight class */
 00026| export const truckClassValidator = v.union(
 00027|   v.literal("light"), // < 3.5t
@@ -11465,7 +11600,7 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00029|   v.literal("heavy"), // 7.5t - 18t
 00030|   v.literal("super_heavy") // > 18t
 00031| );
-00032| 
+00032|
 00033| /** Truck type */
 00034| export const truckTypeValidator = v.union(
 00035|   v.literal("container"),
@@ -11475,7 +11610,7 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00039|   v.literal("bulk"),
 00040|   v.literal("general")
 00041| );
-00042| 
+00042|
 00043| /** Notification type */
 00044| export const notificationTypeValidator = v.union(
 00045|   v.literal("booking_created"),
@@ -11488,17 +11623,17 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00052|   v.literal("capacity_alert"),
 00053|   v.literal("system_announcement")
 00054| );
-00055| 
+00055|
 00056| /** Notification channel */
 00057| export const notificationChannelValidator = v.union(
 00058|   v.literal("in_app"),
 00059|   v.literal("email"),
 00060|   v.literal("both")
 00061| );
-00062| 
+00062|
 00063| /** Language preference */
 00064| export const languageValidator = v.union(v.literal("en"), v.literal("fr"));
-00065| 
+00065|
 00066| /** Booking history change types */
 00067| export const bookingChangeTypeValidator = v.union(
 00068|   v.literal("created"),
@@ -11508,16 +11643,16 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00072|   v.literal("driver_updated"),
 00073|   v.literal("details_updated")
 00074| );
-00075| 
+00075|
 00076| // ============================================================================
 00077| // SCHEMA DEFINITION
 00078| // ============================================================================
-00079| 
+00079|
 00080| export default defineSchema({
 00081|   // --------------------------------------------------------------------------
 00082|   // TERMINALS & GATES
 00083|   // --------------------------------------------------------------------------
-00084| 
+00084|
 00085|   /**
 00086|    * Terminals - Physical port terminals
 00087|    * Created by: port_admin
@@ -11535,7 +11670,7 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00099|     .index("by_code", ["code"])
 00100|     .index("by_active", ["isActive"])
 00101|     .index("by_created_by", ["createdBy"]),
-00102| 
+00102|
 00103|   /**
 00104|    * Gates - Entry points at terminals with capacity
 00105|    * Created by: port_admin or terminal_operator
@@ -11559,7 +11694,7 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00123|     .index("by_terminal", ["terminalId"])
 00124|     .index("by_terminal_and_active", ["terminalId", "isActive"])
 00125|     .index("by_code", ["code"]),
-00126| 
+00126|
 00127|   /**
 00128|    * TimeSlots - Bookable time windows per gate
 00129|    * Non-overlapping within the same gate
@@ -11583,11 +11718,11 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00147|     .index("by_gate_and_date", ["gateId", "date"])
 00148|     .index("by_date", ["date"])
 00149|     .index("by_gate_and_active", ["gateId", "isActive"]),
-00150| 
+00150|
 00151|   // --------------------------------------------------------------------------
 00152|   // TERMINAL OPERATOR ASSIGNMENTS (Many-to-Many)
 00153|   // --------------------------------------------------------------------------
-00154| 
+00154|
 00155|   /**
 00156|    * TerminalOperatorAssignments - Links operators to terminals
 00157|    * An operator can manage multiple terminals
@@ -11604,11 +11739,11 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00168|     .index("by_terminal", ["terminalId"])
 00169|     .index("by_terminal_and_active", ["terminalId", "isActive"])
 00170|     .index("by_user_and_terminal", ["userId", "terminalId"]),
-00171| 
+00171|
 00172|   // --------------------------------------------------------------------------
 00173|   // CARRIER COMPANIES & TRUCKS
 00174|   // --------------------------------------------------------------------------
-00175| 
+00175|
 00176|   /**
 00177|    * CarrierCompanies - Organizations that own trucks
 00178|    * Created by: port_admin or self-registered
@@ -11631,7 +11766,7 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00195|     .index("by_code", ["code"])
 00196|     .index("by_active", ["isActive"])
 00197|     .index("by_name", ["name"]),
-00198| 
+00198|
 00199|   /**
 00200|    * CarrierUsers - Links Better Auth users to carrier companies
 00201|    * A user with 'carrier' role belongs to exactly one company
@@ -11647,7 +11782,7 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00211|     .index("by_user", ["userId"])
 00212|     .index("by_company", ["carrierCompanyId"])
 00213|     .index("by_company_and_active", ["carrierCompanyId", "isActive"]),
-00214| 
+00214|
 00215|   /**
 00216|    * Trucks - Vehicles owned by carrier companies
 00217|    */
@@ -11673,11 +11808,11 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00237|     .index("by_license_plate", ["licensePlate"])
 00238|     .index("by_type", ["truckType"])
 00239|     .index("by_class", ["truckClass"]),
-00240| 
+00240|
 00241|   // --------------------------------------------------------------------------
 00242|   // BOOKINGS
 00243|   // --------------------------------------------------------------------------
-00244| 
+00244|
 00245|   /**
 00246|    * Bookings - Truck time slot reservations
 00247|    * Full lifecycle: pending -> confirmed/rejected -> consumed/cancelled/expired
@@ -11728,7 +11863,7 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00292|     .index("by_gate_and_status", ["gateId", "status"])
 00293|     .index("by_status", ["status"])
 00294|     .index("by_created_by", ["createdBy"]),
-00295| 
+00295|
 00296|   /**
 00297|    * BookingHistory - Audit trail for all booking changes
 00298|    * Immutable log of all modifications
@@ -11752,11 +11887,11 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00316|     .index("by_booking_and_type", ["bookingId", "changeType"])
 00317|     .index("by_changed_by", ["changedBy"])
 00318|     .index("by_changed_at", ["changedAt"]),
-00319| 
+00319|
 00320|   // --------------------------------------------------------------------------
 00321|   // NOTIFICATIONS
 00322|   // --------------------------------------------------------------------------
-00323| 
+00323|
 00324|   /**
 00325|    * Notifications - In-app and email notifications
 00326|    * Bilingual support (EN/FR)
@@ -11795,11 +11930,11 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00359|     .index("by_user_and_read", ["userId", "isRead"])
 00360|     .index("by_user_and_type", ["userId", "type"])
 00361|     .index("by_created_at", ["createdAt"]),
-00362| 
+00362|
 00363|   // --------------------------------------------------------------------------
 00364|   // SYSTEM CONFIGURATION
 00365|   // --------------------------------------------------------------------------
-00366| 
+00366|
 00367|   /**
 00368|    * SystemConfig - Global system settings
 00369|    * Singleton table (should have only one document)
@@ -11816,11 +11951,11 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00380|     updatedAt: v.number(),
 00381|     updatedBy: v.string(), // Better Auth user ID
 00382|   }),
-00383| 
+00383|
 00384|   // --------------------------------------------------------------------------
 00385|   // USER PROFILE EXTENSION
 00386|   // --------------------------------------------------------------------------
-00387| 
+00387|
 00388|   /**
 00389|    * UserProfiles - Extended user data beyond Better Auth
 00390|    * One-to-one with Better Auth user table
@@ -11839,7 +11974,7 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 00403|   })
 00404|     .index("by_user", ["userId"]),
 00405| });
-00406| 
+00406|
 
 (End of file - total 406 lines)
 </file>
@@ -11848,6 +11983,7 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 **Tool: task**
 
 **Input:**
+
 ```json
 {
   "description": "Explore backend structure",
@@ -11857,6 +11993,7 @@ I'll read the existing plan file and the current schema to create a comprehensiv
 ```
 
 **Output:**
+
 ```
 # Summary: APCS Backend Exploration for Convex
 
@@ -11955,9 +12092,11 @@ The user's original request was to "explore" the backend to understand what exis
 ## Prompt for Continuing in New Session
 
 ```
-I've completed a thorough exploration of the APCS Convex backend at packages/backend/convex/. 
+
+I've completed a thorough exploration of the APCS Convex backend at packages/backend/convex/.
 
 The backend is a fully-featured port logistics system with:
+
 - 12 database tables (schema.ts)
 - Better Auth with custom roles (port_admin, terminal_operator, carrier)
 - Full RBAC permission system (lib/permissions.ts)
@@ -11967,19 +12106,22 @@ The backend is a fully-featured port logistics system with:
 - Complete CRUD for: terminals, gates, timeSlots, trucks, carriers, bookings, users
 
 Key files to reference:
+
 - Schema: packages/backend/convex/schema.ts (406 lines)
 - Permissions: packages/backend/convex/lib/permissions.ts (434 lines)
 - Validators: packages/backend/convex/lib/validators.ts (202 lines)
 - Booking mutations: packages/backend/convex/bookings/mutations.ts (860 lines)
 - AI agent: packages/backend/convex/ai/agent.ts, chat.ts, registry.ts
-- AI tools: packages/backend/convex/ai/tools/*.ts
+- AI tools: packages/backend/convex/ai/tools/\*.ts
 - Notifications: packages/backend/convex/notifications/internal.ts (369 lines)
 
 Notable TODOs found:
+
 - Email sending is stubbed in notifications/internal.ts (line 173)
 - QR code generation is a placeholder in bookings/internal.ts
 
 What would you like to build or modify next?
+
 ```
 
 <task_metadata>
@@ -11996,6 +12138,7 @@ Now let me explore some specific files to understand the current implementation 
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/packages/backend/convex/lib/capacity.ts"
@@ -12003,6 +12146,7 @@ Now let me explore some specific files to understand the current implementation 
 ```
 
 **Output:**
+
 ```
 <file>
 00001| /**
@@ -12011,7 +12155,7 @@ Now let me explore some specific files to understand the current implementation 
 00004|  */
 00005| import type { MutationCtx, QueryCtx } from "../_generated/server";
 00006| import type { Id } from "../_generated/dataModel";
-00007| 
+00007|
 00008| /**
 00009|  * Check if a time slot has capacity and atomically reserve if available.
 00010|  * This prevents race conditions where two bookings might exceed capacity.
@@ -12024,21 +12168,21 @@ Now let me explore some specific files to understand the current implementation 
 00017| ): Promise<boolean> {
 00018|   const timeSlot = await ctx.db.get(timeSlotId);
 00019|   if (!timeSlot) return false;
-00020| 
+00020|
 00021|   // Check current capacity
 00022|   if (timeSlot.currentBookings >= timeSlot.maxCapacity) {
 00023|     return false;
 00024|   }
-00025| 
+00025|
 00026|   // Atomically increment the counter
 00027|   await ctx.db.patch(timeSlotId, {
 00028|     currentBookings: timeSlot.currentBookings + 1,
 00029|     updatedAt: Date.now(),
 00030|   });
-00031| 
+00031|
 00032|   return true;
 00033| }
-00034| 
+00034|
 00035| /**
 00036|  * Release a capacity slot (on cancellation/rejection)
 00037|  */
@@ -12048,13 +12192,13 @@ Now let me explore some specific files to understand the current implementation 
 00041| ): Promise<void> {
 00042|   const timeSlot = await ctx.db.get(timeSlotId);
 00043|   if (!timeSlot) return;
-00044| 
+00044|
 00045|   await ctx.db.patch(timeSlotId, {
 00046|     currentBookings: Math.max(0, timeSlot.currentBookings - 1),
 00047|     updatedAt: Date.now(),
 00048|   });
 00049| }
-00050| 
+00050|
 00051| /**
 00052|  * Recalculate capacity for a time slot (for data consistency checks)
 00053|  * Should be used sparingly, mainly for migrations or repairs
@@ -12068,19 +12212,19 @@ Now let me explore some specific files to understand the current implementation 
 00061|     .query("bookings")
 00062|     .withIndex("by_time_slot", (q) => q.eq("timeSlotId", timeSlotId))
 00063|     .collect();
-00064| 
+00064|
 00065|   const activeCount = bookings.filter(
 00066|     (b) => b.status === "pending" || b.status === "confirmed"
 00067|   ).length;
-00068| 
+00068|
 00069|   await ctx.db.patch(timeSlotId, {
 00070|     currentBookings: activeCount,
 00071|     updatedAt: Date.now(),
 00072|   });
-00073| 
+00073|
 00074|   return activeCount;
 00075| }
-00076| 
+00076|
 00077| /**
 00078|  * Get available capacity for a time slot (for queries)
 00079|  */
@@ -12092,14 +12236,14 @@ Now let me explore some specific files to understand the current implementation 
 00085|   if (!timeSlot) {
 00086|     return { available: 0, total: 0, booked: 0 };
 00087|   }
-00088| 
+00088|
 00089|   return {
 00090|     available: Math.max(0, timeSlot.maxCapacity - timeSlot.currentBookings),
 00091|     total: timeSlot.maxCapacity,
 00092|     booked: timeSlot.currentBookings,
 00093|   };
 00094| }
-00095| 
+00095|
 00096| /**
 00097|  * Check if a time slot has availability without reserving
 00098|  */
@@ -12110,7 +12254,7 @@ Now let me explore some specific files to understand the current implementation 
 00103|   const capacity = await getAvailableCapacity(ctx, timeSlotId);
 00104|   return capacity.available > 0;
 00105| }
-00106| 
+00106|
 00107| /**
 00108|  * Get capacity utilization percentage
 00109|  */
@@ -12122,7 +12266,7 @@ Now let me explore some specific files to understand the current implementation 
 00115|   if (capacity.total === 0) return 0;
 00116|   return Math.round((capacity.booked / capacity.total) * 100);
 00117| }
-00118| 
+00118|
 
 (End of file - total 118 lines)
 </file>
@@ -12131,6 +12275,7 @@ Now let me explore some specific files to understand the current implementation 
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/packages/backend/convex/bookings/mutations.ts"
@@ -12138,6 +12283,7 @@ Now let me explore some specific files to understand the current implementation 
 ```
 
 **Output:**
+
 ```
 <file>
 00001| /**
@@ -12174,11 +12320,11 @@ Now let me explore some specific files to understand the current implementation 
 00032|   canCancelBooking,
 00033| } from "./internal";
 00034| import { internal } from "../_generated/api";
-00035| 
+00035|
 00036| // ============================================================================
 00037| // CREATE BOOKING
 00038| // ============================================================================
-00039| 
+00039|
 00040| /**
 00041|  * Create a new booking
 00042|  * Carriers create bookings for their own trucks
@@ -12189,14 +12335,14 @@ Now let me explore some specific files to understand the current implementation 
 00047|   handler: async (ctx, args) => {
 00048|     const user = await getAuthenticatedUser(ctx);
 00049|     requireRole(user, ["carrier"]);
-00050| 
+00050|
 00051|     if (!user.carrierCompanyId) {
 00052|       throw new ConvexError({
 00053|         code: "FORBIDDEN",
 00054|         message: "You must be associated with a carrier company to create bookings",
 00055|       });
 00056|     }
-00057| 
+00057|
 00058|     // 1. Validate time slot exists and is active
 00059|     const timeSlot = await ctx.db.get(args.timeSlotId);
 00060|     if (!timeSlot) {
@@ -12211,7 +12357,7 @@ Now let me explore some specific files to understand the current implementation 
 00069|         message: "Time slot is not available for booking",
 00070|       });
 00071|     }
-00072| 
+00072|
 00073|     // 2. Validate time slot is in the future
 00074|     const slotDateTime = new Date(`${timeSlot.date}T${timeSlot.startTime}`);
 00075|     const now = new Date();
@@ -12221,18 +12367,18 @@ Now let me explore some specific files to understand the current implementation 
 00079|         message: "Cannot book a time slot in the past",
 00080|       });
 00081|     }
-00082| 
+00082|
 00083|     // 3. Check system config for advance booking rules
 00084|     const config = await getSystemConfig(ctx);
 00085|     const hoursUntilSlot = (slotDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-00086|     
+00086|
 00087|     if (hoursUntilSlot < config.minAdvanceBookingHours) {
 00088|       throw new ConvexError({
 00089|         code: "INVALID_INPUT",
 00090|         message: `Bookings must be made at least ${config.minAdvanceBookingHours} hours in advance`,
 00091|       });
 00092|     }
-00093| 
+00093|
 00094|     const daysUntilSlot = hoursUntilSlot / 24;
 00095|     if (daysUntilSlot > config.maxAdvanceBookingDays) {
 00096|       throw new ConvexError({
@@ -12240,7 +12386,7 @@ Now let me explore some specific files to understand the current implementation 
 00098|         message: `Bookings cannot be made more than ${config.maxAdvanceBookingDays} days in advance`,
 00099|       });
 00100|     }
-00101| 
+00101|
 00102|     // 4. Validate truck
 00103|     const truck = await ctx.db.get(args.truckId);
 00104|     if (!truck) {
@@ -12261,7 +12407,7 @@ Now let me explore some specific files to understand the current implementation 
 00119|         message: "You can only book with trucks from your company",
 00120|       });
 00121|     }
-00122| 
+00122|
 00123|     // 5. Get gate and terminal
 00124|     const gate = await ctx.db.get(timeSlot.gateId);
 00125|     if (!gate || !gate.isActive) {
@@ -12270,7 +12416,7 @@ Now let me explore some specific files to understand the current implementation 
 00128|         message: "Gate is not available",
 00129|       });
 00130|     }
-00131| 
+00131|
 00132|     const terminal = await ctx.db.get(gate.terminalId);
 00133|     if (!terminal || !terminal.isActive) {
 00134|       throw new ConvexError({
@@ -12278,7 +12424,7 @@ Now let me explore some specific files to understand the current implementation 
 00136|         message: "Terminal is not available",
 00137|       });
 00138|     }
-00139| 
+00139|
 00140|     // 6. Validate truck compatibility with gate
 00141|     const compatibility = await validateTruckForGate(ctx, args.truckId, timeSlot.gateId);
 00142|     if (!compatibility.valid) {
@@ -12287,7 +12433,7 @@ Now let me explore some specific files to understand the current implementation 
 00145|         message: compatibility.reason ?? "Truck is not compatible with this gate",
 00146|       });
 00147|     }
-00148| 
+00148|
 00149|     // 7. Check if truck already has a booking for this time slot
 00150|     const existingTruckBooking = await ctx.db
 00151|       .query("bookings")
@@ -12302,14 +12448,14 @@ Now let me explore some specific files to understand the current implementation 
 00160|         )
 00161|       )
 00162|       .first();
-00163| 
+00163|
 00164|     if (existingTruckBooking) {
 00165|       throw new ConvexError({
 00166|         code: "DUPLICATE",
 00167|         message: "This truck already has a booking for this time slot",
 00168|       });
 00169|     }
-00170| 
+00170|
 00171|     // 8. Reserve capacity (atomic)
 00172|     const reserved = await checkAndReserveCapacity(ctx, args.timeSlotId);
 00173|     if (!reserved) {
@@ -12318,10 +12464,10 @@ Now let me explore some specific files to understand the current implementation 
 00176|         message: "This time slot is fully booked",
 00177|       });
 00178|     }
-00179| 
+00179|
 00180|     // 9. Generate booking reference
 00181|     const bookingReference = await generateBookingReference(ctx);
-00182| 
+00182|
 00183|     // 10. Create the booking
 00184|     const nowTs = Date.now();
 00185|     const bookingId = await ctx.db.insert("bookings", {
@@ -12342,7 +12488,7 @@ Now let me explore some specific files to understand the current implementation 
 00200|       createdBy: user.userId,
 00201|       updatedAt: nowTs,
 00202|     });
-00203| 
+00203|
 00204|     // 11. Record history
 00205|     await ctx.runMutation(internal.bookings.internal.recordHistory, {
 00206|       bookingId,
@@ -12355,15 +12501,15 @@ Now let me explore some specific files to understand the current implementation 
 00213|       changedBy: user.userId,
 00214|       requiredRebook: false,
 00215|     });
-00216| 
+00216|
 00217|     return bookingId;
 00218|   },
 00219| });
-00220| 
+00220|
 00221| // ============================================================================
 00222| // STATUS CHANGES
 00223| // ============================================================================
-00224| 
+00224|
 00225| /**
 00226|  * Confirm a pending booking (terminal operator/admin)
 00227|  */
@@ -12376,7 +12522,7 @@ Now let me explore some specific files to understand the current implementation 
 00234|   handler: async (ctx, args) => {
 00235|     const user = await getAuthenticatedUser(ctx);
 00236|     requireRole(user, ["port_admin", "terminal_operator"]);
-00237| 
+00237|
 00238|     const booking = await ctx.db.get(args.bookingId);
 00239|     if (!booking) {
 00240|       throw new ConvexError({
@@ -12384,7 +12530,7 @@ Now let me explore some specific files to understand the current implementation 
 00242|         message: "Booking not found",
 00243|       });
 00244|     }
-00245| 
+00245|
 00246|     // Check permission for this terminal
 00247|     const canModify = await canModifyBookingStatus(ctx, user, args.bookingId, "confirmed");
 00248|     if (!canModify) {
@@ -12393,7 +12539,7 @@ Now let me explore some specific files to understand the current implementation 
 00251|         message: "You do not have permission to confirm this booking",
 00252|       });
 00253|     }
-00254| 
+00254|
 00255|     // Validate status transition
 00256|     if (!isValidStatusTransition(booking.status, "confirmed")) {
 00257|       throw new ConvexError({
@@ -12401,7 +12547,7 @@ Now let me explore some specific files to understand the current implementation 
 00259|         message: `Cannot confirm a booking with status "${booking.status}"`,
 00260|       });
 00261|     }
-00262| 
+00262|
 00263|     const now = Date.now();
 00264|     await ctx.db.patch(args.bookingId, {
 00265|       status: "confirmed",
@@ -12409,7 +12555,7 @@ Now let me explore some specific files to understand the current implementation 
 00267|       processedBy: user.userId,
 00268|       updatedAt: now,
 00269|     });
-00270| 
+00270|
 00271|     // Record history
 00272|     await ctx.runMutation(internal.bookings.internal.recordHistory, {
 00273|       bookingId: args.bookingId,
@@ -12420,11 +12566,11 @@ Now let me explore some specific files to understand the current implementation 
 00278|       note: args.note,
 00279|       requiredRebook: false,
 00280|     });
-00281| 
+00281|
 00282|     return null;
 00283|   },
 00284| });
-00285| 
+00285|
 00286| /**
 00287|  * Reject a pending booking (terminal operator/admin)
 00288|  */
@@ -12437,7 +12583,7 @@ Now let me explore some specific files to understand the current implementation 
 00295|   handler: async (ctx, args) => {
 00296|     const user = await getAuthenticatedUser(ctx);
 00297|     requireRole(user, ["port_admin", "terminal_operator"]);
-00298| 
+00298|
 00299|     const booking = await ctx.db.get(args.bookingId);
 00300|     if (!booking) {
 00301|       throw new ConvexError({
@@ -12445,7 +12591,7 @@ Now let me explore some specific files to understand the current implementation 
 00303|         message: "Booking not found",
 00304|       });
 00305|     }
-00306| 
+00306|
 00307|     const canModify = await canModifyBookingStatus(ctx, user, args.bookingId, "rejected");
 00308|     if (!canModify) {
 00309|       throw new ConvexError({
@@ -12453,17 +12599,17 @@ Now let me explore some specific files to understand the current implementation 
 00311|         message: "You do not have permission to reject this booking",
 00312|       });
 00313|     }
-00314| 
+00314|
 00315|     if (!isValidStatusTransition(booking.status, "rejected")) {
 00316|       throw new ConvexError({
 00317|         code: "INVALID_STATE",
 00318|         message: `Cannot reject a booking with status "${booking.status}"`,
 00319|       });
 00320|     }
-00321| 
+00321|
 00322|     // Release capacity
 00323|     await releaseCapacity(ctx, booking.timeSlotId);
-00324| 
+00324|
 00325|     const now = Date.now();
 00326|     await ctx.db.patch(args.bookingId, {
 00327|       status: "rejected",
@@ -12472,7 +12618,7 @@ Now let me explore some specific files to understand the current implementation 
 00330|       processedBy: user.userId,
 00331|       updatedAt: now,
 00332|     });
-00333| 
+00333|
 00334|     await ctx.runMutation(internal.bookings.internal.recordHistory, {
 00335|       bookingId: args.bookingId,
 00336|       changeType: "status_changed",
@@ -12482,11 +12628,11 @@ Now let me explore some specific files to understand the current implementation 
 00340|       note: args.reason,
 00341|       requiredRebook: false,
 00342|     });
-00343| 
+00343|
 00344|     return null;
 00345|   },
 00346| });
-00347| 
+00347|
 00348| /**
 00349|  * Cancel a booking (carrier can cancel their own, operators can cancel any)
 00350|  */
@@ -12498,7 +12644,7 @@ Now let me explore some specific files to understand the current implementation 
 00356|   returns: v.null(),
 00357|   handler: async (ctx, args) => {
 00358|     const user = await getAuthenticatedUser(ctx);
-00359| 
+00359|
 00360|     const booking = await ctx.db.get(args.bookingId);
 00361|     if (!booking) {
 00362|       throw new ConvexError({
@@ -12506,7 +12652,7 @@ Now let me explore some specific files to understand the current implementation 
 00364|         message: "Booking not found",
 00365|       });
 00366|     }
-00367| 
+00367|
 00368|     // Check permission
 00369|     const canModify = await canModifyBookingStatus(ctx, user, args.bookingId, "cancelled");
 00370|     if (!canModify) {
@@ -12515,7 +12661,7 @@ Now let me explore some specific files to understand the current implementation 
 00373|         message: "You do not have permission to cancel this booking",
 00374|       });
 00375|     }
-00376| 
+00376|
 00377|     // For carriers, check cancellation policy
 00378|     if (isCarrier(user)) {
 00379|       const cancelCheck = await canCancelBooking(ctx, args.bookingId);
@@ -12526,17 +12672,17 @@ Now let me explore some specific files to understand the current implementation 
 00384|         });
 00385|       }
 00386|     }
-00387| 
+00387|
 00388|     if (!isValidStatusTransition(booking.status, "cancelled")) {
 00389|       throw new ConvexError({
 00390|         code: "INVALID_STATE",
 00391|         message: `Cannot cancel a booking with status "${booking.status}"`,
 00392|       });
 00393|     }
-00394| 
+00394|
 00395|     // Release capacity
 00396|     await releaseCapacity(ctx, booking.timeSlotId);
-00397| 
+00397|
 00398|     const now = Date.now();
 00399|     await ctx.db.patch(args.bookingId, {
 00400|       status: "cancelled",
@@ -12545,7 +12691,7 @@ Now let me explore some specific files to understand the current implementation 
 00403|       processedBy: user.userId,
 00404|       updatedAt: now,
 00405|     });
-00406| 
+00406|
 00407|     await ctx.runMutation(internal.bookings.internal.recordHistory, {
 00408|       bookingId: args.bookingId,
 00409|       changeType: "status_changed",
@@ -12555,11 +12701,11 @@ Now let me explore some specific files to understand the current implementation 
 00413|       note: args.reason,
 00414|       requiredRebook: false,
 00415|     });
-00416| 
+00416|
 00417|     return null;
 00418|   },
 00419| });
-00420| 
+00420|
 00421| /**
 00422|  * Mark a booking as consumed (truck arrived and entered)
 00423|  */
@@ -12572,7 +12718,7 @@ Now let me explore some specific files to understand the current implementation 
 00430|   handler: async (ctx, args) => {
 00431|     const user = await getAuthenticatedUser(ctx);
 00432|     requireRole(user, ["port_admin", "terminal_operator"]);
-00433| 
+00433|
 00434|     const booking = await ctx.db.get(args.bookingId);
 00435|     if (!booking) {
 00436|       throw new ConvexError({
@@ -12580,7 +12726,7 @@ Now let me explore some specific files to understand the current implementation 
 00438|         message: "Booking not found",
 00439|       });
 00440|     }
-00441| 
+00441|
 00442|     const canModify = await canModifyBookingStatus(ctx, user, args.bookingId, "consumed");
 00443|     if (!canModify) {
 00444|       throw new ConvexError({
@@ -12588,14 +12734,14 @@ Now let me explore some specific files to understand the current implementation 
 00446|         message: "You do not have permission to mark this booking as consumed",
 00447|       });
 00448|     }
-00449| 
+00449|
 00450|     if (!isValidStatusTransition(booking.status, "consumed")) {
 00451|       throw new ConvexError({
 00452|         code: "INVALID_STATE",
 00453|         message: `Cannot mark as consumed a booking with status "${booking.status}"`,
 00454|       });
 00455|     }
-00456| 
+00456|
 00457|     const now = Date.now();
 00458|     await ctx.db.patch(args.bookingId, {
 00459|       status: "consumed",
@@ -12603,7 +12749,7 @@ Now let me explore some specific files to understand the current implementation 
 00461|       processedBy: user.userId,
 00462|       updatedAt: now,
 00463|     });
-00464| 
+00464|
 00465|     await ctx.runMutation(internal.bookings.internal.recordHistory, {
 00466|       bookingId: args.bookingId,
 00467|       changeType: "status_changed",
@@ -12613,15 +12759,15 @@ Now let me explore some specific files to understand the current implementation 
 00471|       note: args.note,
 00472|       requiredRebook: false,
 00473|     });
-00474| 
+00474|
 00475|     return null;
 00476|   },
 00477| });
-00478| 
+00478|
 00479| // ============================================================================
 00480| // MODIFICATIONS (Non-capacity affecting)
 00481| // ============================================================================
-00482| 
+00482|
 00483| /**
 00484|  * Update driver information (non-capacity affecting)
 00485|  */
@@ -12635,7 +12781,7 @@ Now let me explore some specific files to understand the current implementation 
 00493|   returns: v.null(),
 00494|   handler: async (ctx, args) => {
 00495|     const user = await getAuthenticatedUser(ctx);
-00496| 
+00496|
 00497|     const booking = await ctx.db.get(args.bookingId);
 00498|     if (!booking) {
 00499|       throw new ConvexError({
@@ -12643,7 +12789,7 @@ Now let me explore some specific files to understand the current implementation 
 00501|         message: "Booking not found",
 00502|       });
 00503|     }
-00504| 
+00504|
 00505|     // Carrier can update their own bookings
 00506|     const canView = await canViewCarrier(ctx, user, booking.carrierCompanyId);
 00507|     if (!canView && !isPortAdmin(user)) {
@@ -12652,7 +12798,7 @@ Now let me explore some specific files to understand the current implementation 
 00510|         message: "You do not have permission to update this booking",
 00511|       });
 00512|     }
-00513| 
+00513|
 00514|     // Can only update pending or confirmed bookings
 00515|     if (booking.status !== "pending" && booking.status !== "confirmed") {
 00516|       throw new ConvexError({
@@ -12660,20 +12806,20 @@ Now let me explore some specific files to understand the current implementation 
 00518|         message: `Cannot update a booking with status "${booking.status}"`,
 00519|       });
 00520|     }
-00521| 
+00521|
 00522|     const previousValues = {
 00523|       driverName: booking.driverName,
 00524|       driverPhone: booking.driverPhone,
 00525|       driverIdNumber: booking.driverIdNumber,
 00526|     };
-00527| 
+00527|
 00528|     await ctx.db.patch(args.bookingId, {
 00529|       driverName: args.driverName?.trim() ?? booking.driverName,
 00530|       driverPhone: args.driverPhone?.trim() ?? booking.driverPhone,
 00531|       driverIdNumber: args.driverIdNumber?.trim() ?? booking.driverIdNumber,
 00532|       updatedAt: Date.now(),
 00533|     });
-00534| 
+00534|
 00535|     await ctx.runMutation(internal.bookings.internal.recordHistory, {
 00536|       bookingId: args.bookingId,
 00537|       changeType: "driver_updated",
@@ -12686,11 +12832,11 @@ Now let me explore some specific files to understand the current implementation 
 00544|       changedBy: user.userId,
 00545|       requiredRebook: false,
 00546|     });
-00547| 
+00547|
 00548|     return null;
 00549|   },
 00550| });
-00551| 
+00551|
 00552| /**
 00553|  * Update cargo details (non-capacity affecting)
 00554|  */
@@ -12703,7 +12849,7 @@ Now let me explore some specific files to understand the current implementation 
 00561|   returns: v.null(),
 00562|   handler: async (ctx, args) => {
 00563|     const user = await getAuthenticatedUser(ctx);
-00564| 
+00564|
 00565|     const booking = await ctx.db.get(args.bookingId);
 00566|     if (!booking) {
 00567|       throw new ConvexError({
@@ -12711,7 +12857,7 @@ Now let me explore some specific files to understand the current implementation 
 00569|         message: "Booking not found",
 00570|       });
 00571|     }
-00572| 
+00572|
 00573|     const canView = await canViewCarrier(ctx, user, booking.carrierCompanyId);
 00574|     if (!canView && !isPortAdmin(user)) {
 00575|       throw new ConvexError({
@@ -12719,25 +12865,25 @@ Now let me explore some specific files to understand the current implementation 
 00577|         message: "You do not have permission to update this booking",
 00578|       });
 00579|     }
-00580| 
+00580|
 00581|     if (booking.status !== "pending" && booking.status !== "confirmed") {
 00582|       throw new ConvexError({
 00583|         code: "INVALID_STATE",
 00584|         message: `Cannot update a booking with status "${booking.status}"`,
 00585|       });
 00586|     }
-00587| 
+00587|
 00588|     const previousValues = {
 00589|       containerNumber: booking.containerNumber,
 00590|       cargoDescription: booking.cargoDescription,
 00591|     };
-00592| 
+00592|
 00593|     await ctx.db.patch(args.bookingId, {
 00594|       containerNumber: args.containerNumber?.trim() ?? booking.containerNumber,
 00595|       cargoDescription: args.cargoDescription?.trim() ?? booking.cargoDescription,
 00596|       updatedAt: Date.now(),
 00597|     });
-00598| 
+00598|
 00599|     await ctx.runMutation(internal.bookings.internal.recordHistory, {
 00600|       bookingId: args.bookingId,
 00601|       changeType: "details_updated",
@@ -12749,11 +12895,11 @@ Now let me explore some specific files to understand the current implementation 
 00607|       changedBy: user.userId,
 00608|       requiredRebook: false,
 00609|     });
-00610| 
+00610|
 00611|     return null;
 00612|   },
 00613| });
-00614| 
+00614|
 00615| /**
 00616|  * Change truck (non-capacity affecting, but requires validation)
 00617|  * Status stays the same
@@ -12766,7 +12912,7 @@ Now let me explore some specific files to understand the current implementation 
 00624|   returns: v.null(),
 00625|   handler: async (ctx, args) => {
 00626|     const user = await getAuthenticatedUser(ctx);
-00627| 
+00627|
 00628|     const booking = await ctx.db.get(args.bookingId);
 00629|     if (!booking) {
 00630|       throw new ConvexError({
@@ -12774,7 +12920,7 @@ Now let me explore some specific files to understand the current implementation 
 00632|         message: "Booking not found",
 00633|       });
 00634|     }
-00635| 
+00635|
 00636|     const canView = await canViewCarrier(ctx, user, booking.carrierCompanyId);
 00637|     if (!canView && !isPortAdmin(user)) {
 00638|       throw new ConvexError({
@@ -12782,14 +12928,14 @@ Now let me explore some specific files to understand the current implementation 
 00640|         message: "You do not have permission to update this booking",
 00641|       });
 00642|     }
-00643| 
+00643|
 00644|     if (booking.status !== "pending" && booking.status !== "confirmed") {
 00645|       throw new ConvexError({
 00646|         code: "INVALID_STATE",
 00647|         message: `Cannot change truck for a booking with status "${booking.status}"`,
 00648|       });
 00649|     }
-00650| 
+00650|
 00651|     // Validate new truck
 00652|     const newTruck = await ctx.db.get(args.newTruckId);
 00653|     if (!newTruck) {
@@ -12810,7 +12956,7 @@ Now let me explore some specific files to understand the current implementation 
 00668|         message: "New truck must belong to the same carrier company",
 00669|       });
 00670|     }
-00671| 
+00671|
 00672|     // Validate compatibility with gate
 00673|     const compatibility = await validateTruckForGate(ctx, args.newTruckId, booking.gateId);
 00674|     if (!compatibility.valid) {
@@ -12819,7 +12965,7 @@ Now let me explore some specific files to understand the current implementation 
 00677|         message: compatibility.reason ?? "New truck is not compatible with the gate",
 00678|       });
 00679|     }
-00680| 
+00680|
 00681|     // Check new truck doesn't have a booking for this slot
 00682|     const existingBooking = await ctx.db
 00683|       .query("bookings")
@@ -12835,21 +12981,21 @@ Now let me explore some specific files to understand the current implementation 
 00693|         )
 00694|       )
 00695|       .first();
-00696| 
+00696|
 00697|     if (existingBooking) {
 00698|       throw new ConvexError({
 00699|         code: "DUPLICATE",
 00700|         message: "The new truck already has a booking for this time slot",
 00701|       });
 00702|     }
-00703| 
+00703|
 00704|     const previousTruckId = booking.truckId;
-00705| 
+00705|
 00706|     await ctx.db.patch(args.bookingId, {
 00707|       truckId: args.newTruckId,
 00708|       updatedAt: Date.now(),
 00709|     });
-00710| 
+00710|
 00711|     await ctx.runMutation(internal.bookings.internal.recordHistory, {
 00712|       bookingId: args.bookingId,
 00713|       changeType: "truck_changed",
@@ -12858,15 +13004,15 @@ Now let me explore some specific files to understand the current implementation 
 00716|       changedBy: user.userId,
 00717|       requiredRebook: false,
 00718|     });
-00719| 
+00719|
 00720|     return null;
 00721|   },
 00722| });
-00723| 
+00723|
 00724| // ============================================================================
 00725| // CAPACITY-AFFECTING CHANGES (Rebook)
 00726| // ============================================================================
-00727| 
+00727|
 00728| /**
 00729|  * Change time slot (capacity-affecting - resets to pending)
 00730|  */
@@ -12878,7 +13024,7 @@ Now let me explore some specific files to understand the current implementation 
 00736|   returns: v.null(),
 00737|   handler: async (ctx, args) => {
 00738|     const user = await getAuthenticatedUser(ctx);
-00739| 
+00739|
 00740|     const booking = await ctx.db.get(args.bookingId);
 00741|     if (!booking) {
 00742|       throw new ConvexError({
@@ -12886,7 +13032,7 @@ Now let me explore some specific files to understand the current implementation 
 00744|         message: "Booking not found",
 00745|       });
 00746|     }
-00747| 
+00747|
 00748|     const canView = await canViewCarrier(ctx, user, booking.carrierCompanyId);
 00749|     if (!canView && !isPortAdmin(user)) {
 00750|       throw new ConvexError({
@@ -12894,14 +13040,14 @@ Now let me explore some specific files to understand the current implementation 
 00752|         message: "You do not have permission to update this booking",
 00753|       });
 00754|     }
-00755| 
+00755|
 00756|     if (booking.status !== "pending" && booking.status !== "confirmed") {
 00757|       throw new ConvexError({
 00758|         code: "INVALID_STATE",
 00759|         message: `Cannot change time slot for a booking with status "${booking.status}"`,
 00760|       });
 00761|     }
-00762| 
+00762|
 00763|     // Validate new time slot
 00764|     const newTimeSlot = await ctx.db.get(args.newTimeSlotId);
 00765|     if (!newTimeSlot) {
@@ -12916,7 +13062,7 @@ Now let me explore some specific files to understand the current implementation 
 00774|         message: "New time slot is not available",
 00775|       });
 00776|     }
-00777| 
+00777|
 00778|     // Validate time slot is in the future
 00779|     const slotDateTime = new Date(`${newTimeSlot.date}T${newTimeSlot.startTime}`);
 00780|     if (slotDateTime <= new Date()) {
@@ -12925,7 +13071,7 @@ Now let me explore some specific files to understand the current implementation 
 00783|         message: "Cannot book a time slot in the past",
 00784|       });
 00785|     }
-00786| 
+00786|
 00787|     // Validate truck compatibility with new gate
 00788|     const compatibility = await validateTruckForGate(ctx, booking.truckId, newTimeSlot.gateId);
 00789|     if (!compatibility.valid) {
@@ -12934,7 +13080,7 @@ Now let me explore some specific files to understand the current implementation 
 00792|         message: compatibility.reason ?? "Truck is not compatible with the new gate",
 00793|       });
 00794|     }
-00795| 
+00795|
 00796|     // Check truck doesn't have another booking for new slot
 00797|     const existingBooking = await ctx.db
 00798|       .query("bookings")
@@ -12950,14 +13096,14 @@ Now let me explore some specific files to understand the current implementation 
 00808|         )
 00809|       )
 00810|       .first();
-00811| 
+00811|
 00812|     if (existingBooking) {
 00813|       throw new ConvexError({
 00814|         code: "DUPLICATE",
 00815|         message: "This truck already has a booking for the new time slot",
 00816|       });
 00817|     }
-00818| 
+00818|
 00819|     // Reserve capacity on new slot first
 00820|     const reserved = await checkAndReserveCapacity(ctx, args.newTimeSlotId);
 00821|     if (!reserved) {
@@ -12966,16 +13112,16 @@ Now let me explore some specific files to understand the current implementation 
 00824|         message: "The new time slot is fully booked",
 00825|       });
 00826|     }
-00827| 
+00827|
 00828|     // Release capacity from old slot
 00829|     await releaseCapacity(ctx, booking.timeSlotId);
-00830| 
+00830|
 00831|     // Get new gate/terminal info
 00832|     const newGate = await ctx.db.get(newTimeSlot.gateId);
-00833| 
+00833|
 00834|     const previousTimeSlotId = booking.timeSlotId;
 00835|     const wasConfirmed = booking.status === "confirmed";
-00836| 
+00836|
 00837|     await ctx.db.patch(args.bookingId, {
 00838|       timeSlotId: args.newTimeSlotId,
 00839|       gateId: newTimeSlot.gateId,
@@ -12985,7 +13131,7 @@ Now let me explore some specific files to understand the current implementation 
 00843|       processedBy: undefined,
 00844|       updatedAt: Date.now(),
 00845|     });
-00846| 
+00846|
 00847|     await ctx.runMutation(internal.bookings.internal.recordHistory, {
 00848|       bookingId: args.bookingId,
 00849|       changeType: "time_slot_changed",
@@ -12995,11 +13141,11 @@ Now let me explore some specific files to understand the current implementation 
 00853|       note: wasConfirmed ? "Booking reset to pending for re-confirmation" : undefined,
 00854|       requiredRebook: wasConfirmed,
 00855|     });
-00856| 
+00856|
 00857|     return null;
 00858|   },
 00859| });
-00860| 
+00860|
 
 (End of file - total 860 lines)
 </file>
@@ -13008,6 +13154,7 @@ Now let me explore some specific files to understand the current implementation 
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/packages/backend/convex/ai/agent.ts"
@@ -13015,6 +13162,7 @@ Now let me explore some specific files to understand the current implementation 
 ```
 
 **Output:**
+
 ```
 <file>
 00001| "use node";
@@ -13032,11 +13180,11 @@ Now let me explore some specific files to understand the current implementation 
 00013| import { Agent } from "@convex-dev/agent";
 00014| import { components } from "../_generated/api";
 00015| import { ALL_TOOLS } from "./registry";
-00016| 
+00016|
 00017| // ============================================================================
 00018| // AGENT
 00019| // ============================================================================
-00020| 
+00020|
 00021| /**
 00022|  * The main APCS assistant agent.
 00023|  *
@@ -13048,13 +13196,13 @@ Now let me explore some specific files to understand the current implementation 
 00029|   languageModel: google("gemini-2.0-flash"),
 00030|   instructions: `You are the APCS (Advanced Port Container System) assistant.
 00031| You help users manage port terminal operations, truck bookings, and logistics.
-00032| 
+00032|
 00033| Key facts:
 00034| - The system has terminals, each with gates. Gates have time slots for truck bookings.
 00035| - There are three user roles: port_admin, terminal_operator, and carrier.
 00036| - Bookings follow a lifecycle: pending → confirmed/rejected → consumed/cancelled/expired.
 00037| - Trucks are classified by type (container, flatbed, tanker, etc.) and class (light, medium, heavy, super_heavy).
-00038| 
+00038|
 00039| Guidelines:
 00040| - Always use the available tools to fetch real data. Never make up information.
 00041| - When showing bookings, terminals, or slots, present data in a clear structured way.
@@ -13066,7 +13214,7 @@ Now let me explore some specific files to understand the current implementation 
 00047|   tools: ALL_TOOLS,
 00048|   maxSteps: 5,
 00049| });
-00050| 
+00050|
 
 (End of file - total 50 lines)
 </file>
@@ -13081,6 +13229,7 @@ Now let me read the AI registry and crons to complete my understanding:
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/packages/backend/convex/ai/registry.ts"
@@ -13088,6 +13237,7 @@ Now let me read the AI registry and crons to complete my understanding:
 ```
 
 **Output:**
+
 ```
 <file>
 00001| /**
@@ -13104,7 +13254,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00012|  */
 00013| import type { ApcsRole } from "../lib/validators";
 00014| import { getToolNamesForRole } from "./tools/types";
-00015| 
+00015|
 00016| // Import all tools
 00017| import {
 00018|   listMyBookings,
@@ -13119,11 +13269,11 @@ Now let me read the AI registry and crons to complete my understanding:
 00027|   getAvailableSlots,
 00028| } from "./tools/terminals";
 00029| import { getSystemConfig } from "./tools/config";
-00030| 
+00030|
 00031| // ============================================================================
 00032| // ALL TOOLS (name -> tool)
 00033| // ============================================================================
-00034| 
+00034|
 00035| /**
 00036|  * Complete map of every tool in the system.
 00037|  * Keys must match what's in TOOL_PERMISSIONS.
@@ -13139,13 +13289,13 @@ Now let me read the AI registry and crons to complete my understanding:
 00047|   getAvailableSlots,
 00048|   getSystemConfig,
 00049| } as const;
-00050| 
+00050|
 00051| export type ToolName = keyof typeof ALL_TOOLS;
-00052| 
+00052|
 00053| // ============================================================================
 00054| // ROLE-BASED FILTERING
 00055| // ============================================================================
-00056| 
+00056|
 00057| /**
 00058|  * Return only the tools the given role can access.
 00059|  * This is passed to the agent when starting a conversation.
@@ -13153,16 +13303,16 @@ Now let me read the AI registry and crons to complete my understanding:
 00061| export function getToolsForRole(role: ApcsRole): Record<string, (typeof ALL_TOOLS)[ToolName]> {
 00062|   const allowed = getToolNamesForRole(role);
 00063|   const filtered: Record<string, (typeof ALL_TOOLS)[ToolName]> = {};
-00064| 
+00064|
 00065|   for (const name of allowed) {
 00066|     if (name in ALL_TOOLS) {
 00067|       filtered[name] = ALL_TOOLS[name as ToolName];
 00068|     }
 00069|   }
-00070| 
+00070|
 00071|   return filtered;
 00072| }
-00073| 
+00073|
 
 (End of file - total 73 lines)
 </file>
@@ -13171,6 +13321,7 @@ Now let me read the AI registry and crons to complete my understanding:
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/packages/backend/convex/crons.ts"
@@ -13178,6 +13329,7 @@ Now let me read the AI registry and crons to complete my understanding:
 ```
 
 **Output:**
+
 ```
 <file>
 00001| /**
@@ -13186,13 +13338,13 @@ Now let me read the AI registry and crons to complete my understanding:
 00004|  */
 00005| import { cronJobs } from "convex/server";
 00006| import { internal } from "./_generated/api";
-00007| 
+00007|
 00008| const crons = cronJobs();
-00009| 
+00009|
 00010| // ============================================================================
 00011| // BOOKING EXPIRATION
 00012| // ============================================================================
-00013| 
+00013|
 00014| /**
 00015|  * Expire old bookings that were not consumed
 00016|  * Runs every 15 minutes
@@ -13203,11 +13355,11 @@ Now let me read the AI registry and crons to complete my understanding:
 00021|   internal.scheduled.expireOldBookings,
 00022|   {}
 00023| );
-00024| 
+00024|
 00025| // ============================================================================
 00026| // BOOKING REMINDERS
 00027| // ============================================================================
-00028| 
+00028|
 00029| /**
 00030|  * Send 24-hour reminders for upcoming confirmed bookings
 00031|  * Runs every hour
@@ -13218,7 +13370,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00036|   internal.scheduled.sendBookingReminders,
 00037|   { hoursBeforeSlot: 24 }
 00038| );
-00039| 
+00039|
 00040| /**
 00041|  * Send 2-hour reminders for upcoming confirmed bookings
 00042|  * Runs every 30 minutes
@@ -13229,11 +13381,11 @@ Now let me read the AI registry and crons to complete my understanding:
 00047|   internal.scheduled.sendBookingReminders,
 00048|   { hoursBeforeSlot: 2 }
 00049| );
-00050| 
+00050|
 00051| // ============================================================================
 00052| // CLEANUP JOBS
 00053| // ============================================================================
-00054| 
+00054|
 00055| /**
 00056|  * Cleanup old notifications (older than 30 days)
 00057|  * Runs daily at 2 AM UTC
@@ -13244,7 +13396,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00062|   internal.scheduled.cleanupOldNotifications,
 00063|   { daysToKeep: 30 }
 00064| );
-00065| 
+00065|
 00066| /**
 00067|  * Cleanup old booking history (audit logs older than 90 days)
 00068|  * Runs weekly on Sunday at 3 AM UTC
@@ -13255,11 +13407,11 @@ Now let me read the AI registry and crons to complete my understanding:
 00073|   internal.scheduled.cleanupOldBookingHistory,
 00074|   { daysToKeep: 90 }
 00075| );
-00076| 
+00076|
 00077| // ============================================================================
 00078| // DATA CONSISTENCY CHECKS
 00079| // ============================================================================
-00080| 
+00080|
 00081| /**
 00082|  * Recalculate time slot capacity (data consistency check)
 00083|  * Runs daily at 4 AM UTC
@@ -13270,9 +13422,9 @@ Now let me read the AI registry and crons to complete my understanding:
 00088|   internal.scheduled.recalculateAllCapacity,
 00089|   {}
 00090| );
-00091| 
+00091|
 00092| export default crons;
-00093| 
+00093|
 
 (End of file - total 93 lines)
 </file>
@@ -13281,6 +13433,7 @@ Now let me read the AI registry and crons to complete my understanding:
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/packages/backend/convex/notifications/internal.ts"
@@ -13288,6 +13441,7 @@ Now let me read the AI registry and crons to complete my understanding:
 ```
 
 **Output:**
+
 ```
 <file>
 00001| /**
@@ -13305,18 +13459,18 @@ Now let me read the AI registry and crons to complete my understanding:
 00013|   type NotificationChannel,
 00014|   type Language,
 00015| } from "../lib/validators";
-00016| 
+00016|
 00017| // ============================================================================
 00018| // NOTIFICATION TEMPLATES (Bilingual)
 00019| // ============================================================================
-00020| 
+00020|
 00021| type NotificationTemplate = {
 00022|   titleEn: string;
 00023|   titleFr: string;
 00024|   bodyEn: string;
 00025|   bodyFr: string;
 00026| };
-00027| 
+00027|
 00028| type TemplateParams = {
 00029|   bookingReference?: string;
 00030|   terminalName?: string;
@@ -13326,7 +13480,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00034|   reason?: string;
 00035|   hoursUntil?: number;
 00036| };
-00037| 
+00037|
 00038| function getNotificationTemplate(
 00039|   type: NotificationType,
 00040|   params: TemplateParams
@@ -13339,7 +13493,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00047|         bodyEn: `Your booking ${params.bookingReference} has been created for ${params.date} at ${params.time}. It is pending confirmation.`,
 00048|         bodyFr: `Votre réservation ${params.bookingReference} a été créée pour le ${params.date} à ${params.time}. Elle est en attente de confirmation.`,
 00049|       };
-00050| 
+00050|
 00051|     case "booking_confirmed":
 00052|       return {
 00053|         titleEn: "Booking Confirmed",
@@ -13347,7 +13501,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00055|         bodyEn: `Your booking ${params.bookingReference} has been confirmed for ${params.terminalName}, Gate ${params.gateName} on ${params.date} at ${params.time}.`,
 00056|         bodyFr: `Votre réservation ${params.bookingReference} a été confirmée pour ${params.terminalName}, Porte ${params.gateName} le ${params.date} à ${params.time}.`,
 00057|       };
-00058| 
+00058|
 00059|     case "booking_rejected":
 00060|       return {
 00061|         titleEn: "Booking Rejected",
@@ -13355,7 +13509,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00063|         bodyEn: `Your booking ${params.bookingReference} has been rejected. Reason: ${params.reason || "Not specified"}.`,
 00064|         bodyFr: `Votre réservation ${params.bookingReference} a été refusée. Raison: ${params.reason || "Non spécifiée"}.`,
 00065|       };
-00066| 
+00066|
 00067|     case "booking_cancelled":
 00068|       return {
 00069|         titleEn: "Booking Cancelled",
@@ -13363,7 +13517,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00071|         bodyEn: `Your booking ${params.bookingReference} has been cancelled.${params.reason ? ` Reason: ${params.reason}` : ""}`,
 00072|         bodyFr: `Votre réservation ${params.bookingReference} a été annulée.${params.reason ? ` Raison: ${params.reason}` : ""}`,
 00073|       };
-00074| 
+00074|
 00075|     case "booking_modified":
 00076|       return {
 00077|         titleEn: "Booking Modified",
@@ -13371,7 +13525,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00079|         bodyEn: `Your booking ${params.bookingReference} has been modified. Please review the changes.`,
 00080|         bodyFr: `Votre réservation ${params.bookingReference} a été modifiée. Veuillez vérifier les changements.`,
 00081|       };
-00082| 
+00082|
 00083|     case "booking_reminder":
 00084|       return {
 00085|         titleEn: "Booking Reminder",
@@ -13379,7 +13533,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00087|         bodyEn: `Reminder: Your booking ${params.bookingReference} is scheduled in ${params.hoursUntil} hours at ${params.terminalName}, Gate ${params.gateName}.`,
 00088|         bodyFr: `Rappel: Votre réservation ${params.bookingReference} est prévue dans ${params.hoursUntil} heures à ${params.terminalName}, Porte ${params.gateName}.`,
 00089|       };
-00090| 
+00090|
 00091|     case "booking_expired":
 00092|       return {
 00093|         titleEn: "Booking Expired",
@@ -13387,7 +13541,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00095|         bodyEn: `Your booking ${params.bookingReference} has expired as it was not used within the scheduled time.`,
 00096|         bodyFr: `Votre réservation ${params.bookingReference} a expiré car elle n'a pas été utilisée dans les délais prévus.`,
 00097|       };
-00098| 
+00098|
 00099|     case "capacity_alert":
 00100|       return {
 00101|         titleEn: "Capacity Alert",
@@ -13395,7 +13549,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00103|         bodyEn: `High demand detected at ${params.terminalName}. Some time slots may be limited.`,
 00104|         bodyFr: `Forte demande détectée à ${params.terminalName}. Certains créneaux horaires peuvent être limités.`,
 00105|       };
-00106| 
+00106|
 00107|     case "system_announcement":
 00108|       return {
 00109|         titleEn: "System Announcement",
@@ -13403,7 +13557,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00111|         bodyEn: params.reason || "Important system update.",
 00112|         bodyFr: params.reason || "Mise à jour importante du système.",
 00113|       };
-00114| 
+00114|
 00115|     default:
 00116|       return {
 00117|         titleEn: "Notification",
@@ -13413,11 +13567,11 @@ Now let me read the AI registry and crons to complete my understanding:
 00121|       };
 00122|   }
 00123| }
-00124| 
+00124|
 00125| // ============================================================================
 00126| // INTERNAL MUTATIONS
 00127| // ============================================================================
-00128| 
+00128|
 00129| /**
 00130|  * Create a notification for a user
 00131|  */
@@ -13443,7 +13597,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00151|   returns: v.id("notifications"),
 00152|   handler: async (ctx, args) => {
 00153|     const template = getNotificationTemplate(args.type, args.params);
-00154| 
+00154|
 00155|     const notificationId = await ctx.db.insert("notifications", {
 00156|       userId: args.userId,
 00157|       type: args.type,
@@ -13457,18 +13611,18 @@ Now let me read the AI registry and crons to complete my understanding:
 00165|       isRead: false,
 00166|       createdAt: Date.now(),
 00167|     });
-00168| 
+00168|
 00169|     // If channel includes email, queue email send
 00170|     // (In production, this would trigger an action to send email)
 00171|     if (args.channel === "email" || args.channel === "both") {
 00172|       // TODO: Schedule email sending action
 00173|       // await ctx.scheduler.runAfter(0, internal.email.sendNotificationEmail, { notificationId });
 00174|     }
-00175| 
+00175|
 00176|     return notificationId;
 00177|   },
 00178| });
-00179| 
+00179|
 00180| /**
 00181|  * Send booking notification to carrier company users
 00182|  */
@@ -13486,7 +13640,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00194|   handler: async (ctx, args) => {
 00195|     const booking = await ctx.db.get(args.bookingId);
 00196|     if (!booking) return [];
-00197| 
+00197|
 00198|     // Get related entities
 00199|     const [timeSlot, gate, terminal, carrier] = await Promise.all([
 00200|       ctx.db.get(booking.timeSlotId),
@@ -13494,9 +13648,9 @@ Now let me read the AI registry and crons to complete my understanding:
 00202|       ctx.db.get(booking.terminalId),
 00203|       ctx.db.get(booking.carrierCompanyId),
 00204|     ]);
-00205| 
+00205|
 00206|     if (!carrier) return [];
-00207| 
+00207|
 00208|     // Get all active users in the carrier company
 00209|     const carrierUsers = await ctx.db
 00210|       .query("carrierUsers")
@@ -13504,9 +13658,9 @@ Now let me read the AI registry and crons to complete my understanding:
 00212|         q.eq("carrierCompanyId", booking.carrierCompanyId).eq("isActive", true)
 00213|       )
 00214|       .collect();
-00215| 
+00215|
 00216|     const notificationIds: Id<"notifications">[] = [];
-00217| 
+00217|
 00218|     const params: TemplateParams = {
 00219|       bookingReference: booking.bookingReference,
 00220|       terminalName: terminal?.name,
@@ -13515,7 +13669,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00223|       time: timeSlot?.startTime,
 00224|       reason: args.additionalParams?.reason,
 00225|     };
-00226| 
+00226|
 00227|     // Create notification for each user
 00228|     for (const carrierUser of carrierUsers) {
 00229|       const notificationId = await ctx.db.insert("notifications", {
@@ -13528,14 +13682,14 @@ Now let me read the AI registry and crons to complete my understanding:
 00236|         isRead: false,
 00237|         createdAt: Date.now(),
 00238|       });
-00239| 
+00239|
 00240|       notificationIds.push(notificationId);
 00241|     }
-00242| 
+00242|
 00243|     return notificationIds;
 00244|   },
 00245| });
-00246| 
+00246|
 00247| /**
 00248|  * Send reminder notifications for upcoming bookings
 00249|  */
@@ -13547,31 +13701,31 @@ Now let me read the AI registry and crons to complete my understanding:
 00255|   handler: async (ctx, args) => {
 00256|     const now = Date.now();
 00257|     const targetTime = now + args.hoursBeforeSlot * 60 * 60 * 1000;
-00258| 
+00258|
 00259|     // Find confirmed bookings with time slots approaching
 00260|     // We need to find time slots that start around targetTime
 00261|     const targetDate = new Date(targetTime);
 00262|     const dateStr = targetDate.toISOString().slice(0, 10);
 00263|     const hourStr = targetDate.toISOString().slice(11, 16);
-00264| 
+00264|
 00265|     // Get time slots for today and tomorrow that might need reminders
 00266|     const dates = [
 00267|       dateStr,
 00268|       new Date(targetTime + 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
 00269|     ];
-00270| 
+00270|
 00271|     let reminderCount = 0;
-00272| 
+00272|
 00273|     for (const date of dates) {
 00274|       const timeSlots = await ctx.db
 00275|         .query("timeSlots")
 00276|         .withIndex("by_date", (q) => q.eq("date", date))
 00277|         .collect();
-00278| 
+00278|
 00279|       for (const slot of timeSlots) {
 00280|         const slotDateTime = new Date(`${slot.date}T${slot.startTime}`);
 00281|         const hoursUntil = (slotDateTime.getTime() - now) / (1000 * 60 * 60);
-00282| 
+00282|
 00283|         // Check if this slot is within 30 minutes of the target reminder time
 00284|         if (Math.abs(hoursUntil - args.hoursBeforeSlot) <= 0.5) {
 00285|           // Find confirmed bookings for this slot
@@ -13581,29 +13735,29 @@ Now let me read the AI registry and crons to complete my understanding:
 00289|               q.eq("timeSlotId", slot._id).eq("status", "confirmed")
 00290|             )
 00291|             .collect();
-00292| 
+00292|
 00293|           for (const booking of bookings) {
 00294|             // Send reminder notification
 00295|             const carrier = await ctx.db.get(booking.carrierCompanyId);
 00296|             const terminal = await ctx.db.get(booking.terminalId);
 00297|             const gate = await ctx.db.get(booking.gateId);
-00298| 
+00298|
 00299|             if (!carrier) continue;
-00300| 
+00300|
 00301|             const carrierUsers = await ctx.db
 00302|               .query("carrierUsers")
 00303|               .withIndex("by_company_and_active", (q) =>
 00304|                 q.eq("carrierCompanyId", booking.carrierCompanyId).eq("isActive", true)
 00305|               )
 00306|               .collect();
-00307| 
+00307|
 00308|             const params: TemplateParams = {
 00309|               bookingReference: booking.bookingReference,
 00310|               terminalName: terminal?.name,
 00311|               gateName: gate?.name,
 00312|               hoursUntil: Math.round(hoursUntil),
 00313|             };
-00314| 
+00314|
 00315|             for (const carrierUser of carrierUsers) {
 00316|               await ctx.db.insert("notifications", {
 00317|                 userId: carrierUser.userId,
@@ -13615,18 +13769,18 @@ Now let me read the AI registry and crons to complete my understanding:
 00323|                 isRead: false,
 00324|                 createdAt: Date.now(),
 00325|               });
-00326| 
+00326|
 00327|               reminderCount++;
 00328|             }
 00329|           }
 00330|         }
 00331|       }
 00332|     }
-00333| 
+00333|
 00334|     return reminderCount;
 00335|   },
 00336| });
-00337| 
+00337|
 00338| /**
 00339|  * Helper to send notification to specific users
 00340|  */
@@ -13640,7 +13794,7 @@ Now let me read the AI registry and crons to complete my understanding:
 00348| ): Promise<Id<"notifications">[]> {
 00349|   const template = getNotificationTemplate(type, params);
 00350|   const notificationIds: Id<"notifications">[] = [];
-00351| 
+00351|
 00352|   for (const userId of userIds) {
 00353|     const notificationId = await ctx.db.insert("notifications", {
 00354|       userId,
@@ -13652,13 +13806,13 @@ Now let me read the AI registry and crons to complete my understanding:
 00360|       isRead: false,
 00361|       createdAt: Date.now(),
 00362|     });
-00363| 
+00363|
 00364|     notificationIds.push(notificationId);
 00365|   }
-00366| 
+00366|
 00367|   return notificationIds;
 00368| }
-00369| 
+00369|
 
 (End of file - total 369 lines)
 </file>
@@ -13673,14 +13827,16 @@ Excellent! Now I have a comprehensive understanding of the existing codebase. Le
 **Tool: write**
 
 **Input:**
-```json
+
+````json
 {
   "filePath": "/home/sones/projects/monorepo/.opencode/plans/1770398316992-lucky-meadow.md",
   "content": "# APCS Maritime Port Booking System - Exhaustive Backend Implementation Plan\n\n## Executive Summary\n\nThis plan details the complete backend implementation for APCS (Advanced Port Container System). The system transforms from a gate-level booking model to a **terminal-level capacity model** with **container-centric bookings** and a **French-only AI assistant**.\n\n### Key Architectural Changes\n\n| Current State | Target State |\n|--------------|--------------|\n| Carrier companies own trucks | Trucks owned directly by carrier users |\n| Gate-level capacity | Terminal-level capacity (truck count) |\n| Single container per booking | Multiple containers per booking |\n| Manual approval only | Auto-validation (first N% auto-approved) |\n| Gate assigned at booking | Gate assigned at approval |\n| Bilingual (EN/FR) | French only |\n| No containers table | Pre-seeded containers assigned to carriers |\n\n---\n\n## Phase 1: Schema Refactoring\n\n**Files to Modify:**\n- `packages/backend/convex/schema.ts` (major refactor)\n- `packages/backend/convex/lib/validators.ts` (add new validators)\n\n### 1.1 Tables to Remove\n\n```typescript\n// DELETE these tables entirely\ncarrierCompanies: defineTable({ ... })  // REMOVE\ncarrierUsers: defineTable({ ... })      // REMOVE\n```\n\n### 1.2 New `containers` Table\n\n```typescript\n/** Container type (ISO standard classifications) */\nexport const containerTypeValidator = v.union(\n  v.literal(\"dry\"),           // Standard dry container\n  v.literal(\"reefer\"),        // Refrigerated\n  v.literal(\"open_top\"),      // Open top\n  v.literal(\"flat_rack\"),     // Flat rack\n  v.literal(\"tank\"),          // Tank container\n  v.literal(\"hazardous\")      // Hazardous materials\n);\n\n/** Container dimensions (ISO standard) */\nexport const containerDimensionsValidator = v.union(\n  v.literal(\"20ft\"),          // 20' standard\n  v.literal(\"40ft\"),          // 40' standard\n  v.literal(\"40ft_hc\"),       // 40' high cube\n  v.literal(\"45ft\")           // 45' high cube\n);\n\n/** Container weight class */\nexport const containerWeightClassValidator = v.union(\n  v.literal(\"light\"),         // < 10 tons\n  v.literal(\"medium\"),        // 10-20 tons\n  v.literal(\"heavy\"),         // 20-30 tons\n  v.literal(\"super_heavy\")    // > 30 tons\n);\n\n/** Container operation type */\nexport const containerOperationValidator = v.union(\n  v.literal(\"pick_up\"),       // Carrier picks up from terminal\n  v.literal(\"drop_off\")       // Carrier drops off at terminal\n);\n\ncontainers: defineTable({\n  // Ownership\n  ownerId: v.string(),                          // Better Auth user ID (carrier role)\n  \n  // ISO 6346 container identification\n  containerNumber: v.string(),                   // e.g., \"MSCU1234567\"\n  \n  // Classification\n  containerType: containerTypeValidator,\n  dimensions: containerDimensionsValidator,\n  weightClass: containerWeightClassValidator,\n  \n  // Operation details\n  operationType: containerOperationValidator,\n  \n  // For pick_up: when container will be ready for collection\n  readyDate: v.optional(v.number()),\n  // For drop_off: expected departure date from terminal\n  departureDate: v.optional(v.number()),\n  \n  // State\n  isEmpty: v.boolean(),                          // Empty vs loaded\n  isActive: v.boolean(),                         // Soft delete flag\n  \n  // Booking association (null if not booked)\n  bookingId: v.optional(v.id(\"bookings\")),\n  \n  // Metadata\n  notes: v.optional(v.string()),\n  createdAt: v.number(),\n  updatedAt: v.number(),\n})\n  .index(\"by_owner\", [\"ownerId\"])\n  .index(\"by_owner_and_active\", [\"ownerId\", \"isActive\"])\n  .index(\"by_container_number\", [\"containerNumber\"])\n  .index(\"by_operation\", [\"operationType\"])\n  .index(\"by_booking\", [\"bookingId\"])\n  .index(\"by_type\", [\"containerType\"])\n  .index(\"by_owner_and_operation\", [\"ownerId\", \"operationType\"])\n  .index(\"by_owner_available\", [\"ownerId\", \"isActive\", \"bookingId\"]),\n```\n\n### 1.3 Refactored `trucks` Table\n\n```typescript\ntrucks: defineTable({\n  // CHANGED: Direct ownership by carrier user (no company)\n  ownerId: v.string(),                           // Better Auth user ID (carrier role)\n  \n  licensePlate: v.string(),\n  truckType: truckTypeValidator,\n  truckClass: truckClassValidator,\n  \n  // Vehicle details\n  make: v.optional(v.string()),\n  model: v.optional(v.string()),\n  year: v.optional(v.number()),\n  maxWeight: v.optional(v.number()),             // Capacity in tons\n  \n  isActive: v.boolean(),\n  createdAt: v.number(),\n  updatedAt: v.number(),\n  createdBy: v.string(),\n})\n  // CHANGED indexes\n  .index(\"by_owner\", [\"ownerId\"])\n  .index(\"by_owner_and_active\", [\"ownerId\", \"isActive\"])\n  .index(\"by_license_plate\", [\"licensePlate\"])\n  .index(\"by_type\", [\"truckType\"])\n  .index(\"by_class\", [\"truckClass\"]),\n```\n\n### 1.4 Refactored `bookings` Table\n\n```typescript\nbookings: defineTable({\n  // CHANGED: Terminal-level (gate assigned later)\n  terminalId: v.id(\"terminals\"),\n  carrierId: v.string(),                         // Better Auth user ID (was carrierCompanyId)\n  truckId: v.id(\"trucks\"),\n  \n  // CHANGED: Gate assigned at approval, not booking\n  gateId: v.optional(v.id(\"gates\")),             // Now optional, assigned on confirm\n  \n  // CHANGED: Multiple containers per booking\n  containerIds: v.array(v.id(\"containers\")),\n  \n  // Reference (terminal-prefixed)\n  bookingReference: v.string(),                   // e.g., \"TER1-BK-001234\"\n  status: bookingStatusValidator,\n  \n  // ADDED: Auto-validation tracking\n  wasAutoValidated: v.boolean(),\n  \n  // Preferred slot (before gate assignment)\n  preferredDate: v.string(),                      // YYYY-MM-DD\n  preferredTimeStart: v.string(),                 // HH:mm\n  preferredTimeEnd: v.string(),                   // HH:mm\n  \n  // ADDED: QR scan timestamps\n  entryScannedAt: v.optional(v.number()),\n  exitScannedAt: v.optional(v.number()),\n  scannedByEntry: v.optional(v.string()),        // Operator who scanned entry\n  scannedByExit: v.optional(v.string()),         // Operator who scanned exit\n  \n  // QR code\n  qrCode: v.optional(v.string()),                 // Data URL\n  qrCodeStorageId: v.optional(v.id(\"_storage\")), // Convex file storage\n  \n  // Driver info\n  driverName: v.optional(v.string()),\n  driverPhone: v.optional(v.string()),\n  driverIdNumber: v.optional(v.string()),\n  \n  // Timestamps\n  bookedAt: v.number(),\n  confirmedAt: v.optional(v.number()),\n  rejectedAt: v.optional(v.number()),\n  cancelledAt: v.optional(v.number()),\n  expiredAt: v.optional(v.number()),\n  \n  // Status metadata\n  statusReason: v.optional(v.string()),\n  processedBy: v.optional(v.string()),\n  \n  createdBy: v.string(),\n  updatedAt: v.number(),\n})\n  .index(\"by_reference\", [\"bookingReference\"])\n  .index(\"by_carrier\", [\"carrierId\"])\n  .index(\"by_carrier_and_status\", [\"carrierId\", \"status\"])\n  .index(\"by_terminal\", [\"terminalId\"])\n  .index(\"by_terminal_and_status\", [\"terminalId\", \"status\"])\n  .index(\"by_terminal_and_date\", [\"terminalId\", \"preferredDate\"])\n  .index(\"by_gate\", [\"gateId\"])\n  .index(\"by_truck\", [\"truckId\"])\n  .index(\"by_status\", [\"status\"])\n  .index(\"by_date\", [\"preferredDate\"])\n  .index(\"by_created_by\", [\"createdBy\"]),\n```\n\n### 1.5 Refactored `timeSlots` Table\n\n```typescript\ntimeSlots: defineTable({\n  // CHANGED: Terminal-level, not gate-level\n  terminalId: v.id(\"terminals\"),\n  \n  date: v.string(),                               // YYYY-MM-DD\n  startTime: v.string(),                          // HH:mm (24h)\n  endTime: v.string(),                            // HH:mm (24h)\n  \n  // Terminal capacity (truck count)\n  maxCapacity: v.number(),\n  currentBookings: v.number(),                    // Confirmed + pending count\n  \n  // ADDED: Auto-validation threshold for this slot\n  autoValidationThreshold: v.optional(v.number()), // Override terminal default (0-100%)\n  \n  isActive: v.boolean(),\n  createdAt: v.number(),\n  updatedAt: v.number(),\n  createdBy: v.string(),\n})\n  // CHANGED indexes\n  .index(\"by_terminal\", [\"terminalId\"])\n  .index(\"by_terminal_and_date\", [\"terminalId\", \"date\"])\n  .index(\"by_date\", [\"date\"])\n  .index(\"by_terminal_and_active\", [\"terminalId\", \"isActive\"]),\n```\n\n### 1.6 Updated `terminals` Table\n\n```typescript\nterminals: defineTable({\n  name: v.string(),\n  code: v.string(),                               // e.g., \"TER1\"\n  address: v.optional(v.string()),\n  timezone: v.string(),\n  isActive: v.boolean(),\n  \n  // ADDED: Terminal-wide capacity settings\n  defaultSlotCapacity: v.number(),                // Default trucks per slot\n  autoValidationThreshold: v.number(),            // Default 0-100 (percentage)\n  \n  // ADDED: Capacity alert thresholds\n  capacityAlertThresholds: v.array(v.number()),   // e.g., [70, 85, 95]\n  \n  // ADDED: Operating hours\n  operatingHoursStart: v.string(),                // e.g., \"06:00\"\n  operatingHoursEnd: v.string(),                  // e.g., \"22:00\"\n  slotDurationMinutes: v.number(),                // e.g., 60\n  \n  createdAt: v.number(),\n  updatedAt: v.number(),\n  createdBy: v.string(),\n})\n  .index(\"by_code\", [\"code\"])\n  .index(\"by_active\", [\"isActive\"])\n  .index(\"by_created_by\", [\"createdBy\"]),\n```\n\n### 1.7 New `auditLogs` Table\n\n```typescript\n/** Audit action types */\nexport const auditActionValidator = v.union(\n  v.literal(\"query\"),\n  v.literal(\"mutation\"),\n  v.literal(\"ai_tool_call\"),\n  v.literal(\"login\"),\n  v.literal(\"logout\"),\n  v.literal(\"failed_auth\"),\n  v.literal(\"permission_denied\")\n);\n\nauditLogs: defineTable({\n  // Who\n  userId: v.optional(v.string()),                 // null for anonymous/failed auth\n  \n  // What\n  action: auditActionValidator,\n  resource: v.string(),                           // e.g., \"bookings.create\"\n  resourceId: v.optional(v.string()),             // Document ID if applicable\n  \n  // Details\n  args: v.optional(v.string()),                   // JSON string (sanitized, no secrets)\n  result: v.optional(v.string()),                 // \"success\", \"error:CODE\", etc.\n  errorMessage: v.optional(v.string()),\n  \n  // Context\n  ipAddress: v.optional(v.string()),\n  userAgent: v.optional(v.string()),\n  sessionId: v.optional(v.string()),\n  \n  // AI-specific\n  aiThreadId: v.optional(v.string()),\n  aiToolName: v.optional(v.string()),\n  \n  // Timing\n  timestamp: v.number(),\n  durationMs: v.optional(v.number()),\n})\n  .index(\"by_user\", [\"userId\"])\n  .index(\"by_action\", [\"action\"])\n  .index(\"by_resource\", [\"resource\"])\n  .index(\"by_timestamp\", [\"timestamp\"])\n  .index(\"by_user_and_action\", [\"userId\", \"action\"])\n  .index(\"by_ai_thread\", [\"aiThreadId\"]),\n```\n\n### 1.8 New `bookingAggregates` Table (Analytics)\n\n```typescript\n/** Aggregation period */\nexport const aggregationPeriodValidator = v.union(\n  v.literal(\"hourly\"),\n  v.literal(\"daily\"),\n  v.literal(\"weekly\")\n);\n\nbookingAggregates: defineTable({\n  // Scope\n  terminalId: v.id(\"terminals\"),\n  period: aggregationPeriodValidator,\n  date: v.string(),                               // YYYY-MM-DD\n  hour: v.optional(v.number()),                   // 0-23 for hourly aggregates\n  \n  // Booking counts by status\n  totalBookings: v.number(),\n  pendingCount: v.number(),\n  confirmedCount: v.number(),\n  rejectedCount: v.number(),\n  consumedCount: v.number(),\n  cancelledCount: v.number(),\n  expiredCount: v.number(),\n  autoValidatedCount: v.number(),\n  \n  // Capacity metrics\n  avgUtilizationPercent: v.number(),\n  peakUtilizationPercent: v.number(),\n  \n  // Container metrics\n  totalContainers: v.number(),\n  pickupCount: v.number(),\n  dropoffCount: v.number(),\n  \n  // Timing metrics (milliseconds)\n  avgWaitTimeMs: v.optional(v.number()),          // Time from booking to confirm\n  avgProcessingTimeMs: v.optional(v.number()),    // Time in terminal\n  \n  computedAt: v.number(),\n})\n  .index(\"by_terminal\", [\"terminalId\"])\n  .index(\"by_terminal_and_period\", [\"terminalId\", \"period\"])\n  .index(\"by_terminal_and_date\", [\"terminalId\", \"date\"])\n  .index(\"by_date\", [\"date\"]),\n```\n\n### 1.9 Updated `systemConfig` Table\n\n```typescript\nsystemConfig: defineTable({\n  // Booking window\n  maxAdvanceBookingDays: v.number(),              // e.g., 30\n  minAdvanceBookingHours: v.number(),             // e.g., 2\n  \n  // REMOVED: cancellationWindowHours (carriers can cancel anytime)\n  \n  // ADDED: No-show handling\n  noShowGracePeriodMinutes: v.number(),           // e.g., 30\n  \n  // ADDED: Auto-validation defaults\n  defaultAutoValidationThreshold: v.number(),     // 0-100, global default\n  \n  // Reminder settings\n  reminderHoursBefore: v.array(v.number()),\n  \n  // ADDED: Container settings\n  maxContainersPerBooking: v.number(),            // e.g., 10\n  \n  updatedAt: v.number(),\n  updatedBy: v.string(),\n}),\n```\n\n### 1.10 Updated `userProfiles` Table\n\n```typescript\nuserProfiles: defineTable({\n  userId: v.string(),\n  \n  // CHANGED: French only, but keep field for future\n  preferredLanguage: v.literal(\"fr\"),             // Always French\n  notificationChannel: notificationChannelValidator,\n  \n  phone: v.optional(v.string()),\n  \n  createdAt: v.number(),\n  updatedAt: v.number(),\n})\n  .index(\"by_user\", [\"userId\"]),\n```\n\n---\n\n## Phase 2: Core Backend Functions\n\n### 2.1 Container CRUD\n\n**File: `packages/backend/convex/containers/queries.ts`**\n\n```typescript\nimport { query } from \"../_generated/server\";\nimport { v } from \"convex/values\";\nimport { getAuthenticatedUser, requireRole, isPortAdmin } from \"../lib/permissions\";\n\n/**\n * List containers for the current carrier user\n */\nexport const listMy = query({\n  args: {\n    operationType: v.optional(containerOperationValidator),\n    includeBooked: v.optional(v.boolean()),       // Include containers in bookings\n    limit: v.optional(v.number()),\n  },\n  returns: v.array(v.object({\n    _id: v.id(\"containers\"),\n    containerNumber: v.string(),\n    containerType: containerTypeValidator,\n    dimensions: containerDimensionsValidator,\n    weightClass: containerWeightClassValidator,\n    operationType: containerOperationValidator,\n    isEmpty: v.boolean(),\n    bookingId: v.optional(v.id(\"bookings\")),\n    readyDate: v.optional(v.number()),\n    departureDate: v.optional(v.number()),\n  })),\n  handler: async (ctx, args) => {\n    const user = await getAuthenticatedUser(ctx);\n    requireRole(user, [\"carrier\"]);\n\n    let query = ctx.db\n      .query(\"containers\")\n      .withIndex(\"by_owner_and_active\", q => \n        q.eq(\"ownerId\", user.userId).eq(\"isActive\", true)\n      );\n\n    const containers = await query.collect();\n\n    return containers\n      .filter(c => {\n        if (args.operationType && c.operationType !== args.operationType) return false;\n        if (!args.includeBooked && c.bookingId) return false;\n        return true;\n      })\n      .slice(0, args.limit ?? 100)\n      .map(c => ({\n        _id: c._id,\n        containerNumber: c.containerNumber,\n        containerType: c.containerType,\n        dimensions: c.dimensions,\n        weightClass: c.weightClass,\n        operationType: c.operationType,\n        isEmpty: c.isEmpty,\n        bookingId: c.bookingId,\n        readyDate: c.readyDate,\n        departureDate: c.departureDate,\n      }));\n  },\n});\n\n/**\n * Get available containers for booking (not already in a booking)\n */\nexport const listAvailable = query({\n  args: {\n    operationType: v.optional(containerOperationValidator),\n  },\n  returns: v.array(v.object({\n    _id: v.id(\"containers\"),\n    containerNumber: v.string(),\n    containerType: containerTypeValidator,\n    dimensions: containerDimensionsValidator,\n    operationType: containerOperationValidator,\n    isEmpty: v.boolean(),\n  })),\n  handler: async (ctx, args) => {\n    const user = await getAuthenticatedUser(ctx);\n    requireRole(user, [\"carrier\"]);\n\n    const containers = await ctx.db\n      .query(\"containers\")\n      .withIndex(\"by_owner_available\", q =>\n        q.eq(\"ownerId\", user.userId).eq(\"isActive\", true).eq(\"bookingId\", undefined)\n      )\n      .collect();\n\n    return containers\n      .filter(c => !args.operationType || c.operationType === args.operationType)\n      .map(c => ({\n        _id: c._id,\n        containerNumber: c.containerNumber,\n        containerType: c.containerType,\n        dimensions: c.dimensions,\n        operationType: c.operationType,\n        isEmpty: c.isEmpty,\n      }));\n  },\n});\n\n/**\n * Get container details\n */\nexport const get = query({\n  args: { containerId: v.id(\"containers\") },\n  returns: v.union(v.null(), v.object({\n    _id: v.id(\"containers\"),\n    ownerId: v.string(),\n    containerNumber: v.string(),\n    containerType: containerTypeValidator,\n    dimensions: containerDimensionsValidator,\n    weightClass: containerWeightClassValidator,\n    operationType: containerOperationValidator,\n    isEmpty: v.boolean(),\n    isActive: v.boolean(),\n    bookingId: v.optional(v.id(\"bookings\")),\n    readyDate: v.optional(v.number()),\n    departureDate: v.optional(v.number()),\n    notes: v.optional(v.string()),\n  })),\n  handler: async (ctx, args) => {\n    const user = await getAuthenticatedUser(ctx);\n    const container = await ctx.db.get(args.containerId);\n    \n    if (!container) return null;\n    \n    // Carriers can only see their own containers\n    if (!isPortAdmin(user) && container.ownerId !== user.userId) {\n      return null;\n    }\n\n    return {\n      _id: container._id,\n      ownerId: container.ownerId,\n      containerNumber: container.containerNumber,\n      containerType: container.containerType,\n      dimensions: container.dimensions,\n      weightClass: container.weightClass,\n      operationType: container.operationType,\n      isEmpty: container.isEmpty,\n      isActive: container.isActive,\n      bookingId: container.bookingId,\n      readyDate: container.readyDate,\n      departureDate: container.departureDate,\n      notes: container.notes,\n    };\n  },\n});\n```\n\n**File: `packages/backend/convex/containers/mutations.ts`**\n\n```typescript\nimport { mutation } from \"../_generated/server\";\nimport { v, ConvexError } from \"convex/values\";\nimport { getAuthenticatedUser, requireRole, isPortAdmin } from \"../lib/permissions\";\n\n/**\n * Create a container (admin only - containers are pre-seeded)\n */\nexport const create = mutation({\n  args: {\n    ownerId: v.string(),\n    containerNumber: v.string(),\n    containerType: containerTypeValidator,\n    dimensions: containerDimensionsValidator,\n    weightClass: containerWeightClassValidator,\n    operationType: containerOperationValidator,\n    isEmpty: v.boolean(),\n    readyDate: v.optional(v.number()),\n    departureDate: v.optional(v.number()),\n    notes: v.optional(v.string()),\n  },\n  returns: v.id(\"containers\"),\n  handler: async (ctx, args) => {\n    const user = await getAuthenticatedUser(ctx);\n    requireRole(user, [\"port_admin\"]);\n\n    // Validate container number format (ISO 6346)\n    if (!isValidContainerNumber(args.containerNumber)) {\n      throw new ConvexError({\n        code: \"INVALID_INPUT\",\n        message: \"Numéro de conteneur invalide (format ISO 6346 requis)\",\n      });\n    }\n\n    // Check for duplicate\n    const existing = await ctx.db\n      .query(\"containers\")\n      .withIndex(\"by_container_number\", q => q.eq(\"containerNumber\", args.containerNumber))\n      .first();\n\n    if (existing) {\n      throw new ConvexError({\n        code: \"DUPLICATE\",\n        message: \"Ce numéro de conteneur existe déjà\",\n      });\n    }\n\n    const now = Date.now();\n    return await ctx.db.insert(\"containers\", {\n      ...args,\n      isActive: true,\n      createdAt: now,\n      updatedAt: now,\n    });\n  },\n});\n\n/**\n * Update container details (carrier can update their own)\n */\nexport const update = mutation({\n  args: {\n    containerId: v.id(\"containers\"),\n    isEmpty: v.optional(v.boolean()),\n    readyDate: v.optional(v.number()),\n    departureDate: v.optional(v.number()),\n    notes: v.optional(v.string()),\n  },\n  returns: v.null(),\n  handler: async (ctx, args) => {\n    const user = await getAuthenticatedUser(ctx);\n    const container = await ctx.db.get(args.containerId);\n\n    if (!container) {\n      throw new ConvexError({ code: \"NOT_FOUND\", message: \"Conteneur introuvable\" });\n    }\n\n    if (!isPortAdmin(user) && container.ownerId !== user.userId) {\n      throw new ConvexError({ code: \"FORBIDDEN\", message: \"Accès refusé\" });\n    }\n\n    // Cannot update if in an active booking\n    if (container.bookingId) {\n      const booking = await ctx.db.get(container.bookingId);\n      if (booking && (booking.status === \"pending\" || booking.status === \"confirmed\")) {\n        throw new ConvexError({\n          code: \"INVALID_STATE\",\n          message: \"Impossible de modifier un conteneur dans une réservation active\",\n        });\n      }\n    }\n\n    await ctx.db.patch(args.containerId, {\n      isEmpty: args.isEmpty ?? container.isEmpty,\n      readyDate: args.readyDate,\n      departureDate: args.departureDate,\n      notes: args.notes,\n      updatedAt: Date.now(),\n    });\n\n    return null;\n  },\n});\n\n// Helper: Validate ISO 6346 container number\nfunction isValidContainerNumber(num: string): boolean {\n  // Format: 4 letters (owner) + 6 digits + 1 check digit\n  // Example: MSCU1234567\n  const regex = /^[A-Z]{4}\\d{7}$/;\n  return regex.test(num);\n}\n```\n\n### 2.2 Terminal-Level Capacity Engine\n\n**File: `packages/backend/convex/lib/capacity.ts` (REPLACE)**\n\n```typescript\n/**\n * Terminal-Level Capacity Management\n * Handles atomic capacity reservation at the terminal level (not gate)\n */\nimport type { MutationCtx, QueryCtx } from \"../_generated/server\";\nimport type { Id, Doc } from \"../_generated/dataModel\";\n\nexport interface CapacityResult {\n  available: number;\n  total: number;\n  booked: number;\n  utilizationPercent: number;\n}\n\nexport interface SlotCapacity extends CapacityResult {\n  slotId: Id<\"timeSlots\">;\n  date: string;\n  startTime: string;\n  endTime: string;\n  autoValidationThreshold: number;\n  autoValidatedCount: number;\n  remainingAutoValidation: number;\n}\n\n/**\n * Get slot for terminal and time\n */\nexport async function getSlotForTerminal(\n  ctx: QueryCtx,\n  terminalId: Id<\"terminals\">,\n  date: string,\n  startTime: string\n): Promise<Doc<\"timeSlots\"> | null> {\n  return await ctx.db\n    .query(\"timeSlots\")\n    .withIndex(\"by_terminal_and_date\", q => \n      q.eq(\"terminalId\", terminalId).eq(\"date\", date)\n    )\n    .filter(q => q.eq(q.field(\"startTime\"), startTime))\n    .first();\n}\n\n/**\n * Check if a terminal slot has capacity and atomically reserve if available\n */\nexport async function checkAndReserveCapacity(\n  ctx: MutationCtx,\n  terminalId: Id<\"terminals\">,\n  date: string,\n  startTime: string,\n  endTime: string\n): Promise<{ success: boolean; slotId?: Id<\"timeSlots\">; error?: string }> {\n  // Find or create the slot\n  let slot = await getSlotForTerminal(ctx, terminalId, date, startTime);\n  \n  if (!slot) {\n    // Create slot on-demand with terminal defaults\n    const terminal = await ctx.db.get(terminalId);\n    if (!terminal) {\n      return { success: false, error: \"Terminal introuvable\" };\n    }\n\n    const now = Date.now();\n    const slotId = await ctx.db.insert(\"timeSlots\", {\n      terminalId,\n      date,\n      startTime,\n      endTime,\n      maxCapacity: terminal.defaultSlotCapacity,\n      currentBookings: 0,\n      isActive: true,\n      createdAt: now,\n      updatedAt: now,\n      createdBy: \"system\",\n    });\n\n    slot = await ctx.db.get(slotId);\n  }\n\n  if (!slot || !slot.isActive) {\n    return { success: false, error: \"Créneau horaire indisponible\" };\n  }\n\n  // Check capacity\n  if (slot.currentBookings >= slot.maxCapacity) {\n    return { success: false, error: \"Créneau complet\" };\n  }\n\n  // Atomically increment\n  await ctx.db.patch(slot._id, {\n    currentBookings: slot.currentBookings + 1,\n    updatedAt: Date.now(),\n  });\n\n  return { success: true, slotId: slot._id };\n}\n\n/**\n * Release capacity (on cancellation/rejection/expiration)\n */\nexport async function releaseCapacity(\n  ctx: MutationCtx,\n  slotId: Id<\"timeSlots\">\n): Promise<void> {\n  const slot = await ctx.db.get(slotId);\n  if (!slot) return;\n\n  await ctx.db.patch(slotId, {\n    currentBookings: Math.max(0, slot.currentBookings - 1),\n    updatedAt: Date.now(),\n  });\n}\n\n/**\n * Get terminal capacity for a specific date\n */\nexport async function getTerminalCapacityForDate(\n  ctx: QueryCtx,\n  terminalId: Id<\"terminals\">,\n  date: string\n): Promise<SlotCapacity[]> {\n  const terminal = await ctx.db.get(terminalId);\n  if (!terminal) return [];\n\n  const slots = await ctx.db\n    .query(\"timeSlots\")\n    .withIndex(\"by_terminal_and_date\", q => \n      q.eq(\"terminalId\", terminalId).eq(\"date\", date)\n    )\n    .collect();\n\n  const results: SlotCapacity[] = [];\n\n  for (const slot of slots) {\n    // Count auto-validated bookings for this slot\n    const bookings = await ctx.db\n      .query(\"bookings\")\n      .withIndex(\"by_terminal_and_date\", q =>\n        q.eq(\"terminalId\", terminalId).eq(\"preferredDate\", date)\n      )\n      .filter(q => \n        q.and(\n          q.eq(q.field(\"preferredTimeStart\"), slot.startTime),\n          q.or(\n            q.eq(q.field(\"status\"), \"pending\"),\n            q.eq(q.field(\"status\"), \"confirmed\")\n          )\n        )\n      )\n      .collect();\n\n    const autoValidatedCount = bookings.filter(b => b.wasAutoValidated).length;\n    const threshold = slot.autoValidationThreshold ?? terminal.autoValidationThreshold;\n    const maxAutoValidated = Math.floor((slot.maxCapacity * threshold) / 100);\n\n    results.push({\n      slotId: slot._id,\n      date: slot.date,\n      startTime: slot.startTime,\n      endTime: slot.endTime,\n      available: Math.max(0, slot.maxCapacity - slot.currentBookings),\n      total: slot.maxCapacity,\n      booked: slot.currentBookings,\n      utilizationPercent: Math.round((slot.currentBookings / slot.maxCapacity) * 100),\n      autoValidationThreshold: threshold,\n      autoValidatedCount,\n      remainingAutoValidation: Math.max(0, maxAutoValidated - autoValidatedCount),\n    });\n  }\n\n  return results.sort((a, b) => a.startTime.localeCompare(b.startTime));\n}\n\n/**\n * Recalculate capacity for all slots of a terminal on a date\n */\nexport async function recalculateTerminalCapacity(\n  ctx: MutationCtx,\n  terminalId: Id<\"terminals\">,\n  date: string\n): Promise<void> {\n  const slots = await ctx.db\n    .query(\"timeSlots\")\n    .withIndex(\"by_terminal_and_date\", q => \n      q.eq(\"terminalId\", terminalId).eq(\"date\", date)\n    )\n    .collect();\n\n  for (const slot of slots) {\n    const bookings = await ctx.db\n      .query(\"bookings\")\n      .withIndex(\"by_terminal_and_date\", q =>\n        q.eq(\"terminalId\", terminalId).eq(\"preferredDate\", date)\n      )\n      .filter(q =>\n        q.and(\n          q.eq(q.field(\"preferredTimeStart\"), slot.startTime),\n          q.or(\n            q.eq(q.field(\"status\"), \"pending\"),\n            q.eq(q.field(\"status\"), \"confirmed\")\n          )\n        )\n      )\n      .collect();\n\n    await ctx.db.patch(slot._id, {\n      currentBookings: bookings.length,\n      updatedAt: Date.now(),\n    });\n  }\n}\n```\n\n### 2.3 Auto-Validation Engine\n\n**File: `packages/backend/convex/lib/autoValidation.ts` (CREATE)**\n\n```typescript\n/**\n * Auto-Validation Engine\n * Determines if a booking should be auto-approved based on slot utilization\n */\nimport type { QueryCtx, MutationCtx } from \"../_generated/server\";\nimport type { Id } from \"../_generated/dataModel\";\n\nexport interface AutoValidationResult {\n  shouldAutoValidate: boolean;\n  reason: string;\n  threshold: number;\n  currentAutoValidated: number;\n  maxAutoValidated: number;\n}\n\n/**\n * Check if a booking should be auto-validated\n */\nexport async function shouldAutoValidate(\n  ctx: QueryCtx,\n  terminalId: Id<\"terminals\">,\n  date: string,\n  startTime: string\n): Promise<AutoValidationResult> {\n  const terminal = await ctx.db.get(terminalId);\n  if (!terminal) {\n    return {\n      shouldAutoValidate: false,\n      reason: \"Terminal introuvable\",\n      threshold: 0,\n      currentAutoValidated: 0,\n      maxAutoValidated: 0,\n    };\n  }\n\n  // Find the slot\n  const slot = await ctx.db\n    .query(\"timeSlots\")\n    .withIndex(\"by_terminal_and_date\", q =>\n      q.eq(\"terminalId\", terminalId).eq(\"date\", date)\n    )\n    .filter(q => q.eq(q.field(\"startTime\"), startTime))\n    .first();\n\n  if (!slot) {\n    // No slot yet means first booking - auto-validate\n    const threshold = terminal.autoValidationThreshold;\n    const maxCapacity = terminal.defaultSlotCapacity;\n    const maxAutoValidated = Math.floor((maxCapacity * threshold) / 100);\n    \n    return {\n      shouldAutoValidate: maxAutoValidated > 0,\n      reason: maxAutoValidated > 0 \n        ? \"Premier créneaux - validation automatique\" \n        : \"Validation automatique désactivée\",\n      threshold,\n      currentAutoValidated: 0,\n      maxAutoValidated,\n    };\n  }\n\n  const threshold = slot.autoValidationThreshold ?? terminal.autoValidationThreshold;\n  const maxAutoValidated = Math.floor((slot.maxCapacity * threshold) / 100);\n\n  // Count current auto-validated bookings\n  const autoValidatedBookings = await ctx.db\n    .query(\"bookings\")\n    .withIndex(\"by_terminal_and_date\", q =>\n      q.eq(\"terminalId\", terminalId).eq(\"preferredDate\", date)\n    )\n    .filter(q =>\n      q.and(\n        q.eq(q.field(\"preferredTimeStart\"), startTime),\n        q.eq(q.field(\"wasAutoValidated\"), true),\n        q.or(\n          q.eq(q.field(\"status\"), \"confirmed\"),\n          q.eq(q.field(\"status\"), \"consumed\")\n        )\n      )\n    )\n    .collect();\n\n  const currentAutoValidated = autoValidatedBookings.length;\n\n  if (currentAutoValidated >= maxAutoValidated) {\n    return {\n      shouldAutoValidate: false,\n      reason: `Seuil atteint (${currentAutoValidated}/${maxAutoValidated})`,\n      threshold,\n      currentAutoValidated,\n      maxAutoValidated,\n    };\n  }\n\n  return {\n    shouldAutoValidate: true,\n    reason: `Validation automatique (${currentAutoValidated + 1}/${maxAutoValidated})`,\n    threshold,\n    currentAutoValidated,\n    maxAutoValidated,\n  };\n}\n```\n\n### 2.4 Gate Assignment at Approval\n\n**File: `packages/backend/convex/bookings/internal.ts` (UPDATE)**\n\nAdd the following functions:\n\n```typescript\n/**\n * Select best gate for a booking at approval time\n * Uses load balancing across compatible gates\n */\nexport const assignGateForBooking = internalMutation({\n  args: {\n    bookingId: v.id(\"bookings\"),\n  },\n  returns: v.union(\n    v.object({ success: v.literal(true), gateId: v.id(\"gates\") }),\n    v.object({ success: v.literal(false), error: v.string() })\n  ),\n  handler: async (ctx, args) => {\n    const booking = await ctx.db.get(args.bookingId);\n    if (!booking) {\n      return { success: false, error: \"Réservation introuvable\" };\n    }\n\n    // Get the truck to check compatibility\n    const truck = await ctx.db.get(booking.truckId);\n    if (!truck) {\n      return { success: false, error: \"Camion introuvable\" };\n    }\n\n    // Get all active gates for the terminal\n    const gates = await ctx.db\n      .query(\"gates\")\n      .withIndex(\"by_terminal_and_active\", q =>\n        q.eq(\"terminalId\", booking.terminalId).eq(\"isActive\", true)\n      )\n      .collect();\n\n    if (gates.length === 0) {\n      return { success: false, error: \"Aucune porte disponible\" };\n    }\n\n    // Filter compatible gates\n    const compatibleGates = gates.filter(gate =>\n      gate.allowedTruckTypes.includes(truck.truckType) &&\n      gate.allowedTruckClasses.includes(truck.truckClass)\n    );\n\n    if (compatibleGates.length === 0) {\n      return { \n        success: false, \n        error: `Aucune porte compatible avec ce type de camion (${truck.truckType}/${truck.truckClass})` \n      };\n    }\n\n    // Load balance: count confirmed bookings per gate for this time\n    const gateCounts: Map<string, number> = new Map();\n\n    for (const gate of compatibleGates) {\n      const bookingsAtGate = await ctx.db\n        .query(\"bookings\")\n        .withIndex(\"by_gate\", q => q.eq(\"gateId\", gate._id))\n        .filter(q =>\n          q.and(\n            q.eq(q.field(\"preferredDate\"), booking.preferredDate),\n            q.eq(q.field(\"preferredTimeStart\"), booking.preferredTimeStart),\n            q.or(\n              q.eq(q.field(\"status\"), \"confirmed\"),\n              q.eq(q.field(\"status\"), \"consumed\")\n            )\n          )\n        )\n        .collect();\n\n      gateCounts.set(gate._id, bookingsAtGate.length);\n    }\n\n    // Select gate with least bookings\n    let selectedGate = compatibleGates[0];\n    let minCount = gateCounts.get(selectedGate._id) ?? 0;\n\n    for (const gate of compatibleGates) {\n      const count = gateCounts.get(gate._id) ?? 0;\n      if (count < minCount) {\n        minCount = count;\n        selectedGate = gate;\n      }\n    }\n\n    return { success: true, gateId: selectedGate._id };\n  },\n});\n\n/**\n * Generate terminal-prefixed booking reference\n * Format: TER1-BK-XXXXXX (terminal code + 6 digits)\n */\nexport const generateBookingReference = internalMutation({\n  args: {\n    terminalId: v.id(\"terminals\"),\n  },\n  returns: v.string(),\n  handler: async (ctx, args) => {\n    const terminal = await ctx.db.get(args.terminalId);\n    if (!terminal) {\n      throw new ConvexError({ code: \"NOT_FOUND\", message: \"Terminal introuvable\" });\n    }\n\n    // Get last booking for this terminal to determine sequence\n    const lastBooking = await ctx.db\n      .query(\"bookings\")\n      .withIndex(\"by_terminal\", q => q.eq(\"terminalId\", args.terminalId))\n      .order(\"desc\")\n      .first();\n\n    let sequence = 1;\n    if (lastBooking) {\n      const match = lastBooking.bookingReference.match(/-(\\d{6})$/);\n      if (match) {\n        sequence = parseInt(match[1], 10) + 1;\n      }\n    }\n\n    const paddedSequence = sequence.toString().padStart(6, \"0\");\n    return `${terminal.code}-BK-${paddedSequence}`;\n  },\n});\n```\n\n### 2.5 Refactored Booking Mutations\n\n**File: `packages/backend/convex/bookings/mutations.ts` (MAJOR REFACTOR)**\n\n```typescript\n/**\n * Create a new booking with multiple containers\n * Terminal-level capacity, auto-validation, gate assigned later\n */\nexport const create = mutation({\n  args: {\n    terminalId: v.id(\"terminals\"),\n    truckId: v.id(\"trucks\"),\n    containerIds: v.array(v.id(\"containers\")),\n    preferredDate: v.string(),                    // YYYY-MM-DD\n    preferredTimeStart: v.string(),               // HH:mm\n    preferredTimeEnd: v.string(),                 // HH:mm\n    driverName: v.optional(v.string()),\n    driverPhone: v.optional(v.string()),\n    driverIdNumber: v.optional(v.string()),\n  },\n  returns: v.object({\n    bookingId: v.id(\"bookings\"),\n    bookingReference: v.string(),\n    status: bookingStatusValidator,\n    wasAutoValidated: v.boolean(),\n    gateId: v.optional(v.id(\"gates\")),\n  }),\n  handler: async (ctx, args) => {\n    const user = await getAuthenticatedUser(ctx);\n    requireRole(user, [\"carrier\"]);\n\n    // 1. Validate terminal\n    const terminal = await ctx.db.get(args.terminalId);\n    if (!terminal || !terminal.isActive) {\n      throw new ConvexError({\n        code: \"NOT_FOUND\",\n        message: \"Terminal introuvable ou inactif\",\n      });\n    }\n\n    // 2. Validate truck ownership\n    const truck = await ctx.db.get(args.truckId);\n    if (!truck || !truck.isActive) {\n      throw new ConvexError({ code: \"NOT_FOUND\", message: \"Camion introuvable\" });\n    }\n    if (truck.ownerId !== user.userId) {\n      throw new ConvexError({ \n        code: \"FORBIDDEN\", \n        message: \"Ce camion ne vous appartient pas\" \n      });\n    }\n\n    // 3. Validate containers\n    const config = await getSystemConfig(ctx);\n    if (args.containerIds.length === 0) {\n      throw new ConvexError({\n        code: \"INVALID_INPUT\",\n        message: \"Au moins un conteneur est requis\",\n      });\n    }\n    if (args.containerIds.length > config.maxContainersPerBooking) {\n      throw new ConvexError({\n        code: \"INVALID_INPUT\",\n        message: `Maximum ${config.maxContainersPerBooking} conteneurs par réservation`,\n      });\n    }\n\n    // Validate each container\n    for (const containerId of args.containerIds) {\n      const container = await ctx.db.get(containerId);\n      if (!container || !container.isActive) {\n        throw new ConvexError({\n          code: \"NOT_FOUND\",\n          message: `Conteneur ${containerId} introuvable`,\n        });\n      }\n      if (container.ownerId !== user.userId) {\n        throw new ConvexError({\n          code: \"FORBIDDEN\",\n          message: `Le conteneur ${container.containerNumber} ne vous appartient pas`,\n        });\n      }\n      if (container.bookingId) {\n        throw new ConvexError({\n          code: \"INVALID_STATE\",\n          message: `Le conteneur ${container.containerNumber} est déjà dans une réservation`,\n        });\n      }\n    }\n\n    // 4. Validate booking window\n    const slotDateTime = new Date(`${args.preferredDate}T${args.preferredTimeStart}`);\n    const now = new Date();\n    const hoursUntilSlot = (slotDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);\n\n    if (slotDateTime <= now) {\n      throw new ConvexError({\n        code: \"INVALID_INPUT\",\n        message: \"Impossible de réserver un créneau dans le passé\",\n      });\n    }\n    if (hoursUntilSlot < config.minAdvanceBookingHours) {\n      throw new ConvexError({\n        code: \"INVALID_INPUT\",\n        message: `Réservation minimum ${config.minAdvanceBookingHours}h à l'avance`,\n      });\n    }\n    if (hoursUntilSlot / 24 > config.maxAdvanceBookingDays) {\n      throw new ConvexError({\n        code: \"INVALID_INPUT\",\n        message: `Réservation maximum ${config.maxAdvanceBookingDays} jours à l'avance`,\n      });\n    }\n\n    // 5. Check if truck already booked for this slot\n    const existingBooking = await ctx.db\n      .query(\"bookings\")\n      .withIndex(\"by_truck\", q => q.eq(\"truckId\", args.truckId))\n      .filter(q =>\n        q.and(\n          q.eq(q.field(\"preferredDate\"), args.preferredDate),\n          q.eq(q.field(\"preferredTimeStart\"), args.preferredTimeStart),\n          q.or(\n            q.eq(q.field(\"status\"), \"pending\"),\n            q.eq(q.field(\"status\"), \"confirmed\")\n          )\n        )\n      )\n      .first();\n\n    if (existingBooking) {\n      throw new ConvexError({\n        code: \"DUPLICATE\",\n        message: \"Ce camion a déjà une réservation pour ce créneau\",\n      });\n    }\n\n    // 6. Reserve capacity at terminal level\n    const capacityResult = await checkAndReserveCapacity(\n      ctx,\n      args.terminalId,\n      args.preferredDate,\n      args.preferredTimeStart,\n      args.preferredTimeEnd\n    );\n\n    if (!capacityResult.success) {\n      throw new ConvexError({\n        code: \"CAPACITY_FULL\",\n        message: capacityResult.error ?? \"Créneau complet\",\n      });\n    }\n\n    // 7. Check auto-validation\n    const autoValidation = await shouldAutoValidate(\n      ctx,\n      args.terminalId,\n      args.preferredDate,\n      args.preferredTimeStart\n    );\n\n    // 8. Generate booking reference\n    const bookingReference = await ctx.runMutation(\n      internal.bookings.internal.generateBookingReference,\n      { terminalId: args.terminalId }\n    );\n\n    // 9. Determine initial status and gate\n    let status: \"pending\" | \"confirmed\" = \"pending\";\n    let gateId: Id<\"gates\"> | undefined = undefined;\n    let confirmedAt: number | undefined = undefined;\n\n    if (autoValidation.shouldAutoValidate) {\n      // Auto-validate: assign gate immediately\n      const gateResult = await ctx.runMutation(\n        internal.bookings.internal.assignGateForBooking,\n        { bookingId: args.bookingId } // Note: We'll create booking first, then update\n      );\n\n      // For auto-validation, we need a two-step process\n      // First create pending, then update to confirmed with gate\n      status = \"confirmed\";\n      confirmedAt = Date.now();\n    }\n\n    // 10. Create booking\n    const nowTs = Date.now();\n    const bookingId = await ctx.db.insert(\"bookings\", {\n      terminalId: args.terminalId,\n      carrierId: user.userId,\n      truckId: args.truckId,\n      containerIds: args.containerIds,\n      bookingReference,\n      status: \"pending\", // Start as pending, update if auto-validated\n      wasAutoValidated: autoValidation.shouldAutoValidate,\n      preferredDate: args.preferredDate,\n      preferredTimeStart: args.preferredTimeStart,\n      preferredTimeEnd: args.preferredTimeEnd,\n      driverName: args.driverName?.trim(),\n      driverPhone: args.driverPhone?.trim(),\n      driverIdNumber: args.driverIdNumber?.trim(),\n      bookedAt: nowTs,\n      createdBy: user.userId,\n      updatedAt: nowTs,\n    });\n\n    // 11. Link containers to booking\n    for (const containerId of args.containerIds) {\n      await ctx.db.patch(containerId, {\n        bookingId,\n        updatedAt: nowTs,\n      });\n    }\n\n    // 12. If auto-validated, confirm and assign gate\n    if (autoValidation.shouldAutoValidate) {\n      const gateResult = await ctx.runMutation(\n        internal.bookings.internal.assignGateForBooking,\n        { bookingId }\n      );\n\n      if (gateResult.success) {\n        await ctx.db.patch(bookingId, {\n          status: \"confirmed\",\n          gateId: gateResult.gateId,\n          confirmedAt: nowTs,\n          processedBy: \"system\",\n          updatedAt: nowTs,\n        });\n\n        // Generate QR code\n        await ctx.scheduler.runAfter(0, internal.qr.generateQRCode, { bookingId });\n      }\n    }\n\n    // 13. Record history\n    await ctx.runMutation(internal.bookings.internal.recordHistory, {\n      bookingId,\n      changeType: \"created\",\n      newValue: JSON.stringify({\n        terminalId: args.terminalId,\n        truckId: args.truckId,\n        containerIds: args.containerIds,\n        status: autoValidation.shouldAutoValidate ? \"confirmed\" : \"pending\",\n        wasAutoValidated: autoValidation.shouldAutoValidate,\n      }),\n      changedBy: user.userId,\n      requiredRebook: false,\n    });\n\n    // 14. Send notification\n    await ctx.scheduler.runAfter(0, internal.notifications.internal.sendBookingNotification, {\n      bookingId,\n      type: autoValidation.shouldAutoValidate ? \"booking_confirmed\" : \"booking_created\",\n    });\n\n    const finalBooking = await ctx.db.get(bookingId);\n\n    return {\n      bookingId,\n      bookingReference,\n      status: finalBooking?.status ?? \"pending\",\n      wasAutoValidated: autoValidation.shouldAutoValidate,\n      gateId: finalBooking?.gateId,\n    };\n  },\n});\n\n/**\n * Confirm a pending booking (operator/admin)\n * Assigns gate at this point\n */\nexport const confirm = mutation({\n  args: {\n    bookingId: v.id(\"bookings\"),\n    gateId: v.optional(v.id(\"gates\")),            // Optional: operator can specify\n    note: v.optional(v.string()),\n  },\n  returns: v.object({\n    success: v.boolean(),\n    gateId: v.optional(v.id(\"gates\")),\n    error: v.optional(v.string()),\n  }),\n  handler: async (ctx, args) => {\n    const user = await getAuthenticatedUser(ctx);\n    requireRole(user, [\"port_admin\", \"terminal_operator\"]);\n\n    const booking = await ctx.db.get(args.bookingId);\n    if (!booking) {\n      return { success: false, error: \"Réservation introuvable\" };\n    }\n\n    // Permission check\n    const canModify = await canModifyBookingStatus(ctx, user, args.bookingId, \"confirmed\");\n    if (!canModify) {\n      return { success: false, error: \"Accès refusé\" };\n    }\n\n    if (booking.status !== \"pending\") {\n      return { \n        success: false, \n        error: `Impossible de confirmer une réservation avec le statut \"${booking.status}\"` \n      };\n    }\n\n    // Assign gate (use provided or auto-assign)\n    let gateId = args.gateId;\n    if (!gateId) {\n      const gateResult = await ctx.runMutation(\n        internal.bookings.internal.assignGateForBooking,\n        { bookingId: args.bookingId }\n      );\n\n      if (!gateResult.success) {\n        return { success: false, error: gateResult.error };\n      }\n      gateId = gateResult.gateId;\n    } else {\n      // Validate provided gate\n      const gate = await ctx.db.get(gateId);\n      if (!gate || !gate.isActive || gate.terminalId !== booking.terminalId) {\n        return { success: false, error: \"Porte invalide\" };\n      }\n    }\n\n    const now = Date.now();\n    await ctx.db.patch(args.bookingId, {\n      status: \"confirmed\",\n      gateId,\n      confirmedAt: now,\n      processedBy: user.userId,\n      updatedAt: now,\n    });\n\n    // Generate QR code\n    await ctx.scheduler.runAfter(0, internal.qr.generateQRCode, { \n      bookingId: args.bookingId \n    });\n\n    // Record history\n    await ctx.runMutation(internal.bookings.internal.recordHistory, {\n      bookingId: args.bookingId,\n      changeType: \"status_changed\",\n      previousValue: \"pending\",\n      newValue: \"confirmed\",\n      changedBy: user.userId,\n      note: args.note,\n      requiredRebook: false,\n    });\n\n    // Send notification\n    await ctx.scheduler.runAfter(0, internal.notifications.internal.sendBookingNotification, {\n      bookingId: args.bookingId,\n      type: \"booking_confirmed\",\n    });\n\n    return { success: true, gateId };\n  },\n});\n\n/**\n * Cancel a booking (carrier can cancel anytime, operators can cancel any)\n */\nexport const cancel = mutation({\n  args: {\n    bookingId: v.id(\"bookings\"),\n    reason: v.optional(v.string()),\n  },\n  returns: v.null(),\n  handler: async (ctx, args) => {\n    const user = await getAuthenticatedUser(ctx);\n\n    const booking = await ctx.db.get(args.bookingId);\n    if (!booking) {\n      throw new ConvexError({ code: \"NOT_FOUND\", message: \"Réservation introuvable\" });\n    }\n\n    // Permission check\n    const canModify = await canModifyBookingStatus(ctx, user, args.bookingId, \"cancelled\");\n    if (!canModify) {\n      throw new ConvexError({ code: \"FORBIDDEN\", message: \"Accès refusé\" });\n    }\n\n    // Carriers can cancel anytime (no cancellation window restriction)\n    if (!isValidStatusTransition(booking.status, \"cancelled\")) {\n      throw new ConvexError({\n        code: \"INVALID_STATE\",\n        message: `Impossible d'annuler une réservation avec le statut \"${booking.status}\"`,\n      });\n    }\n\n    // Release capacity\n    const slot = await ctx.db\n      .query(\"timeSlots\")\n      .withIndex(\"by_terminal_and_date\", q =>\n        q.eq(\"terminalId\", booking.terminalId).eq(\"date\", booking.preferredDate)\n      )\n      .filter(q => q.eq(q.field(\"startTime\"), booking.preferredTimeStart))\n      .first();\n\n    if (slot) {\n      await releaseCapacity(ctx, slot._id);\n    }\n\n    // Unlink containers\n    for (const containerId of booking.containerIds) {\n      await ctx.db.patch(containerId, {\n        bookingId: undefined,\n        updatedAt: Date.now(),\n      });\n    }\n\n    const now = Date.now();\n    await ctx.db.patch(args.bookingId, {\n      status: \"cancelled\",\n      cancelledAt: now,\n      statusReason: args.reason?.trim(),\n      processedBy: user.userId,\n      updatedAt: now,\n    });\n\n    // Record history\n    await ctx.runMutation(internal.bookings.internal.recordHistory, {\n      bookingId: args.bookingId,\n      changeType: \"status_changed\",\n      previousValue: booking.status,\n      newValue: \"cancelled\",\n      changedBy: user.userId,\n      note: args.reason,\n      requiredRebook: false,\n    });\n\n    // Send notification\n    await ctx.scheduler.runAfter(0, internal.notifications.internal.sendBookingNotification, {\n      bookingId: args.bookingId,\n      type: \"booking_cancelled\",\n      additionalParams: { reason: args.reason },\n    });\n\n    return null;\n  },\n});\n\n/**\n * Change truck (only allowed modification, status preserved)\n */\nexport const changeTruck = mutation({\n  args: {\n    bookingId: v.id(\"bookings\"),\n    newTruckId: v.id(\"trucks\"),\n  },\n  returns: v.null(),\n  handler: async (ctx, args) => {\n    const user = await getAuthenticatedUser(ctx);\n\n    const booking = await ctx.db.get(args.bookingId);\n    if (!booking) {\n      throw new ConvexError({ code: \"NOT_FOUND\", message: \"Réservation introuvable\" });\n    }\n\n    // Only carrier can change truck\n    if (booking.carrierId !== user.userId && !isPortAdmin(user)) {\n      throw new ConvexError({ code: \"FORBIDDEN\", message: \"Accès refusé\" });\n    }\n\n    if (booking.status !== \"pending\" && booking.status !== \"confirmed\") {\n      throw new ConvexError({\n        code: \"INVALID_STATE\",\n        message: `Impossible de changer le camion pour une réservation avec le statut \"${booking.status}\"`,\n      });\n    }\n\n    // Validate new truck\n    const newTruck = await ctx.db.get(args.newTruckId);\n    if (!newTruck || !newTruck.isActive) {\n      throw new ConvexError({ code: \"NOT_FOUND\", message: \"Camion introuvable\" });\n    }\n    if (newTruck.ownerId !== user.userId) {\n      throw new ConvexError({\n        code: \"FORBIDDEN\",\n        message: \"Ce camion ne vous appartient pas\",\n      });\n    }\n\n    // If already confirmed with gate, validate truck compatibility\n    if (booking.gateId) {\n      const gate = await ctx.db.get(booking.gateId);\n      if (gate) {\n        if (!gate.allowedTruckTypes.includes(newTruck.truckType)) {\n          throw new ConvexError({\n            code: \"INVALID_INPUT\",\n            message: `Le type de camion ${newTruck.truckType} n'est pas accepté à cette porte`,\n          });\n        }\n        if (!gate.allowedTruckClasses.includes(newTruck.truckClass)) {\n          throw new ConvexError({\n            code: \"INVALID_INPUT\",\n            message: `La classe de camion ${newTruck.truckClass} n'est pas acceptée à cette porte`,\n          });\n        }\n      }\n    }\n\n    // Check new truck doesn't have booking for same slot\n    const existingBooking = await ctx.db\n      .query(\"bookings\")\n      .withIndex(\"by_truck\", q => q.eq(\"truckId\", args.newTruckId))\n      .filter(q =>\n        q.and(\n          q.eq(q.field(\"preferredDate\"), booking.preferredDate),\n          q.eq(q.field(\"preferredTimeStart\"), booking.preferredTimeStart),\n          q.neq(q.field(\"_id\"), args.bookingId),\n          q.or(\n            q.eq(q.field(\"status\"), \"pending\"),\n            q.eq(q.field(\"status\"), \"confirmed\")\n          )\n        )\n      )\n      .first();\n\n    if (existingBooking) {\n      throw new ConvexError({\n        code: \"DUPLICATE\",\n        message: \"Ce camion a déjà une réservation pour ce créneau\",\n      });\n    }\n\n    const previousTruckId = booking.truckId;\n\n    await ctx.db.patch(args.bookingId, {\n      truckId: args.newTruckId,\n      updatedAt: Date.now(),\n    });\n\n    await ctx.runMutation(internal.bookings.internal.recordHistory, {\n      bookingId: args.bookingId,\n      changeType: \"truck_changed\",\n      previousValue: previousTruckId,\n      newValue: args.newTruckId,\n      changedBy: user.userId,\n      requiredRebook: false,\n    });\n\n    return null;\n  },\n});\n```\n\n---\n\n## Phase 3: AI Tools (French Only)\n\n### 3.1 Updated Agent Configuration\n\n**File: `packages/backend/convex/ai/agent.ts` (REPLACE)**\n\n```typescript\n\"use node\";\nimport { google } from \"@ai-sdk/google\";\nimport { Agent } from \"@convex-dev/agent\";\nimport { components } from \"../_generated/api\";\nimport { ALL_TOOLS } from \"./registry\";\n\nexport const apcsAgent = new Agent(components.agent, {\n  name: \"Assistant APCS\",\n  languageModel: google(\"gemini-2.0-flash\"),\n  instructions: `Tu es l'assistant APCS (Advanced Port Container System).\nTu aides les utilisateurs à gérer les opérations portuaires, les réservations de camions et la logistique.\n\nIMPORTANT: Tu réponds TOUJOURS en français, quelle que soit la langue de l'utilisateur.\n\nInformations clés:\n- Le système gère des terminaux portuaires avec des portes d'entrée\n- Les réservations sont faites au niveau du terminal, pas de la porte\n- Une réservation = 1 camion + plusieurs conteneurs (enlèvement ou dépôt)\n- Il y a trois rôles: port_admin, terminal_operator, carrier\n- Cycle de vie des réservations: en_attente → confirmée/refusée → consommée/annulée/expirée\n\nRègles:\n- Utilise TOUJOURS les outils disponibles pour récupérer des données réelles\n- Ne jamais inventer d'informations\n- Présente les données de manière claire et structurée\n- Si un outil retourne ACCESS_DENIED, explique que le rôle de l'utilisateur ne permet pas cette action\n- Sois concis mais complet\n- Pour les réservations, guide l'utilisateur étape par étape:\n  1. D'abord sélectionner les conteneurs\n  2. Ensuite choisir un créneau optimal\n  3. Puis sélectionner le camion\n  4. Enfin confirmer la réservation\n\nValidation automatique:\n- Les premières réservations d'un créneau peuvent être validées automatiquement\n- Si la réservation est auto-validée, informe l'utilisateur que sa réservation est confirmée immédiatement\n- Sinon, explique que la réservation est en attente de validation par l'opérateur`,\n  tools: ALL_TOOLS,\n  maxSteps: 10,\n});\n```\n\n### 3.2 New AI Tools for Containers\n\n**File: `packages/backend/convex/ai/tools/containers.ts` (CREATE)**\n\n```typescript\nimport { tool } from \"@convex-dev/agent\";\nimport { v } from \"convex/values\";\nimport { internal } from \"../../_generated/api\";\nimport { checkToolAccess } from \"./types\";\n\n/**\n * List carrier's containers\n */\nexport const listMyContainers = tool({\n  description: \"Liste les conteneurs du transporteur avec filtres optionnels\",\n  args: {\n    operationType: v.optional(v.union(v.literal(\"pick_up\"), v.literal(\"drop_off\"))),\n    includeBooked: v.optional(v.boolean()),\n  },\n  returns: v.object({\n    containers: v.array(v.object({\n      id: v.string(),\n      containerNumber: v.string(),\n      type: v.string(),\n      dimensions: v.string(),\n      operationType: v.string(),\n      isEmpty: v.boolean(),\n      isBooked: v.boolean(),\n    })),\n    total: v.number(),\n  }),\n  handler: async (ctx, args) => {\n    const accessCheck = await checkToolAccess(ctx, \"listMyContainers\");\n    if (!accessCheck.allowed) {\n      return { containers: [], total: 0 };\n    }\n\n    const containers = await ctx.runQuery(internal.ai.internalQueries.listMyContainers, {\n      operationType: args.operationType,\n      includeBooked: args.includeBooked ?? false,\n    });\n\n    return {\n      containers: containers.map(c => ({\n        id: c._id,\n        containerNumber: c.containerNumber,\n        type: c.containerType,\n        dimensions: c.dimensions,\n        operationType: c.operationType,\n        isEmpty: c.isEmpty,\n        isBooked: !!c.bookingId,\n      })),\n      total: containers.length,\n    };\n  },\n});\n\n/**\n * Interactive container selector for booking\n */\nexport const selectContainersForBooking = tool({\n  description: \"Affiche un sélecteur interactif de conteneurs pour la réservation\",\n  args: {\n    operationType: v.optional(v.union(v.literal(\"pick_up\"), v.literal(\"drop_off\"))),\n  },\n  returns: v.object({\n    uiComponent: v.string(),\n    availableContainers: v.array(v.object({\n      id: v.string(),\n      containerNumber: v.string(),\n      type: v.string(),\n      dimensions: v.string(),\n      operationType: v.string(),\n    })),\n  }),\n  handler: async (ctx, args) => {\n    const accessCheck = await checkToolAccess(ctx, \"selectContainersForBooking\");\n    if (!accessCheck.allowed) {\n      return { uiComponent: \"access_denied\", availableContainers: [] };\n    }\n\n    const containers = await ctx.runQuery(internal.ai.internalQueries.listMyContainers, {\n      operationType: args.operationType,\n      includeBooked: false,\n    });\n\n    return {\n      uiComponent: \"container-selector\",\n      availableContainers: containers.map(c => ({\n        id: c._id,\n        containerNumber: c.containerNumber,\n        type: c.containerType,\n        dimensions: c.dimensions,\n        operationType: c.operationType,\n      })),\n    };\n  },\n});\n```\n\n### 3.3 New AI Tools for Slots\n\n**File: `packages/backend/convex/ai/tools/slots.ts` (CREATE)**\n\n```typescript\nimport { tool } from \"@convex-dev/agent\";\nimport { v } from \"convex/values\";\nimport { internal } from \"../../_generated/api\";\nimport { checkToolAccess } from \"./types\";\n\n/**\n * Get slot availability with capacity info\n */\nexport const getSlotAvailability = tool({\n  description: \"Récupère la disponibilité des créneaux pour un terminal et une date\",\n  args: {\n    terminalId: v.string(),\n    date: v.string(),                             // YYYY-MM-DD\n  },\n  returns: v.object({\n    uiComponent: v.string(),\n    slots: v.array(v.object({\n      startTime: v.string(),\n      endTime: v.string(),\n      available: v.number(),\n      total: v.number(),\n      utilizationPercent: v.number(),\n      canAutoValidate: v.boolean(),\n    })),\n  }),\n  handler: async (ctx, args) => {\n    const accessCheck = await checkToolAccess(ctx, \"getSlotAvailability\");\n    if (!accessCheck.allowed) {\n      return { uiComponent: \"access_denied\", slots: [] };\n    }\n\n    const slots = await ctx.runQuery(internal.ai.internalQueries.getSlotAvailability, {\n      terminalId: args.terminalId,\n      date: args.date,\n    });\n\n    return {\n      uiComponent: \"slot-calendar\",\n      slots: slots.map(s => ({\n        startTime: s.startTime,\n        endTime: s.endTime,\n        available: s.available,\n        total: s.total,\n        utilizationPercent: s.utilizationPercent,\n        canAutoValidate: s.remainingAutoValidation > 0,\n      })),\n    };\n  },\n});\n\n/**\n * Suggest optimal slots based on load balancing and urgency\n */\nexport const suggestOptimalSlots = tool({\n  description: \"Suggère les meilleurs créneaux en fonction de la charge et des conteneurs sélectionnés\",\n  args: {\n    terminalId: v.string(),\n    containerIds: v.array(v.string()),\n    preferredDate: v.optional(v.string()),\n  },\n  returns: v.object({\n    uiComponent: v.string(),\n    suggestions: v.array(v.object({\n      date: v.string(),\n      startTime: v.string(),\n      endTime: v.string(),\n      score: v.number(),                          // 0-100 recommendation score\n      reason: v.string(),\n      canAutoValidate: v.boolean(),\n    })),\n  }),\n  handler: async (ctx, args) => {\n    const accessCheck = await checkToolAccess(ctx, \"suggestOptimalSlots\");\n    if (!accessCheck.allowed) {\n      return { uiComponent: \"access_denied\", suggestions: [] };\n    }\n\n    const suggestions = await ctx.runQuery(internal.ai.internalQueries.suggestOptimalSlots, {\n      terminalId: args.terminalId,\n      containerIds: args.containerIds,\n      preferredDate: args.preferredDate,\n    });\n\n    return {\n      uiComponent: \"slot-suggestions\",\n      suggestions: suggestions.map(s => ({\n        date: s.date,\n        startTime: s.startTime,\n        endTime: s.endTime,\n        score: s.score,\n        reason: s.reason,\n        canAutoValidate: s.canAutoValidate,\n      })),\n    };\n  },\n});\n```\n\n### 3.4 New AI Tools for Booking Flow\n\n**File: `packages/backend/convex/ai/tools/booking-flow.ts` (CREATE)**\n\n```typescript\nimport { tool } from \"@convex-dev/agent\";\nimport { v } from \"convex/values\";\nimport { internal } from \"../../_generated/api\";\nimport { checkToolAccess } from \"./types\";\n\n/**\n * Create booking via AI\n */\nexport const createBookingViaAI = tool({\n  description: \"Crée une réservation avec les conteneurs et le créneau sélectionnés\",\n  args: {\n    terminalId: v.string(),\n    truckId: v.string(),\n    containerIds: v.array(v.string()),\n    preferredDate: v.string(),\n    preferredTimeStart: v.string(),\n    preferredTimeEnd: v.string(),\n    driverName: v.optional(v.string()),\n    driverPhone: v.optional(v.string()),\n  },\n  returns: v.object({\n    success: v.boolean(),\n    uiComponent: v.string(),\n    booking: v.optional(v.object({\n      bookingId: v.string(),\n      bookingReference: v.string(),\n      status: v.string(),\n      wasAutoValidated: v.boolean(),\n      gateName: v.optional(v.string()),\n    })),\n    error: v.optional(v.string()),\n  }),\n  handler: async (ctx, args) => {\n    const accessCheck = await checkToolAccess(ctx, \"createBookingViaAI\");\n    if (!accessCheck.allowed) {\n      return { \n        success: false, \n        uiComponent: \"access_denied\",\n        error: \"Accès refusé\" \n      };\n    }\n\n    try {\n      const result = await ctx.runMutation(internal.ai.mutations.createBooking, {\n        terminalId: args.terminalId,\n        truckId: args.truckId,\n        containerIds: args.containerIds,\n        preferredDate: args.preferredDate,\n        preferredTimeStart: args.preferredTimeStart,\n        preferredTimeEnd: args.preferredTimeEnd,\n        driverName: args.driverName,\n        driverPhone: args.driverPhone,\n      });\n\n      return {\n        success: true,\n        uiComponent: \"booking-confirmation-card\",\n        booking: {\n          bookingId: result.bookingId,\n          bookingReference: result.bookingReference,\n          status: result.status,\n          wasAutoValidated: result.wasAutoValidated,\n          gateName: result.gateName,\n        },\n      };\n    } catch (error: any) {\n      return {\n        success: false,\n        uiComponent: \"error\",\n        error: error.message || \"Erreur lors de la création de la réservation\",\n      };\n    }\n  },\n});\n\n/**\n * Cancel booking via AI\n */\nexport const cancelBookingViaAI = tool({\n  description: \"Annule une réservation existante\",\n  args: {\n    bookingId: v.string(),\n    reason: v.optional(v.string()),\n  },\n  returns: v.object({\n    success: v.boolean(),\n    message: v.string(),\n  }),\n  handler: async (ctx, args) => {\n    const accessCheck = await checkToolAccess(ctx, \"cancelBookingViaAI\");\n    if (!accessCheck.allowed) {\n      return { success: false, message: \"Accès refusé\" };\n    }\n\n    try {\n      await ctx.runMutation(internal.ai.mutations.cancelBooking, {\n        bookingId: args.bookingId,\n        reason: args.reason,\n      });\n\n      return {\n        success: true,\n        message: \"Réservation annulée avec succès\",\n      };\n    } catch (error: any) {\n      return {\n        success: false,\n        message: error.message || \"Erreur lors de l'annulation\",\n      };\n    }\n  },\n});\n\n/**\n * Change truck for booking via AI\n */\nexport const changeTruckViaAI = tool({\n  description: \"Change le camion assigné à une réservation\",\n  args: {\n    bookingId: v.string(),\n    newTruckId: v.string(),\n  },\n  returns: v.object({\n    success: v.boolean(),\n    message: v.string(),\n  }),\n  handler: async (ctx, args) => {\n    const accessCheck = await checkToolAccess(ctx, \"changeTruckViaAI\");\n    if (!accessCheck.allowed) {\n      return { success: false, message: \"Accès refusé\" };\n    }\n\n    try {\n      await ctx.runMutation(internal.ai.mutations.changeTruck, {\n        bookingId: args.bookingId,\n        newTruckId: args.newTruckId,\n      });\n\n      return {\n        success: true,\n        message: \"Camion changé avec succès\",\n      };\n    } catch (error: any) {\n      return {\n        success: false,\n        message: error.message || \"Erreur lors du changement de camion\",\n      };\n    }\n  },\n});\n```\n\n### 3.5 New AI Tools for Trucks\n\n**File: `packages/backend/convex/ai/tools/trucks.ts` (CREATE)**\n\n```typescript\nimport { tool } from \"@convex-dev/agent\";\nimport { v } from \"convex/values\";\nimport { internal } from \"../../_generated/api\";\nimport { checkToolAccess } from \"./types\";\n\n/**\n * List carrier's trucks\n */\nexport const listMyTrucks = tool({\n  description: \"Liste les camions du transporteur\",\n  args: {},\n  returns: v.object({\n    trucks: v.array(v.object({\n      id: v.string(),\n      licensePlate: v.string(),\n      truckType: v.string(),\n      truckClass: v.string(),\n      make: v.optional(v.string()),\n      model: v.optional(v.string()),\n    })),\n    total: v.number(),\n  }),\n  handler: async (ctx, args) => {\n    const accessCheck = await checkToolAccess(ctx, \"listMyTrucks\");\n    if (!accessCheck.allowed) {\n      return { trucks: [], total: 0 };\n    }\n\n    const trucks = await ctx.runQuery(internal.ai.internalQueries.listMyTrucks, {});\n\n    return {\n      trucks: trucks.map(t => ({\n        id: t._id,\n        licensePlate: t.licensePlate,\n        truckType: t.truckType,\n        truckClass: t.truckClass,\n        make: t.make,\n        model: t.model,\n      })),\n      total: trucks.length,\n    };\n  },\n});\n```\n\n### 3.6 Updated Tool Permissions\n\n**File: `packages/backend/convex/ai/tools/types.ts` (UPDATE)**\n\n```typescript\nexport const TOOL_PERMISSIONS: Record<string, ApcsRole[]> = {\n  // Existing tools\n  listMyBookings: [\"carrier\", \"terminal_operator\", \"port_admin\"],\n  getBookingDetails: [\"carrier\", \"terminal_operator\", \"port_admin\"],\n  listBookingsByTerminal: [\"terminal_operator\", \"port_admin\"],\n  listBookingsByCarrier: [\"port_admin\"],\n  listPendingBookings: [\"terminal_operator\", \"port_admin\"],\n  listTerminals: [\"carrier\", \"terminal_operator\", \"port_admin\"],\n  getTerminalDetails: [\"carrier\", \"terminal_operator\", \"port_admin\"],\n  getAvailableSlots: [\"carrier\", \"terminal_operator\", \"port_admin\"],\n  getSystemConfig: [\"carrier\", \"terminal_operator\", \"port_admin\"],\n\n  // NEW: Container tools\n  listMyContainers: [\"carrier\"],\n  selectContainersForBooking: [\"carrier\"],\n\n  // NEW: Slot tools\n  getSlotAvailability: [\"carrier\", \"terminal_operator\", \"port_admin\"],\n  suggestOptimalSlots: [\"carrier\"],\n\n  // NEW: Booking flow tools\n  createBookingViaAI: [\"carrier\"],\n  cancelBookingViaAI: [\"carrier\"],\n  changeTruckViaAI: [\"carrier\"],\n\n  // NEW: Truck tools\n  listMyTrucks: [\"carrier\"],\n};\n```\n\n### 3.7 Updated Registry\n\n**File: `packages/backend/convex/ai/registry.ts` (UPDATE)**\n\n```typescript\n// Add new imports\nimport { listMyContainers, selectContainersForBooking } from \"./tools/containers\";\nimport { getSlotAvailability, suggestOptimalSlots } from \"./tools/slots\";\nimport { createBookingViaAI, cancelBookingViaAI, changeTruckViaAI } from \"./tools/booking-flow\";\nimport { listMyTrucks } from \"./tools/trucks\";\n\nexport const ALL_TOOLS = {\n  // Existing\n  listMyBookings,\n  getBookingDetails,\n  listBookingsByTerminal,\n  listBookingsByCarrier,\n  listPendingBookings,\n  listTerminals,\n  getTerminalDetails,\n  getAvailableSlots,\n  getSystemConfig,\n\n  // NEW: Containers\n  listMyContainers,\n  selectContainersForBooking,\n\n  // NEW: Slots\n  getSlotAvailability,\n  suggestOptimalSlots,\n\n  // NEW: Booking flow\n  createBookingViaAI,\n  cancelBookingViaAI,\n  changeTruckViaAI,\n\n  // NEW: Trucks\n  listMyTrucks,\n} as const;\n```\n\n---\n\n## Phase 4: QR Code System\n\n**File: `packages/backend/convex/qr/index.ts` (CREATE)**\n\n```typescript\n\"use node\";\nimport { internalAction, internalMutation } from \"../_generated/server\";\nimport { v } from \"convex/values\";\nimport QRCode from \"qrcode\";\n\n/**\n * Generate QR code for a booking\n */\nexport const generateQRCode = internalAction({\n  args: {\n    bookingId: v.id(\"bookings\"),\n  },\n  returns: v.object({\n    success: v.boolean(),\n    qrCode: v.optional(v.string()),\n    storageId: v.optional(v.id(\"_storage\")),\n  }),\n  handler: async (ctx, args) => {\n    const booking = await ctx.runQuery(internal.bookings.queries.get, {\n      bookingId: args.bookingId,\n    });\n\n    if (!booking) {\n      return { success: false };\n    }\n\n    // Generate QR code data URL\n    const qrData = JSON.stringify({\n      type: \"APCS_BOOKING\",\n      ref: booking.bookingReference,\n    });\n\n    try {\n      const qrCodeDataUrl = await QRCode.toDataURL(qrData, {\n        width: 300,\n        margin: 2,\n        color: {\n          dark: \"#000000\",\n          light: \"#FFFFFF\",\n        },\n      });\n\n      // Also generate as buffer for file storage\n      const qrCodeBuffer = await QRCode.toBuffer(qrData, {\n        width: 300,\n        margin: 2,\n      });\n\n      // Store in Convex file storage\n      const blob = new Blob([qrCodeBuffer], { type: \"image/png\" });\n      const storageId = await ctx.storage.store(blob);\n\n      // Update booking with QR code\n      await ctx.runMutation(internal.qr.updateBookingQR, {\n        bookingId: args.bookingId,\n        qrCode: qrCodeDataUrl,\n        qrCodeStorageId: storageId,\n      });\n\n      return {\n        success: true,\n        qrCode: qrCodeDataUrl,\n        storageId,\n      };\n    } catch (error) {\n      console.error(\"QR code generation failed:\", error);\n      return { success: false };\n    }\n  },\n});\n\nexport const updateBookingQR = internalMutation({\n  args: {\n    bookingId: v.id(\"bookings\"),\n    qrCode: v.string(),\n    qrCodeStorageId: v.id(\"_storage\"),\n  },\n  returns: v.null(),\n  handler: async (ctx, args) => {\n    await ctx.db.patch(args.bookingId, {\n      qrCode: args.qrCode,\n      qrCodeStorageId: args.qrCodeStorageId,\n      updatedAt: Date.now(),\n    });\n    return null;\n  },\n});\n```\n\n**File: `packages/backend/convex/qr/scan.ts` (CREATE)**\n\n```typescript\nimport { mutation } from \"../_generated/server\";\nimport { v, ConvexError } from \"convex/values\";\nimport { getAuthenticatedUser, requireRole, canManageTerminal } from \"../lib/permissions\";\nimport { internal } from \"../_generated/api\";\n\n/**\n * Scan types\n */\nexport const scanTypeValidator = v.union(\n  v.literal(\"entry\"),\n  v.literal(\"exit\")\n);\n\n/**\n * Process QR code scan (entry or exit)\n */\nexport const processScan = mutation({\n  args: {\n    bookingReference: v.string(),\n    scanType: scanTypeValidator,\n    gateId: v.id(\"gates\"),\n  },\n  returns: v.object({\n    success: v.boolean(),\n    message: v.string(),\n    booking: v.optional(v.object({\n      bookingReference: v.string(),\n      truckLicensePlate: v.string(),\n      driverName: v.optional(v.string()),\n      containerCount: v.number(),\n      status: v.string(),\n    })),\n  }),\n  handler: async (ctx, args) => {\n    const user = await getAuthenticatedUser(ctx);\n    requireRole(user, [\"terminal_operator\", \"port_admin\"]);\n\n    // Find booking by reference\n    const booking = await ctx.db\n      .query(\"bookings\")\n      .withIndex(\"by_reference\", q => q.eq(\"bookingReference\", args.bookingReference))\n      .first();\n\n    if (!booking) {\n      return {\n        success: false,\n        message: `Réservation ${args.bookingReference} introuvable`,\n      };\n    }\n\n    // Verify gate belongs to booking's terminal\n    const gate = await ctx.db.get(args.gateId);\n    if (!gate || gate.terminalId !== booking.terminalId) {\n      return {\n        success: false,\n        message: \"Cette porte n'appartient pas au terminal de la réservation\",\n      };\n    }\n\n    // Verify operator has access to terminal\n    const hasAccess = await canManageTerminal(ctx, user, booking.terminalId);\n    if (!hasAccess) {\n      return {\n        success: false,\n        message: \"Vous n'avez pas accès à ce terminal\",\n      };\n    }\n\n    // Get truck info\n    const truck = await ctx.db.get(booking.truckId);\n\n    // Process based on scan type\n    if (args.scanType === \"entry\") {\n      // Entry scan\n      if (booking.status !== \"confirmed\") {\n        return {\n          success: false,\n          message: `Impossible de scanner l'entrée - statut actuel: ${booking.status}`,\n        };\n      }\n\n      if (booking.entryScannedAt) {\n        return {\n          success: false,\n          message: \"Cette réservation a déjà été scannée à l'entrée\",\n        };\n      }\n\n      const now = Date.now();\n      await ctx.db.patch(booking._id, {\n        status: \"consumed\",\n        consumedAt: now,\n        entryScannedAt: now,\n        scannedByEntry: user.userId,\n        gateId: args.gateId, // Update gate to actual entry gate\n        updatedAt: now,\n      });\n\n      // Record history\n      await ctx.runMutation(internal.bookings.internal.recordHistory, {\n        bookingId: booking._id,\n        changeType: \"status_changed\",\n        previousValue: \"confirmed\",\n        newValue: \"consumed\",\n        changedBy: user.userId,\n        note: `Entrée scannée à la porte ${gate.name}`,\n        requiredRebook: false,\n      });\n\n      return {\n        success: true,\n        message: `Entrée validée - Bienvenue au terminal`,\n        booking: {\n          bookingReference: booking.bookingReference,\n          truckLicensePlate: truck?.licensePlate ?? \"Inconnu\",\n          driverName: booking.driverName,\n          containerCount: booking.containerIds.length,\n          status: \"consumed\",\n        },\n      };\n    } else {\n      // Exit scan\n      if (booking.status !== \"consumed\") {\n        return {\n          success: false,\n          message: `Impossible de scanner la sortie - statut actuel: ${booking.status}`,\n        };\n      }\n\n      if (!booking.entryScannedAt) {\n        return {\n          success: false,\n          message: \"Aucun scan d'entrée enregistré pour cette réservation\",\n        };\n      }\n\n      if (booking.exitScannedAt) {\n        return {\n          success: false,\n          message: \"Cette réservation a déjà été scannée à la sortie\",\n        };\n      }\n\n      const now = Date.now();\n      await ctx.db.patch(booking._id, {\n        exitScannedAt: now,\n        scannedByExit: user.userId,\n        updatedAt: now,\n      });\n\n      // Calculate time in terminal\n      const timeInTerminalMs = now - booking.entryScannedAt;\n      const timeInTerminalMinutes = Math.round(timeInTerminalMs / 60000);\n\n      return {\n        success: true,\n        message: `Sortie validée - Temps dans le terminal: ${timeInTerminalMinutes} minutes`,\n        booking: {\n          bookingReference: booking.bookingReference,\n          truckLicensePlate: truck?.licensePlate ?? \"Inconnu\",\n          driverName: booking.driverName,\n          containerCount: booking.containerIds.length,\n          status: \"consumed\",\n        },\n      };\n    }\n  },\n});\n```\n\n---\n\n## Phase 5: Notification System with Email\n\n**File: `packages/backend/convex/email/index.ts` (CREATE)**\n\n```typescript\n\"use node\";\nimport { internalAction } from \"../_generated/server\";\nimport { v } from \"convex/values\";\nimport { Resend } from \"resend\";\n\nconst resend = new Resend(process.env.RESEND_API_KEY);\n\n/**\n * Send email notification\n */\nexport const sendEmail = internalAction({\n  args: {\n    to: v.string(),\n    subject: v.string(),\n    html: v.string(),\n  },\n  returns: v.object({\n    success: v.boolean(),\n    messageId: v.optional(v.string()),\n    error: v.optional(v.string()),\n  }),\n  handler: async (ctx, args) => {\n    try {\n      const result = await resend.emails.send({\n        from: \"APCS <noreply@apcs.port>\",\n        to: args.to,\n        subject: args.subject,\n        html: args.html,\n      });\n\n      return {\n        success: true,\n        messageId: result.data?.id,\n      };\n    } catch (error: any) {\n      console.error(\"Email send failed:\", error);\n      return {\n        success: false,\n        error: error.message,\n      };\n    }\n  },\n});\n\n/**\n * French email templates\n */\nexport const EMAIL_TEMPLATES = {\n  booking_created: (params: {\n    reference: string;\n    terminal: string;\n    date: string;\n    time: string;\n  }) => ({\n    subject: `Réservation ${params.reference} créée`,\n    html: `\n      <h1>Réservation créée</h1>\n      <p>Votre réservation <strong>${params.reference}</strong> a été créée.</p>\n      <ul>\n        <li><strong>Terminal:</strong> ${params.terminal}</li>\n        <li><strong>Date:</strong> ${params.date}</li>\n        <li><strong>Heure:</strong> ${params.time}</li>\n      </ul>\n      <p>Elle est en attente de confirmation par l'opérateur.</p>\n    `,\n  }),\n\n  booking_confirmed: (params: {\n    reference: string;\n    terminal: string;\n    gate: string;\n    date: string;\n    time: string;\n    qrCodeUrl?: string;\n  }) => ({\n    subject: `Réservation ${params.reference} confirmée`,\n    html: `\n      <h1>Réservation confirmée</h1>\n      <p>Votre réservation <strong>${params.reference}</strong> a été confirmée.</p>\n      <ul>\n        <li><strong>Terminal:</strong> ${params.terminal}</li>\n        <li><strong>Porte:</strong> ${params.gate}</li>\n        <li><strong>Date:</strong> ${params.date}</li>\n        <li><strong>Heure:</strong> ${params.time}</li>\n      </ul>\n      ${params.qrCodeUrl ? `<p>Présentez ce QR code à l'entrée:</p><img src=\"${params.qrCodeUrl}\" alt=\"QR Code\" />` : \"\"}\n    `,\n  }),\n\n  booking_rejected: (params: {\n    reference: string;\n    reason: string;\n  }) => ({\n    subject: `Réservation ${params.reference} refusée`,\n    html: `\n      <h1>Réservation refusée</h1>\n      <p>Votre réservation <strong>${params.reference}</strong> a été refusée.</p>\n      <p><strong>Raison:</strong> ${params.reason}</p>\n      <p>Veuillez créer une nouvelle réservation avec les corrections nécessaires.</p>\n    `,\n  }),\n\n  booking_reminder: (params: {\n    reference: string;\n    terminal: string;\n    gate: string;\n    hoursUntil: number;\n  }) => ({\n    subject: `Rappel: Réservation ${params.reference} dans ${params.hoursUntil}h`,\n    html: `\n      <h1>Rappel de réservation</h1>\n      <p>Votre réservation <strong>${params.reference}</strong> est prévue dans <strong>${params.hoursUntil} heures</strong>.</p>\n      <ul>\n        <li><strong>Terminal:</strong> ${params.terminal}</li>\n        <li><strong>Porte:</strong> ${params.gate}</li>\n      </ul>\n      <p>N'oubliez pas votre QR code!</p>\n    `,\n  }),\n\n  capacity_alert: (params: {\n    terminal: string;\n    date: string;\n    utilizationPercent: number;\n  }) => ({\n    subject: `Alerte capacité: ${params.terminal} à ${params.utilizationPercent}%`,\n    html: `\n      <h1>Alerte de capacité</h1>\n      <p>Le terminal <strong>${params.terminal}</strong> atteint <strong>${params.utilizationPercent}%</strong> de sa capacité pour le ${params.date}.</p>\n      <p>Veuillez surveiller les réservations et ajuster la capacité si nécessaire.</p>\n    `,\n  }),\n};\n```\n\n---\n\n## Phase 6: Cron Jobs\n\n**File: `packages/backend/convex/crons.ts` (UPDATE)**\n\n```typescript\nimport { cronJobs } from \"convex/server\";\nimport { internal } from \"./_generated/api\";\n\nconst crons = cronJobs();\n\n// ============================================================================\n// BOOKING EXPIRATION (with grace period)\n// ============================================================================\n\ncrons.interval(\n  \"expire old bookings with grace period\",\n  { minutes: 15 },\n  internal.scheduled.expireBookingsWithGrace,\n  {}\n);\n\n// ============================================================================\n// BOOKING REMINDERS\n// ============================================================================\n\ncrons.interval(\n  \"send 24h booking reminders\",\n  { hours: 1 },\n  internal.scheduled.sendBookingReminders,\n  { hoursBeforeSlot: 24 }\n);\n\ncrons.interval(\n  \"send 2h booking reminders\",\n  { minutes: 30 },\n  internal.scheduled.sendBookingReminders,\n  { hoursBeforeSlot: 2 }\n);\n\n// ============================================================================\n// CAPACITY ALERTS\n// ============================================================================\n\ncrons.cron(\n  \"check capacity alerts\",\n  \"0 6,12,18 * * *\",  // 6am, 12pm, 6pm\n  internal.scheduled.checkCapacityAlerts,\n  {}\n);\n\n// ============================================================================\n// ANALYTICS AGGREGATION\n// ============================================================================\n\ncrons.cron(\n  \"hourly analytics aggregation\",\n  \"0 * * * *\",  // Every hour\n  internal.scheduled.computeHourlyAggregates,\n  {}\n);\n\ncrons.cron(\n  \"daily analytics rollup\",\n  \"0 1 * * *\",  // 1am daily\n  internal.scheduled.computeDailyAggregates,\n  {}\n);\n\n// ============================================================================\n// CLEANUP\n// ============================================================================\n\ncrons.cron(\n  \"cleanup old notifications\",\n  \"0 2 * * *\",\n  internal.scheduled.cleanupOldNotifications,\n  { daysToKeep: 30 }\n);\n\ncrons.cron(\n  \"cleanup old audit logs\",\n  \"0 3 * * 0\",  // Sunday 3am\n  internal.scheduled.cleanupOldAuditLogs,\n  { daysToKeep: 90 }\n);\n\ncrons.cron(\n  \"recalculate slot capacity\",\n  \"0 4 * * *\",\n  internal.scheduled.recalculateAllCapacity,\n  {}\n);\n\nexport default crons;\n```\n\n---\n\n## Phase 7: Audit Logging\n\n**File: `packages/backend/convex/lib/auditLog.ts` (CREATE)**\n\n```typescript\nimport type { MutationCtx } from \"../_generated/server\";\nimport type { AuditAction } from \"./validators\";\n\ninterface AuditLogParams {\n  userId?: string;\n  action: AuditAction;\n  resource: string;\n  resourceId?: string;\n  args?: Record<string, unknown>;\n  result?: string;\n  errorMessage?: string;\n  ipAddress?: string;\n  userAgent?: string;\n  sessionId?: string;\n  aiThreadId?: string;\n  aiToolName?: string;\n  durationMs?: number;\n}\n\n// Fields to redact from audit logs\nconst SENSITIVE_FIELDS = [\n  \"password\",\n  \"token\",\n  \"secret\",\n  \"apiKey\",\n  \"api_key\",\n  \"authorization\",\n  \"credit_card\",\n  \"ssn\",\n];\n\n/**\n * Sanitize args by redacting sensitive fields\n */\nfunction sanitizeArgs(args: Record<string, unknown>): Record<string, unknown> {\n  const sanitized: Record<string, unknown> = {};\n\n  for (const [key, value] of Object.entries(args)) {\n    const keyLower = key.toLowerCase();\n    if (SENSITIVE_FIELDS.some(f => keyLower.includes(f))) {\n      sanitized[key] = \"[REDACTED]\";\n    } else if (typeof value === \"object\" && value !== null) {\n      sanitized[key] = sanitizeArgs(value as Record<string, unknown>);\n    } else {\n      sanitized[key] = value;\n    }\n  }\n\n  return sanitized;\n}\n\n/**\n * Log an audit entry\n */\nexport async function logAudit(\n  ctx: MutationCtx,\n  params: AuditLogParams\n): Promise<void> {\n  await ctx.db.insert(\"auditLogs\", {\n    userId: params.userId,\n    action: params.action,\n    resource: params.resource,\n    resourceId: params.resourceId,\n    args: params.args ? JSON.stringify(sanitizeArgs(params.args)) : undefined,\n    result: params.result,\n    errorMessage: params.errorMessage,\n    ipAddress: params.ipAddress,\n    userAgent: params.userAgent,\n    sessionId: params.sessionId,\n    aiThreadId: params.aiThreadId,\n    aiToolName: params.aiToolName,\n    timestamp: Date.now(),\n    durationMs: params.durationMs,\n  });\n}\n```\n\n**File: `packages/backend/convex/lib/withAudit.ts` (CREATE)**\n\n```typescript\nimport type { MutationCtx } from \"../_generated/server\";\nimport { logAudit } from \"./auditLog\";\n\n/**\n * Wrapper to add audit logging to mutations\n */\nexport function withAudit<TArgs, TResult>(\n  resource: string,\n  handler: (ctx: MutationCtx, args: TArgs) => Promise<TResult>\n) {\n  return async (ctx: MutationCtx, args: TArgs): Promise<TResult> => {\n    const startTime = Date.now();\n    let result: string = \"success\";\n    let errorMessage: string | undefined;\n\n    try {\n      const handlerResult = await handler(ctx, args);\n      return handlerResult;\n    } catch (error: any) {\n      result = `error:${error.code || \"UNKNOWN\"}`;\n      errorMessage = error.message;\n      throw error;\n    } finally {\n      const durationMs = Date.now() - startTime;\n\n      // Get user ID from auth context (simplified)\n      let userId: string | undefined;\n      try {\n        const identity = await ctx.auth.getUserIdentity();\n        userId = identity?.subject;\n      } catch {\n        // No auth context\n      }\n\n      await logAudit(ctx, {\n        userId,\n        action: \"mutation\",\n        resource,\n        args: args as Record<string, unknown>,\n        result,\n        errorMessage,\n        durationMs,\n      });\n    }\n  };\n}\n```\n\n---\n\n## Phase 8: Seed Data Generation\n\n**File: `packages/backend/convex/seed/index.ts` (CREATE)**\n\n```typescript\nimport { internalMutation } from \"../_generated/server\";\nimport { v } from \"convex/values\";\nimport { generateTerminals } from \"./terminals\";\nimport { generateContainers } from \"./containers\";\nimport { generateUsers } from \"./users\";\n\n/**\n * Main seed function - run manually from dashboard\n */\nexport const seedAll = internalMutation({\n  args: {\n    clearExisting: v.optional(v.boolean()),\n  },\n  returns: v.object({\n    terminals: v.number(),\n    gates: v.number(),\n    timeSlots: v.number(),\n    carriers: v.number(),\n    trucks: v.number(),\n    containers: v.number(),\n    operators: v.number(),\n  }),\n  handler: async (ctx, args) => {\n    if (args.clearExisting) {\n      // Clear all data (careful in production!)\n      // ... implementation\n    }\n\n    // Generate in order\n    const terminalResults = await generateTerminals(ctx);\n    const userResults = await generateUsers(ctx, terminalResults.terminals);\n    const containerResults = await generateContainers(ctx, userResults.carriers);\n\n    return {\n      terminals: terminalResults.count,\n      gates: terminalResults.gateCount,\n      timeSlots: terminalResults.slotCount,\n      carriers: userResults.carrierCount,\n      trucks: userResults.truckCount,\n      containers: containerResults.count,\n      operators: userResults.operatorCount,\n    };\n  },\n});\n```\n\n**File: `packages/backend/convex/seed/containers.ts` (CREATE)**\n\n```typescript\nimport type { MutationCtx } from \"../_generated/server\";\n\n// ISO 6346 owner codes (fictional)\nconst OWNER_CODES = [\"MSCU\", \"MAEU\", \"CMAU\", \"HLCU\", \"OOLU\", \"COSU\", \"EITU\", \"TCNU\"];\n\n// Container type distribution\nconst TYPE_DISTRIBUTION = {\n  dry: 0.60,\n  reefer: 0.15,\n  open_top: 0.08,\n  flat_rack: 0.07,\n  tank: 0.05,\n  hazardous: 0.05,\n};\n\n// Dimension distribution\nconst DIMENSION_DISTRIBUTION = {\n  \"20ft\": 0.35,\n  \"40ft\": 0.40,\n  \"40ft_hc\": 0.20,\n  \"45ft\": 0.05,\n};\n\n/**\n * Generate ISO 6346 compliant container number\n */\nfunction generateContainerNumber(ownerCode: string, index: number): string {\n  const serial = index.toString().padStart(6, \"0\");\n  // Simplified check digit (not real ISO calculation)\n  const checkDigit = (index % 10).toString();\n  return `${ownerCode}${serial}${checkDigit}`;\n}\n\n/**\n * Select from weighted distribution\n */\nfunction selectFromDistribution<T extends string>(\n  distribution: Record<T, number>\n): T {\n  const rand = Math.random();\n  let cumulative = 0;\n  for (const [key, weight] of Object.entries(distribution)) {\n    cumulative += weight as number;\n    if (rand <= cumulative) {\n      return key as T;\n    }\n  }\n  return Object.keys(distribution)[0] as T;\n}\n\nexport async function generateContainers(\n  ctx: MutationCtx,\n  carriers: { userId: string }[]\n): Promise<{ count: number }> {\n  const TARGET_CONTAINERS = 750;\n  const containersPerCarrier = Math.ceil(TARGET_CONTAINERS / carriers.length);\n\n  let totalCount = 0;\n  let containerIndex = 1;\n\n  for (const carrier of carriers) {\n    const ownerCode = OWNER_CODES[Math.floor(Math.random() * OWNER_CODES.length)];\n\n    for (let i = 0; i < containersPerCarrier && totalCount < TARGET_CONTAINERS; i++) {\n      const containerType = selectFromDistribution(TYPE_DISTRIBUTION);\n      const dimensions = selectFromDistribution(DIMENSION_DISTRIBUTION);\n      \n      // 70% drop-off, 30% pick-up\n      const operationType = Math.random() < 0.7 ? \"drop_off\" : \"pick_up\";\n      \n      // 30% empty\n      const isEmpty = Math.random() < 0.3;\n      \n      // Weight class based on type and empty status\n      let weightClass: \"light\" | \"medium\" | \"heavy\" | \"super_heavy\";\n      if (isEmpty) {\n        weightClass = \"light\";\n      } else if (containerType === \"hazardous\" || containerType === \"tank\") {\n        weightClass = Math.random() < 0.5 ? \"heavy\" : \"super_heavy\";\n      } else {\n        weightClass = selectFromDistribution({\n          light: 0.2,\n          medium: 0.4,\n          heavy: 0.3,\n          super_heavy: 0.1,\n        });\n      }\n\n      const now = Date.now();\n      await ctx.db.insert(\"containers\", {\n        ownerId: carrier.userId,\n        containerNumber: generateContainerNumber(ownerCode, containerIndex++),\n        containerType,\n        dimensions,\n        weightClass,\n        operationType,\n        isEmpty,\n        isActive: true,\n        readyDate: operationType === \"pick_up\" \n          ? now + Math.random() * 7 * 24 * 60 * 60 * 1000 \n          : undefined,\n        departureDate: operationType === \"drop_off\"\n          ? now + Math.random() * 14 * 24 * 60 * 60 * 1000\n          : undefined,\n        createdAt: now,\n        updatedAt: now,\n      });\n\n      totalCount++;\n    }\n  }\n\n  return { count: totalCount };\n}\n```\n\n---\n\n## Phase 9: Analytics\n\n**File: `packages/backend/convex/analytics/compute.ts` (CREATE)**\n\n```typescript\nimport { internalMutation } from \"../_generated/server\";\nimport { v } from \"convex/values\";\n\n/**\n * Compute hourly aggregates for all terminals\n */\nexport const computeHourlyAggregates = internalMutation({\n  args: {},\n  returns: v.number(), // Count of aggregates created\n  handler: async (ctx) => {\n    const now = new Date();\n    const currentHour = now.getUTCHours();\n    const dateStr = now.toISOString().slice(0, 10);\n\n    const terminals = await ctx.db.query(\"terminals\").collect();\n    let count = 0;\n\n    for (const terminal of terminals) {\n      // Get all bookings for this terminal, date, and hour\n      const bookings = await ctx.db\n        .query(\"bookings\")\n        .withIndex(\"by_terminal_and_date\", q =>\n          q.eq(\"terminalId\", terminal._id).eq(\"preferredDate\", dateStr)\n        )\n        .collect();\n\n      // Filter to current hour\n      const hourBookings = bookings.filter(b => {\n        const hour = parseInt(b.preferredTimeStart.split(\":\")[0], 10);\n        return hour === currentHour;\n      });\n\n      // Compute metrics\n      const metrics = {\n        totalBookings: hourBookings.length,\n        pendingCount: hourBookings.filter(b => b.status === \"pending\").length,\n        confirmedCount: hourBookings.filter(b => b.status === \"confirmed\").length,\n        rejectedCount: hourBookings.filter(b => b.status === \"rejected\").length,\n        consumedCount: hourBookings.filter(b => b.status === \"consumed\").length,\n        cancelledCount: hourBookings.filter(b => b.status === \"cancelled\").length,\n        expiredCount: hourBookings.filter(b => b.status === \"expired\").length,\n        autoValidatedCount: hourBookings.filter(b => b.wasAutoValidated).length,\n      };\n\n      // Container metrics\n      let totalContainers = 0;\n      let pickupCount = 0;\n      let dropoffCount = 0;\n\n      for (const booking of hourBookings) {\n        totalContainers += booking.containerIds.length;\n        for (const containerId of booking.containerIds) {\n          const container = await ctx.db.get(containerId);\n          if (container?.operationType === \"pick_up\") pickupCount++;\n          else dropoffCount++;\n        }\n      }\n\n      // Capacity metrics\n      const slot = await ctx.db\n        .query(\"timeSlots\")\n        .withIndex(\"by_terminal_and_date\", q =>\n          q.eq(\"terminalId\", terminal._id).eq(\"date\", dateStr)\n        )\n        .filter(q => q.eq(q.field(\"startTime\"), `${currentHour.toString().padStart(2, \"0\")}:00`))\n        .first();\n\n      const utilizationPercent = slot \n        ? Math.round((slot.currentBookings / slot.maxCapacity) * 100)\n        : 0;\n\n      // Timing metrics (average wait time from booking to confirm)\n      const confirmedBookings = hourBookings.filter(b => b.confirmedAt);\n      const avgWaitTimeMs = confirmedBookings.length > 0\n        ? confirmedBookings.reduce((sum, b) => sum + (b.confirmedAt! - b.bookedAt), 0) / confirmedBookings.length\n        : undefined;\n\n      // Upsert aggregate\n      const existing = await ctx.db\n        .query(\"bookingAggregates\")\n        .withIndex(\"by_terminal_and_date\", q =>\n          q.eq(\"terminalId\", terminal._id).eq(\"date\", dateStr)\n        )\n        .filter(q => q.eq(q.field(\"hour\"), currentHour))\n        .first();\n\n      if (existing) {\n        await ctx.db.patch(existing._id, {\n          ...metrics,\n          avgUtilizationPercent: utilizationPercent,\n          peakUtilizationPercent: Math.max(existing.peakUtilizationPercent, utilizationPercent),\n          totalContainers,\n          pickupCount,\n          dropoffCount,\n          avgWaitTimeMs,\n          computedAt: Date.now(),\n        });\n      } else {\n        await ctx.db.insert(\"bookingAggregates\", {\n          terminalId: terminal._id,\n          period: \"hourly\",\n          date: dateStr,\n          hour: currentHour,\n          ...metrics,\n          avgUtilizationPercent: utilizationPercent,\n          peakUtilizationPercent: utilizationPercent,\n          totalContainers,\n          pickupCount,\n          dropoffCount,\n          avgWaitTimeMs,\n          computedAt: Date.now(),\n        });\n        count++;\n      }\n    }\n\n    return count;\n  },\n});\n```\n\n**File: `packages/backend/convex/analytics/export.ts` (CREATE)**\n\n```typescript\n\"use node\";\nimport { action } from \"../_generated/server\";\nimport { v } from \"convex/values\";\nimport { internal } from \"../_generated/api\";\n\n/**\n * Export analytics to CSV\n */\nexport const exportToCSV = action({\n  args: {\n    terminalId: v.optional(v.id(\"terminals\")),\n    startDate: v.string(),\n    endDate: v.string(),\n    period: v.union(v.literal(\"hourly\"), v.literal(\"daily\")),\n  },\n  returns: v.string(), // CSV content\n  handler: async (ctx, args) => {\n    const aggregates = await ctx.runQuery(internal.analytics.queries.getAggregates, {\n      terminalId: args.terminalId,\n      startDate: args.startDate,\n      endDate: args.endDate,\n      period: args.period,\n    });\n\n    // Build CSV\n    const headers = [\n      \"Terminal\",\n      \"Date\",\n      \"Heure\",\n      \"Total Réservations\",\n      \"En attente\",\n      \"Confirmées\",\n      \"Refusées\",\n      \"Consommées\",\n      \"Annulées\",\n      \"Expirées\",\n      \"Auto-validées\",\n      \"Utilisation %\",\n      \"Conteneurs\",\n    ];\n\n    const rows = aggregates.map(a => [\n      a.terminalName,\n      a.date,\n      a.hour?.toString() ?? \"Journée\",\n      a.totalBookings,\n      a.pendingCount,\n      a.confirmedCount,\n      a.rejectedCount,\n      a.consumedCount,\n      a.cancelledCount,\n      a.expiredCount,\n      a.autoValidatedCount,\n      a.avgUtilizationPercent,\n      a.totalContainers,\n    ]);\n\n    const csv = [\n      headers.join(\",\"),\n      ...rows.map(r => r.join(\",\")),\n    ].join(\"\\n\");\n\n    return csv;\n  },\n});\n```\n\n---\n\n## Verification Strategy\n\n### Unit Tests\n\n```typescript\n// packages/backend/convex/__tests__/capacity.test.ts\ndescribe(\"Terminal Capacity Engine\", () => {\n  it(\"should reserve capacity atomically\", async () => {\n    // Test checkAndReserveCapacity\n  });\n\n  it(\"should release capacity on cancellation\", async () => {\n    // Test releaseCapacity\n  });\n\n  it(\"should auto-validate within threshold\", async () => {\n    // Test shouldAutoValidate\n  });\n\n  it(\"should reject auto-validation beyond threshold\", async () => {\n    // Test shouldAutoValidate returns false\n  });\n});\n\n// packages/backend/convex/__tests__/booking.test.ts\ndescribe(\"Booking Mutations\", () => {\n  it(\"should create booking with multiple containers\", async () => {\n    // Test create mutation\n  });\n\n  it(\"should assign gate at confirmation\", async () => {\n    // Test confirm mutation\n  });\n\n  it(\"should allow truck change only\", async () => {\n    // Test changeTruck mutation\n  });\n});\n```\n\n### Integration Tests\n\n```typescript\n// packages/backend/convex/__tests__/integration/booking-flow.test.ts\ndescribe(\"Booking Flow Integration\", () => {\n  it(\"should complete full booking lifecycle\", async () => {\n    // 1. Create booking\n    // 2. Confirm (with gate assignment)\n    // 3. Generate QR\n    // 4. Entry scan\n    // 5. Exit scan\n  });\n\n  it(\"should handle auto-validation correctly\", async () => {\n    // 1. Set threshold to 50%\n    // 2. Create bookings until threshold\n    // 3. Verify auto-validation stops\n  });\n});\n```\n\n### E2E Tests (Playwright)\n\n```typescript\n// apps/web/e2e/carrier-booking.spec.ts\ntest(\"carrier can create booking via AI chat\", async ({ page }) => {\n  // 1. Login as carrier\n  // 2. Open chat\n  // 3. Say \"Je veux créer une réservation\"\n  // 4. Follow AI prompts to select containers\n  // 5. Select optimal slot\n  // 6. Select truck\n  // 7. Confirm booking\n  // 8. Verify booking created\n});\n\n// apps/web/e2e/operator-approval.spec.ts\ntest(\"operator can approve pending bookings\", async ({ page }) => {\n  // 1. Login as operator\n  // 2. Go to approval queue\n  // 3. Select booking\n  // 4. Confirm with gate selection\n  // 5. Verify status change\n});\n\n// apps/web/e2e/qr-scan.spec.ts\ntest(\"operator can process QR scans\", async ({ page }) => {\n  // 1. Login as operator\n  // 2. Go to scanner\n  // 3. Scan entry QR\n  // 4. Verify booking status\n  // 5. Scan exit QR\n  // 6. Verify completion\n});\n```\n\n---\n\n## Critical Files Summary\n\n### Backend Core (Modify/Create)\n| File | Action | Priority |\n|------|--------|----------|\n| `packages/backend/convex/schema.ts` | Major Refactor | P0 |\n| `packages/backend/convex/lib/validators.ts` | Update | P0 |\n| `packages/backend/convex/lib/permissions.ts` | Update | P0 |\n| `packages/backend/convex/lib/capacity.ts` | Replace | P0 |\n| `packages/backend/convex/lib/autoValidation.ts` | Create | P0 |\n| `packages/backend/convex/lib/auditLog.ts` | Create | P1 |\n| `packages/backend/convex/containers/queries.ts` | Create | P0 |\n| `packages/backend/convex/containers/mutations.ts` | Create | P0 |\n| `packages/backend/convex/bookings/mutations.ts` | Major Refactor | P0 |\n| `packages/backend/convex/bookings/internal.ts` | Update | P0 |\n| `packages/backend/convex/trucks/mutations.ts` | Update | P1 |\n| `packages/backend/convex/ai/agent.ts` | Update | P0 |\n| `packages/backend/convex/ai/registry.ts` | Update | P0 |\n| `packages/backend/convex/ai/tools/containers.ts` | Create | P0 |\n| `packages/backend/convex/ai/tools/slots.ts` | Create | P0 |\n| `packages/backend/convex/ai/tools/booking-flow.ts` | Create | P0 |\n| `packages/backend/convex/ai/tools/trucks.ts` | Create | P0 |\n| `packages/backend/convex/ai/mutations.ts` | Create | P0 |\n| `packages/backend/convex/qr/index.ts` | Create | P1 |\n| `packages/backend/convex/qr/scan.ts` | Create | P1 |\n| `packages/backend/convex/email/index.ts` | Create | P1 |\n| `packages/backend/convex/analytics/compute.ts` | Create | P2 |\n| `packages/backend/convex/analytics/export.ts` | Create | P2 |\n| `packages/backend/convex/audit/queries.ts` | Create | P2 |\n| `packages/backend/convex/seed/index.ts` | Create | P2 |\n| `packages/backend/convex/crons.ts` | Update | P1 |\n| `packages/backend/convex/scheduled.ts` | Update | P1 |\n\n### Frontend (Create/Modify)\n| File | Action | Priority |\n|------|--------|----------|\n| `apps/web/src/components/ai-elements/apcs/container-selector.tsx` | Create | P0 |\n| `apps/web/src/components/ai-elements/apcs/slot-suggestions.tsx` | Create | P0 |\n| `apps/web/src/components/ai-elements/apcs/booking-confirmation-card.tsx` | Create | P0 |\n| `apps/web/src/features/scanner/components/qr-scanner.tsx` | Create | P1 |\n\n---\n\n## Timeline\n\n| Phase | Duration | Dependencies |\n|-------|----------|--------------|\n| 1. Schema Refactoring | 3-4 days | None |\n| 2. Core Backend Functions | 5-6 days | Phase 1 |\n| 3. AI Tools | 5-7 days | Phase 1, 2 |\n| 4. QR Code System | 2-3 days | Phase 2 |\n| 5. Notifications + Email | 3-4 days | Phase 2 |\n| 6. Cron Jobs | 1-2 days | Phase 2, 5 |\n| 7. Audit Logging | 2-3 days | Phase 1 |\n| 8. Seed Data | 2-3 days | All above |\n| 9. Analytics | 3-4 days | Phase 8 |\n\n**Total: 26-36 days (5-7 weeks)**\n"
 }
-```
+````
 
 **Output:**
+
 ```
 Wrote file successfully.
 
@@ -13727,6 +13883,7 @@ I've written the exhaustive backend implementation plan. Let me provide a summar
 The plan file at `.opencode/plans/1770398316992-lucky-meadow.md` now contains **comprehensive implementation details** covering:
 
 ### Schema Changes (Phase 1)
+
 - **Remove** `carrierCompanies` and `carrierUsers` tables
 - **Add** `containers` table with full ISO 6346 support
 - **Refactor** `trucks` (direct ownership via `ownerId`)
@@ -13736,6 +13893,7 @@ The plan file at `.opencode/plans/1770398316992-lucky-meadow.md` now contains **
 - **Update** `terminals` (add auto-validation threshold, capacity alerts)
 
 ### Core Functions (Phase 2)
+
 - Container CRUD with full queries and mutations
 - Terminal-level capacity engine (replaces gate-level)
 - Auto-validation engine with configurable thresholds
@@ -13746,6 +13904,7 @@ The plan file at `.opencode/plans/1770398316992-lucky-meadow.md` now contains **
   - Terminal-prefixed references (e.g., `TER1-BK-001234`)
 
 ### AI Tools (Phase 3) - French Only
+
 - `listMyContainers`, `selectContainersForBooking`
 - `getSlotAvailability`, `suggestOptimalSlots`
 - `createBookingViaAI`, `cancelBookingViaAI`, `changeTruckViaAI`
@@ -13753,6 +13912,7 @@ The plan file at `.opencode/plans/1770398316992-lucky-meadow.md` now contains **
 - Updated agent instructions in French
 
 ### Additional Systems (Phases 4-9)
+
 - QR code generation and double-scan system
 - Email notifications via Resend
 - Cron jobs for expiration, reminders, capacity alerts, analytics
@@ -13761,6 +13921,7 @@ The plan file at `.opencode/plans/1770398316992-lucky-meadow.md` now contains **
 - Analytics aggregation and CSV/PDF export
 
 ### Verification Strategy
+
 - Unit tests for capacity and booking logic
 - Integration tests for full booking lifecycle
 - E2E tests with Playwright
@@ -13770,11 +13931,13 @@ The plan file at `.opencode/plans/1770398316992-lucky-meadow.md` now contains **
 **Tool: plan_exit**
 
 **Input:**
+
 ```json
 {}
 ```
 
 **Error:**
+
 ```
 Error: The user dismissed this question
 ```
@@ -13786,20 +13949,20 @@ Error: The user dismissed this question
 Are you considering that slots are created on first book? I saw this and it's confusing me
 }
 
-  // Find the slot
-  const slot = await ctx.db
-    .query("timeSlots")
-    .withIndex("by_terminal_and_date", q =>
-      q.eq("terminalId", terminalId).eq("date", date)
-    )
-    .filter(q => q.eq(q.field("startTime"), startTime))
-    .first();
+// Find the slot
+const slot = await ctx.db
+.query("timeSlots")
+.withIndex("by_terminal_and_date", q =>
+q.eq("terminalId", terminalId).eq("date", date)
+)
+.filter(q => q.eq(q.field("startTime"), startTime))
+.first();
 
-  if (!slot) {
-    // No slot yet means first booking - auto-validate
-    const threshold = terminal.autoValidationThreshold;
-    const maxCapacity = terminal.defaultSlotCapacity;
-    const maxAutoValidated = Math.floor((maxCapacity * threshold) / 100); 
+if (!slot) {
+// No slot yet means first booking - auto-validate
+const threshold = terminal.autoValidationThreshold;
+const maxCapacity = terminal.defaultSlotCapacity;
+const maxAutoValidated = Math.floor((maxCapacity \* threshold) / 100);
 
 ---
 
@@ -13810,17 +13973,20 @@ _Thinking:_
 The user is asking about the design decision where time slots are created on-demand (when the first booking is made) rather than being pre-created. This is indeed a design choice that needs clarification.
 
 Looking at the plan, there are two places where this comes up:
+
 1. In `checkAndReserveCapacity` - which creates a slot if it doesn't exist
 2. In `shouldAutoValidate` - which handles the case where no slot exists yet
 
 The user seems confused about whether:
+
 1. Slots should be pre-created by operators/admins
 2. Slots should be created on-demand when first booked
 
 This is an important architectural decision. Let me think about the pros and cons:
 
 **Option A: Pre-created slots (operator creates them)**
-- Pros: 
+
+- Pros:
   - Operators have full control over which slots are available
   - Can customize capacity per slot ahead of time
   - Clearer for operators to manage
@@ -13829,6 +13995,7 @@ This is an important architectural decision. Let me think about the pros and con
   - Need bulk creation tools
 
 **Option B: On-demand slots (created on first booking)**
+
 - Pros:
   - Less administrative overhead
   - System automatically handles any time the terminal is open
@@ -13838,6 +14005,7 @@ This is an important architectural decision. Let me think about the pros and con
   - Harder to close specific time slots
 
 **Option C: Hybrid - slots are pre-generated based on terminal operating hours, but can be customized**
+
 - Terminal has operating hours (e.g., 06:00-22:00) and slot duration (e.g., 60 min)
 - System auto-generates slots for X days ahead (cron job)
 - Operators can then customize individual slots or disable them
@@ -13854,6 +14022,7 @@ This creates ambiguity about slot management. Let me clarify the options:
 **Tool: question**
 
 **Input:**
+
 ```json
 {
   "questions": [
@@ -13880,6 +14049,7 @@ This creates ambiguity about slot management. Let me clarify the options:
 ```
 
 **Output:**
+
 ```
 User has answered your questions: "How should time slots be managed? This affects capacity planning and operator control."="Slot configuration is static (we can configure 24 times 7 slots, one hour per slot) but slots are creating dynamically. Expected behavior: if I check the availability of a slot with no bookings, I should be able to retrieve it and find it empty.". You can now continue with the user's answers in mind.
 ```
@@ -13906,6 +14076,7 @@ Let me update the plan to make this clearer:
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/.opencode/plans/1770398316992-lucky-meadow.md",
@@ -13915,16 +14086,17 @@ Let me update the plan to make this clearer:
 ```
 
 **Output:**
-```
+
+````
 <file>
 00001| # APCS Maritime Port Booking System - Exhaustive Backend Implementation Plan
-00002| 
+00002|
 00003| ## Executive Summary
-00004| 
+00004|
 00005| This plan details the complete backend implementation for APCS (Advanced Port Container System). The system transforms from a gate-level booking model to a **terminal-level capacity model** with **container-centric bookings** and a **French-only AI assistant**.
-00006| 
+00006|
 00007| ### Key Architectural Changes
-00008| 
+00008|
 00009| | Current State | Target State |
 00010| |--------------|--------------|
 00011| | Carrier companies own trucks | Trucks owned directly by carrier users |
@@ -13934,25 +14106,25 @@ Let me update the plan to make this clearer:
 00015| | Gate assigned at booking | Gate assigned at approval |
 00016| | Bilingual (EN/FR) | French only |
 00017| | No containers table | Pre-seeded containers assigned to carriers |
-00018| 
+00018|
 00019| ---
-00020| 
+00020|
 00021| ## Phase 1: Schema Refactoring
-00022| 
+00022|
 00023| **Files to Modify:**
 00024| - `packages/backend/convex/schema.ts` (major refactor)
 00025| - `packages/backend/convex/lib/validators.ts` (add new validators)
-00026| 
+00026|
 00027| ### 1.1 Tables to Remove
-00028| 
+00028|
 00029| ```typescript
 00030| // DELETE these tables entirely
 00031| carrierCompanies: defineTable({ ... })  // REMOVE
 00032| carrierUsers: defineTable({ ... })      // REMOVE
 00033| ```
-00034| 
+00034|
 00035| ### 1.2 New `containers` Table
-00036| 
+00036|
 00037| ```typescript
 00038| /** Container type (ISO standard classifications) */
 00039| export const containerTypeValidator = v.union(
@@ -13963,7 +14135,7 @@ Let me update the plan to make this clearer:
 00044|   v.literal("tank"),          // Tank container
 00045|   v.literal("hazardous")      // Hazardous materials
 00046| );
-00047| 
+00047|
 00048| /** Container dimensions (ISO standard) */
 00049| export const containerDimensionsValidator = v.union(
 00050|   v.literal("20ft"),          // 20' standard
@@ -13971,7 +14143,7 @@ Let me update the plan to make this clearer:
 00052|   v.literal("40ft_hc"),       // 40' high cube
 00053|   v.literal("45ft")           // 45' high cube
 00054| );
-00055| 
+00055|
 00056| /** Container weight class */
 00057| export const containerWeightClassValidator = v.union(
 00058|   v.literal("light"),         // < 10 tons
@@ -13979,40 +14151,40 @@ Let me update the plan to make this clearer:
 00060|   v.literal("heavy"),         // 20-30 tons
 00061|   v.literal("super_heavy")    // > 30 tons
 00062| );
-00063| 
+00063|
 00064| /** Container operation type */
 00065| export const containerOperationValidator = v.union(
 00066|   v.literal("pick_up"),       // Carrier picks up from terminal
 00067|   v.literal("drop_off")       // Carrier drops off at terminal
 00068| );
-00069| 
+00069|
 00070| containers: defineTable({
 00071|   // Ownership
 00072|   ownerId: v.string(),                          // Better Auth user ID (carrier role)
-00073|   
+00073|
 00074|   // ISO 6346 container identification
 00075|   containerNumber: v.string(),                   // e.g., "MSCU1234567"
-00076|   
+00076|
 00077|   // Classification
 00078|   containerType: containerTypeValidator,
 00079|   dimensions: containerDimensionsValidator,
 00080|   weightClass: containerWeightClassValidator,
-00081|   
+00081|
 00082|   // Operation details
 00083|   operationType: containerOperationValidator,
-00084|   
+00084|
 00085|   // For pick_up: when container will be ready for collection
 00086|   readyDate: v.optional(v.number()),
 00087|   // For drop_off: expected departure date from terminal
 00088|   departureDate: v.optional(v.number()),
-00089|   
+00089|
 00090|   // State
 00091|   isEmpty: v.boolean(),                          // Empty vs loaded
 00092|   isActive: v.boolean(),                         // Soft delete flag
-00093|   
+00093|
 00094|   // Booking association (null if not booked)
 00095|   bookingId: v.optional(v.id("bookings")),
-00096|   
+00096|
 00097|   // Metadata
 00098|   notes: v.optional(v.string()),
 00099|   createdAt: v.number(),
@@ -14020,7 +14192,7 @@ Let me update the plan to make this clearer:
 
 (File has more lines. Use 'offset' parameter to read beyond line 100)
 </file>
-```
+````
 
 ---
 
@@ -14029,6 +14201,7 @@ Let me update the plan to make this clearer:
 **Tool: edit**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/.opencode/plans/1770398316992-lucky-meadow.md",
@@ -14038,6 +14211,7 @@ Let me update the plan to make this clearer:
 ```
 
 **Output:**
+
 ```
 Edit applied successfully.
 ```
@@ -14051,6 +14225,7 @@ Now let me update the `timeSlots` table definition and the capacity functions to
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/.opencode/plans/1770398316992-lucky-meadow.md",
@@ -14060,62 +14235,63 @@ Now let me update the `timeSlots` table definition and the capacity functions to
 ```
 
 **Output:**
-```
+
+````
 <file>
-00151| 
+00151|
 00152| ### 1.4 Refactored `bookings` Table
-00153| 
+00153|
 00154| ```typescript
 00155| bookings: defineTable({
 00156|   // CHANGED: Terminal-level (gate assigned later)
 00157|   terminalId: v.id("terminals"),
 00158|   carrierId: v.string(),                         // Better Auth user ID (was carrierCompanyId)
 00159|   truckId: v.id("trucks"),
-00160|   
+00160|
 00161|   // CHANGED: Gate assigned at approval, not booking
 00162|   gateId: v.optional(v.id("gates")),             // Now optional, assigned on confirm
-00163|   
+00163|
 00164|   // CHANGED: Multiple containers per booking
 00165|   containerIds: v.array(v.id("containers")),
-00166|   
+00166|
 00167|   // Reference (terminal-prefixed)
 00168|   bookingReference: v.string(),                   // e.g., "TER1-BK-001234"
 00169|   status: bookingStatusValidator,
-00170|   
+00170|
 00171|   // ADDED: Auto-validation tracking
 00172|   wasAutoValidated: v.boolean(),
-00173|   
+00173|
 00174|   // Preferred slot (before gate assignment)
 00175|   preferredDate: v.string(),                      // YYYY-MM-DD
 00176|   preferredTimeStart: v.string(),                 // HH:mm
 00177|   preferredTimeEnd: v.string(),                   // HH:mm
-00178|   
+00178|
 00179|   // ADDED: QR scan timestamps
 00180|   entryScannedAt: v.optional(v.number()),
 00181|   exitScannedAt: v.optional(v.number()),
 00182|   scannedByEntry: v.optional(v.string()),        // Operator who scanned entry
 00183|   scannedByExit: v.optional(v.string()),         // Operator who scanned exit
-00184|   
+00184|
 00185|   // QR code
 00186|   qrCode: v.optional(v.string()),                 // Data URL
 00187|   qrCodeStorageId: v.optional(v.id("_storage")), // Convex file storage
-00188|   
+00188|
 00189|   // Driver info
 00190|   driverName: v.optional(v.string()),
 00191|   driverPhone: v.optional(v.string()),
 00192|   driverIdNumber: v.optional(v.string()),
-00193|   
+00193|
 00194|   // Timestamps
 00195|   bookedAt: v.number(),
 00196|   confirmedAt: v.optional(v.number()),
 00197|   rejectedAt: v.optional(v.number()),
 00198|   cancelledAt: v.optional(v.number()),
 00199|   expiredAt: v.optional(v.number()),
-00200|   
+00200|
 00201|   // Status metadata
 00202|   statusReason: v.optional(v.string()),
 00203|   processedBy: v.optional(v.string()),
-00204|   
+00204|
 00205|   createdBy: v.string(),
 00206|   updatedAt: v.number(),
 00207| })
@@ -14131,25 +14307,25 @@ Now let me update the `timeSlots` table definition and the capacity functions to
 00217|   .index("by_date", ["preferredDate"])
 00218|   .index("by_created_by", ["createdBy"]),
 00219| ```
-00220| 
+00220|
 00221| ### 1.5 Refactored `timeSlots` Table
-00222| 
+00222|
 00223| ```typescript
 00224| timeSlots: defineTable({
 00225|   // CHANGED: Terminal-level, not gate-level
 00226|   terminalId: v.id("terminals"),
-00227|   
+00227|
 00228|   date: v.string(),                               // YYYY-MM-DD
 00229|   startTime: v.string(),                          // HH:mm (24h)
 00230|   endTime: v.string(),                            // HH:mm (24h)
-00231|   
+00231|
 00232|   // Terminal capacity (truck count)
 00233|   maxCapacity: v.number(),
 00234|   currentBookings: v.number(),                    // Confirmed + pending count
-00235|   
+00235|
 00236|   // ADDED: Auto-validation threshold for this slot
 00237|   autoValidationThreshold: v.optional(v.number()), // Override terminal default (0-100%)
-00238|   
+00238|
 00239|   isActive: v.boolean(),
 00240|   createdAt: v.number(),
 00241|   updatedAt: v.number(),
@@ -14161,11 +14337,11 @@ Now let me update the `timeSlots` table definition and the capacity functions to
 00247|   .index("by_date", ["date"])
 00248|   .index("by_terminal_and_active", ["terminalId", "isActive"]),
 00249| ```
-00250| 
+00250|
 
 (File has more lines. Use 'offset' parameter to read beyond line 250)
 </file>
-```
+````
 
 ---
 
@@ -14174,15 +14350,17 @@ Now let me update the `timeSlots` table definition and the capacity functions to
 **Tool: edit**
 
 **Input:**
-```json
+
+````json
 {
   "filePath": "/home/sones/projects/monorepo/.opencode/plans/1770398316992-lucky-meadow.md",
   "oldString": "### 1.5 Refactored `timeSlots` Table\n\n```typescript\ntimeSlots: defineTable({\n  // CHANGED: Terminal-level, not gate-level\n  terminalId: v.id(\"terminals\"),\n  \n  date: v.string(),                               // YYYY-MM-DD\n  startTime: v.string(),                          // HH:mm (24h)\n  endTime: v.string(),                            // HH:mm (24h)\n  \n  // Terminal capacity (truck count)\n  maxCapacity: v.number(),\n  currentBookings: v.number(),                    // Confirmed + pending count\n  \n  // ADDED: Auto-validation threshold for this slot\n  autoValidationThreshold: v.optional(v.number()), // Override terminal default (0-100%)\n  \n  isActive: v.boolean(),\n  createdAt: v.number(),\n  updatedAt: v.number(),\n  createdBy: v.string(),\n})\n  // CHANGED indexes\n  .index(\"by_terminal\", [\"terminalId\"])\n  .index(\"by_terminal_and_date\", [\"terminalId\", \"date\"])\n  .index(\"by_date\", [\"date\"])\n  .index(\"by_terminal_and_active\", [\"terminalId\", \"isActive\"]),\n```",
   "newString": "### 1.5 Refactored `timeSlots` Table\n\n**Note: Slot records are ONLY created when a booking is made for that slot.**\nVirtual slots (no bookings yet) are computed from terminal operating hours.\n\n```typescript\ntimeSlots: defineTable({\n  // CHANGED: Terminal-level, not gate-level\n  terminalId: v.id(\"terminals\"),\n  \n  date: v.string(),                               // YYYY-MM-DD\n  startTime: v.string(),                          // HH:mm (24h)\n  endTime: v.string(),                            // HH:mm (24h)\n  \n  // Terminal capacity (truck count) - inherited from terminal.defaultSlotCapacity\n  maxCapacity: v.number(),\n  currentBookings: v.number(),                    // Confirmed + pending count\n  \n  // ADDED: Auto-validation threshold for this slot (override terminal default)\n  autoValidationThreshold: v.optional(v.number()), // 0-100%, null = use terminal default\n  \n  // Slot can be disabled by operator\n  isActive: v.boolean(),\n  createdAt: v.number(),\n  updatedAt: v.number(),\n  createdBy: v.string(),\n})\n  .index(\"by_terminal\", [\"terminalId\"])\n  .index(\"by_terminal_and_date\", [\"terminalId\", \"date\"])\n  .index(\"by_date\", [\"date\"])\n  .index(\"by_terminal_and_active\", [\"terminalId\", \"isActive\"]),\n```"
 }
-```
+````
 
 **Output:**
+
 ```
 Edit applied successfully.
 ```
@@ -14196,6 +14374,7 @@ Now let me update the capacity functions to better explain the virtual slot logi
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/.opencode/plans/1770398316992-lucky-meadow.md",
@@ -14205,67 +14384,68 @@ Now let me update the capacity functions to better explain the virtual slot logi
 ```
 
 **Output:**
-```
+
+````
 <file>
-00381| 
+00381|
 00382| ### 1.9 Updated `systemConfig` Table
-00383| 
+00383|
 00384| ```typescript
 00385| systemConfig: defineTable({
 00386|   // Booking window
 00387|   maxAdvanceBookingDays: v.number(),              // e.g., 30
 00388|   minAdvanceBookingHours: v.number(),             // e.g., 2
-00389|   
+00389|
 00390|   // REMOVED: cancellationWindowHours (carriers can cancel anytime)
-00391|   
+00391|
 00392|   // ADDED: No-show handling
 00393|   noShowGracePeriodMinutes: v.number(),           // e.g., 30
-00394|   
+00394|
 00395|   // ADDED: Auto-validation defaults
 00396|   defaultAutoValidationThreshold: v.number(),     // 0-100, global default
-00397|   
+00397|
 00398|   // Reminder settings
 00399|   reminderHoursBefore: v.array(v.number()),
-00400|   
+00400|
 00401|   // ADDED: Container settings
 00402|   maxContainersPerBooking: v.number(),            // e.g., 10
-00403|   
+00403|
 00404|   updatedAt: v.number(),
 00405|   updatedBy: v.string(),
 00406| }),
 00407| ```
-00408| 
+00408|
 00409| ### 1.10 Updated `userProfiles` Table
-00410| 
+00410|
 00411| ```typescript
 00412| userProfiles: defineTable({
 00413|   userId: v.string(),
-00414|   
+00414|
 00415|   // CHANGED: French only, but keep field for future
 00416|   preferredLanguage: v.literal("fr"),             // Always French
 00417|   notificationChannel: notificationChannelValidator,
-00418|   
+00418|
 00419|   phone: v.optional(v.string()),
-00420|   
+00420|
 00421|   createdAt: v.number(),
 00422|   updatedAt: v.number(),
 00423| })
 00424|   .index("by_user", ["userId"]),
 00425| ```
-00426| 
+00426|
 00427| ---
-00428| 
+00428|
 00429| ## Phase 2: Core Backend Functions
-00430| 
+00430|
 00431| ### 2.1 Container CRUD
-00432| 
+00432|
 00433| **File: `packages/backend/convex/containers/queries.ts`**
-00434| 
+00434|
 00435| ```typescript
 00436| import { query } from "../_generated/server";
 00437| import { v } from "convex/values";
 00438| import { getAuthenticatedUser, requireRole, isPortAdmin } from "../lib/permissions";
-00439| 
+00439|
 00440| /**
 00441|  * List containers for the current carrier user
 00442|  */
@@ -14290,15 +14470,15 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00461|   handler: async (ctx, args) => {
 00462|     const user = await getAuthenticatedUser(ctx);
 00463|     requireRole(user, ["carrier"]);
-00464| 
+00464|
 00465|     let query = ctx.db
 00466|       .query("containers")
-00467|       .withIndex("by_owner_and_active", q => 
+00467|       .withIndex("by_owner_and_active", q =>
 00468|         q.eq("ownerId", user.userId).eq("isActive", true)
 00469|       );
-00470| 
+00470|
 00471|     const containers = await query.collect();
-00472| 
+00472|
 00473|     return containers
 00474|       .filter(c => {
 00475|         if (args.operationType && c.operationType !== args.operationType) return false;
@@ -14320,7 +14500,7 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00491|       }));
 00492|   },
 00493| });
-00494| 
+00494|
 00495| /**
 00496|  * Get available containers for booking (not already in a booking)
 00497|  */
@@ -14339,14 +14519,14 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00510|   handler: async (ctx, args) => {
 00511|     const user = await getAuthenticatedUser(ctx);
 00512|     requireRole(user, ["carrier"]);
-00513| 
+00513|
 00514|     const containers = await ctx.db
 00515|       .query("containers")
 00516|       .withIndex("by_owner_available", q =>
 00517|         q.eq("ownerId", user.userId).eq("isActive", true).eq("bookingId", undefined)
 00518|       )
 00519|       .collect();
-00520| 
+00520|
 00521|     return containers
 00522|       .filter(c => !args.operationType || c.operationType === args.operationType)
 00523|       .map(c => ({
@@ -14360,7 +14540,7 @@ Now let me update the capacity functions to better explain the virtual slot logi
 
 (File has more lines. Use 'offset' parameter to read beyond line 530)
 </file>
-```
+````
 
 ---
 
@@ -14369,6 +14549,7 @@ Now let me update the capacity functions to better explain the virtual slot logi
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/.opencode/plans/1770398316992-lucky-meadow.md",
@@ -14378,18 +14559,19 @@ Now let me update the capacity functions to better explain the virtual slot logi
 ```
 
 **Output:**
-```
+
+````
 <file>
 00581| });
 00582| ```
-00583| 
+00583|
 00584| **File: `packages/backend/convex/containers/mutations.ts`**
-00585| 
+00585|
 00586| ```typescript
 00587| import { mutation } from "../_generated/server";
 00588| import { v, ConvexError } from "convex/values";
 00589| import { getAuthenticatedUser, requireRole, isPortAdmin } from "../lib/permissions";
-00590| 
+00590|
 00591| /**
 00592|  * Create a container (admin only - containers are pre-seeded)
 00593|  */
@@ -14410,7 +14592,7 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00608|   handler: async (ctx, args) => {
 00609|     const user = await getAuthenticatedUser(ctx);
 00610|     requireRole(user, ["port_admin"]);
-00611| 
+00611|
 00612|     // Validate container number format (ISO 6346)
 00613|     if (!isValidContainerNumber(args.containerNumber)) {
 00614|       throw new ConvexError({
@@ -14418,20 +14600,20 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00616|         message: "Numéro de conteneur invalide (format ISO 6346 requis)",
 00617|       });
 00618|     }
-00619| 
+00619|
 00620|     // Check for duplicate
 00621|     const existing = await ctx.db
 00622|       .query("containers")
 00623|       .withIndex("by_container_number", q => q.eq("containerNumber", args.containerNumber))
 00624|       .first();
-00625| 
+00625|
 00626|     if (existing) {
 00627|       throw new ConvexError({
 00628|         code: "DUPLICATE",
 00629|         message: "Ce numéro de conteneur existe déjà",
 00630|       });
 00631|     }
-00632| 
+00632|
 00633|     const now = Date.now();
 00634|     return await ctx.db.insert("containers", {
 00635|       ...args,
@@ -14441,7 +14623,7 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00639|     });
 00640|   },
 00641| });
-00642| 
+00642|
 00643| /**
 00644|  * Update container details (carrier can update their own)
 00645|  */
@@ -14457,15 +14639,15 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00655|   handler: async (ctx, args) => {
 00656|     const user = await getAuthenticatedUser(ctx);
 00657|     const container = await ctx.db.get(args.containerId);
-00658| 
+00658|
 00659|     if (!container) {
 00660|       throw new ConvexError({ code: "NOT_FOUND", message: "Conteneur introuvable" });
 00661|     }
-00662| 
+00662|
 00663|     if (!isPortAdmin(user) && container.ownerId !== user.userId) {
 00664|       throw new ConvexError({ code: "FORBIDDEN", message: "Accès refusé" });
 00665|     }
-00666| 
+00666|
 00667|     // Cannot update if in an active booking
 00668|     if (container.bookingId) {
 00669|       const booking = await ctx.db.get(container.bookingId);
@@ -14476,7 +14658,7 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00674|         });
 00675|       }
 00676|     }
-00677| 
+00677|
 00678|     await ctx.db.patch(args.containerId, {
 00679|       isEmpty: args.isEmpty ?? container.isEmpty,
 00680|       readyDate: args.readyDate,
@@ -14484,11 +14666,11 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00682|       notes: args.notes,
 00683|       updatedAt: Date.now(),
 00684|     });
-00685| 
+00685|
 00686|     return null;
 00687|   },
 00688| });
-00689| 
+00689|
 00690| // Helper: Validate ISO 6346 container number
 00691| function isValidContainerNumber(num: string): boolean {
 00692|   // Format: 4 letters (owner) + 6 digits + 1 check digit
@@ -14497,11 +14679,11 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00695|   return regex.test(num);
 00696| }
 00697| ```
-00698| 
+00698|
 00699| ### 2.2 Terminal-Level Capacity Engine
-00700| 
+00700|
 00701| **File: `packages/backend/convex/lib/capacity.ts` (REPLACE)**
-00702| 
+00702|
 00703| ```typescript
 00704| /**
 00705|  * Terminal-Level Capacity Management
@@ -14509,14 +14691,14 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00707|  */
 00708| import type { MutationCtx, QueryCtx } from "../_generated/server";
 00709| import type { Id, Doc } from "../_generated/dataModel";
-00710| 
+00710|
 00711| export interface CapacityResult {
 00712|   available: number;
 00713|   total: number;
 00714|   booked: number;
 00715|   utilizationPercent: number;
 00716| }
-00717| 
+00717|
 00718| export interface SlotCapacity extends CapacityResult {
 00719|   slotId: Id<"timeSlots">;
 00720|   date: string;
@@ -14526,14 +14708,14 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00724|   autoValidatedCount: number;
 00725|   remainingAutoValidation: number;
 00726| }
-00727| 
+00727|
 00728| /**
 00729|  * Get slot for terminal and time
 00730|  */
 
 (File has more lines. Use 'offset' parameter to read beyond line 730)
 </file>
-```
+````
 
 ---
 
@@ -14542,6 +14724,7 @@ Now let me update the capacity functions to better explain the virtual slot logi
 **Tool: read**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/.opencode/plans/1770398316992-lucky-meadow.md",
@@ -14551,6 +14734,7 @@ Now let me update the capacity functions to better explain the virtual slot logi
 ```
 
 **Output:**
+
 ```
 <file>
 00731| export async function getSlotForTerminal(
@@ -14561,13 +14745,13 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00736| ): Promise<Doc<"timeSlots"> | null> {
 00737|   return await ctx.db
 00738|     .query("timeSlots")
-00739|     .withIndex("by_terminal_and_date", q => 
+00739|     .withIndex("by_terminal_and_date", q =>
 00740|       q.eq("terminalId", terminalId).eq("date", date)
 00741|     )
 00742|     .filter(q => q.eq(q.field("startTime"), startTime))
 00743|     .first();
 00744| }
-00745| 
+00745|
 00746| /**
 00747|  * Check if a terminal slot has capacity and atomically reserve if available
 00748|  */
@@ -14580,14 +14764,14 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00755| ): Promise<{ success: boolean; slotId?: Id<"timeSlots">; error?: string }> {
 00756|   // Find or create the slot
 00757|   let slot = await getSlotForTerminal(ctx, terminalId, date, startTime);
-00758|   
+00758|
 00759|   if (!slot) {
 00760|     // Create slot on-demand with terminal defaults
 00761|     const terminal = await ctx.db.get(terminalId);
 00762|     if (!terminal) {
 00763|       return { success: false, error: "Terminal introuvable" };
 00764|     }
-00765| 
+00765|
 00766|     const now = Date.now();
 00767|     const slotId = await ctx.db.insert("timeSlots", {
 00768|       terminalId,
@@ -14601,28 +14785,28 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00776|       updatedAt: now,
 00777|       createdBy: "system",
 00778|     });
-00779| 
+00779|
 00780|     slot = await ctx.db.get(slotId);
 00781|   }
-00782| 
+00782|
 00783|   if (!slot || !slot.isActive) {
 00784|     return { success: false, error: "Créneau horaire indisponible" };
 00785|   }
-00786| 
+00786|
 00787|   // Check capacity
 00788|   if (slot.currentBookings >= slot.maxCapacity) {
 00789|     return { success: false, error: "Créneau complet" };
 00790|   }
-00791| 
+00791|
 00792|   // Atomically increment
 00793|   await ctx.db.patch(slot._id, {
 00794|     currentBookings: slot.currentBookings + 1,
 00795|     updatedAt: Date.now(),
 00796|   });
-00797| 
+00797|
 00798|   return { success: true, slotId: slot._id };
 00799| }
-00800| 
+00800|
 00801| /**
 00802|  * Release capacity (on cancellation/rejection/expiration)
 00803|  */
@@ -14632,13 +14816,13 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00807| ): Promise<void> {
 00808|   const slot = await ctx.db.get(slotId);
 00809|   if (!slot) return;
-00810| 
+00810|
 00811|   await ctx.db.patch(slotId, {
 00812|     currentBookings: Math.max(0, slot.currentBookings - 1),
 00813|     updatedAt: Date.now(),
 00814|   });
 00815| }
-00816| 
+00816|
 00817| /**
 00818|  * Get terminal capacity for a specific date
 00819|  */
@@ -14649,16 +14833,16 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00824| ): Promise<SlotCapacity[]> {
 00825|   const terminal = await ctx.db.get(terminalId);
 00826|   if (!terminal) return [];
-00827| 
+00827|
 00828|   const slots = await ctx.db
 00829|     .query("timeSlots")
-00830|     .withIndex("by_terminal_and_date", q => 
+00830|     .withIndex("by_terminal_and_date", q =>
 00831|       q.eq("terminalId", terminalId).eq("date", date)
 00832|     )
 00833|     .collect();
-00834| 
+00834|
 00835|   const results: SlotCapacity[] = [];
-00836| 
+00836|
 00837|   for (const slot of slots) {
 00838|     // Count auto-validated bookings for this slot
 00839|     const bookings = await ctx.db
@@ -14666,7 +14850,7 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00841|       .withIndex("by_terminal_and_date", q =>
 00842|         q.eq("terminalId", terminalId).eq("preferredDate", date)
 00843|       )
-00844|       .filter(q => 
+00844|       .filter(q =>
 00845|         q.and(
 00846|           q.eq(q.field("preferredTimeStart"), slot.startTime),
 00847|           q.or(
@@ -14676,11 +14860,11 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00851|         )
 00852|       )
 00853|       .collect();
-00854| 
+00854|
 00855|     const autoValidatedCount = bookings.filter(b => b.wasAutoValidated).length;
 00856|     const threshold = slot.autoValidationThreshold ?? terminal.autoValidationThreshold;
 00857|     const maxAutoValidated = Math.floor((slot.maxCapacity * threshold) / 100);
-00858| 
+00858|
 00859|     results.push({
 00860|       slotId: slot._id,
 00861|       date: slot.date,
@@ -14695,10 +14879,10 @@ Now let me update the capacity functions to better explain the virtual slot logi
 00870|       remainingAutoValidation: Math.max(0, maxAutoValidated - autoValidatedCount),
 00871|     });
 00872|   }
-00873| 
+00873|
 00874|   return results.sort((a, b) => a.startTime.localeCompare(b.startTime));
 00875| }
-00876| 
+00876|
 00877| /**
 00878|  * Recalculate capacity for all slots of a terminal on a date
 00879|  */
@@ -14717,6 +14901,7 @@ Now I need to update the `getTerminalCapacityForDate` function to generate **vir
 **Tool: edit**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/.opencode/plans/1770398316992-lucky-meadow.md",
@@ -14726,6 +14911,7 @@ Now I need to update the `getTerminalCapacityForDate` function to generate **vir
 ```
 
 **Output:**
+
 ```
 Edit applied successfully.
 ```
@@ -14739,6 +14925,7 @@ Now let me also update the `SlotCapacity` interface to include the new fields:
 **Tool: edit**
 
 **Input:**
+
 ```json
 {
   "filePath": "/home/sones/projects/monorepo/.opencode/plans/1770398316992-lucky-meadow.md",
@@ -14748,6 +14935,7 @@ Now let me also update the `SlotCapacity` interface to include the new fields:
 ```
 
 **Output:**
+
 ```
 Edit applied successfully.
 ```
@@ -14774,6 +14962,7 @@ The plan now clearly explains the slot management model:
    - Then increments `currentBookings`
 
 This way:
+
 - Querying an empty slot returns `0/capacity` (not "slot not found")
 - No need to pre-create 168+ records per week
 - Operators can still customize individual slots after they're created (e.g., disable a specific slot, change capacity)
@@ -14781,4 +14970,3 @@ This way:
 Does this clarify the design? Would you like me to adjust anything else in the plan?
 
 ---
-

@@ -5,8 +5,16 @@
  * They bypass the normal auth middleware because the agent action
  * already authenticated the user and passes userId explicitly.
  *
- * IMPORTANT: All data access respects RBAC — the userId is used to
+ * IMPORTANT: All data access respects RBAC - the userId is used to
  * look up the user's role and filter data accordingly.
+ *
+ * Updated for new schema:
+ * - No carrierCompanies/carrierUsers tables
+ * - Bookings use carrierId (string), not carrierCompanyId
+ * - Bookings have preferredDate/preferredTimeStart/preferredTimeEnd (not timeSlotId)
+ * - Bookings have containerIds array (not containerNumber)
+ * - gateId is optional on bookings
+ * - Time slots are terminal-level (by_terminal_and_date index)
  */
 import { internalQuery } from "../_generated/server";
 import { v } from "convex/values";
@@ -23,13 +31,27 @@ async function getUserProfile(ctx: { db: any }, userId: string) {
     .unique();
 }
 
-async function getCarrierUser(ctx: { db: any }, userId: string) {
-  return ctx.db
-    .query("carrierUsers")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
-    .unique();
+/**
+ * Get user role from Better Auth user record
+ */
+async function getUserRoleHelper(ctx: { db: any }, userId: string): Promise<string | null> {
+  // Try to get from userProfiles first (cached role)
+  const profile = await getUserProfile(ctx, userId);
+  if (profile?.preferredLanguage) {
+    // Profile exists, now check betterAuth user table for role
+    const authUser = await ctx.db
+      .query("users")
+      .filter((q: any) => q.eq(q.field("_id"), userId))
+      .first();
+    return authUser?.role ?? null;
+  }
+  return null;
 }
 
+/**
+ * Enrich bookings with related data for AI responses
+ * Updated for new schema: no timeSlotId, no carrierCompanyId
+ */
 async function enrichBookings(
   ctx: { db: any },
   bookings: Doc<"bookings">[],
@@ -42,33 +64,28 @@ async function enrichBookings(
     endTime: string;
     terminalName: string;
     terminalCode: string;
-    gateName: string;
-    gateCode: string;
+    gateName: string | null;
+    gateCode: string | null;
     licensePlate: string;
-    carrierCompanyName: string;
+    containerCount: number;
+    containerNumbers: string[];
     driverName?: string;
     bookedAt: number;
     confirmedAt?: number;
+    wasAutoValidated: boolean;
   }>
 > {
   // Batch fetch all related data
-  const timeSlotIds = [...new Set(bookings.map((b) => b.timeSlotId))];
   const terminalIds = [...new Set(bookings.map((b) => b.terminalId))];
-  const gateIds = [...new Set(bookings.map((b) => b.gateId))];
+  const gateIds = [...new Set(bookings.filter(b => b.gateId).map((b) => b.gateId!))];
   const truckIds = [...new Set(bookings.map((b) => b.truckId))];
-  const carrierIds = [...new Set(bookings.map((b) => b.carrierCompanyId))];
 
-  const [timeSlots, terminals, gates, trucks, carriers] = await Promise.all([
-    Promise.all(timeSlotIds.map((id) => ctx.db.get(id))),
+  const [terminals, gates, trucks] = await Promise.all([
     Promise.all(terminalIds.map((id) => ctx.db.get(id))),
     Promise.all(gateIds.map((id) => ctx.db.get(id))),
     Promise.all(truckIds.map((id) => ctx.db.get(id))),
-    Promise.all(carrierIds.map((id) => ctx.db.get(id))),
   ]);
 
-  const slotMap = new Map(
-    timeSlots.filter(Boolean).map((s: any) => [s._id, s]),
-  );
   const termMap = new Map(
     terminals.filter(Boolean).map((t: any) => [t._id, t]),
   );
@@ -76,32 +93,40 @@ async function enrichBookings(
   const truckMap = new Map(
     trucks.filter(Boolean).map((t: any) => [t._id, t]),
   );
-  const carrierMap = new Map(
-    carriers.filter(Boolean).map((c: any) => [c._id, c]),
+
+  // Fetch containers for all bookings
+  const allContainerIds = bookings.flatMap(b => b.containerIds || []);
+  const containers = await Promise.all(allContainerIds.map(id => ctx.db.get(id)));
+  const containerMap = new Map(
+    containers.filter(Boolean).map((c: any) => [c._id, c]),
   );
 
   return bookings.map((b) => {
-    const slot = slotMap.get(b.timeSlotId) as any;
     const terminal = termMap.get(b.terminalId) as any;
-    const gate = gateMap.get(b.gateId) as any;
+    const gate = b.gateId ? gateMap.get(b.gateId) as any : null;
     const truck = truckMap.get(b.truckId) as any;
-    const carrier = carrierMap.get(b.carrierCompanyId) as any;
+    
+    const bookingContainers = (b.containerIds || [])
+      .map(id => containerMap.get(id))
+      .filter(Boolean);
 
     return {
       bookingReference: b.bookingReference,
       status: b.status,
-      date: slot?.date ?? "",
-      startTime: slot?.startTime ?? "",
-      endTime: slot?.endTime ?? "",
-      terminalName: terminal?.name ?? "Unknown",
+      date: b.preferredDate,
+      startTime: b.preferredTimeStart,
+      endTime: b.preferredTimeEnd,
+      terminalName: terminal?.name ?? "Inconnu",
       terminalCode: terminal?.code ?? "",
-      gateName: gate?.name ?? "Unknown",
-      gateCode: gate?.code ?? "",
-      licensePlate: truck?.licensePlate ?? "Unknown",
-      carrierCompanyName: carrier?.name ?? "Unknown",
+      gateName: gate?.name ?? null,
+      gateCode: gate?.code ?? null,
+      licensePlate: truck?.licensePlate ?? "Inconnu",
+      containerCount: bookingContainers.length,
+      containerNumbers: bookingContainers.map((c: any) => c.containerNumber),
       driverName: b.driverName,
       bookedAt: b.bookedAt,
       confirmedAt: b.confirmedAt,
+      wasAutoValidated: b.wasAutoValidated ?? false,
     };
   });
 }
@@ -117,9 +142,7 @@ export const listMyBookings = internalQuery({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const carrierUser = await getCarrierUser(ctx, args.userId);
-    if (!carrierUser?.isActive) return [];
-
+    // In new schema, carriers own bookings directly via carrierId
     const limit = args.limit ?? 20;
     let bookings: Doc<"bookings">[];
 
@@ -127,9 +150,7 @@ export const listMyBookings = internalQuery({
       bookings = await ctx.db
         .query("bookings")
         .withIndex("by_carrier_and_status", (q: any) =>
-          q
-            .eq("carrierCompanyId", carrierUser.carrierCompanyId)
-            .eq("status", args.status),
+          q.eq("carrierId", args.userId).eq("status", args.status),
         )
         .order("desc")
         .take(limit);
@@ -137,7 +158,7 @@ export const listMyBookings = internalQuery({
       bookings = await ctx.db
         .query("bookings")
         .withIndex("by_carrier", (q: any) =>
-          q.eq("carrierCompanyId", carrierUser.carrierCompanyId),
+          q.eq("carrierId", args.userId),
         )
         .order("desc")
         .take(limit);
@@ -162,52 +183,59 @@ export const getBookingByReference = internalQuery({
 
     if (!booking) return null;
 
-    // Check access
-    const profile = await getUserProfile(ctx, args.userId);
-    if (!profile?.apcsRole) return null;
+    // Check access - get user role
+    const role = await getUserRoleHelper(ctx, args.userId);
+    if (!role) return null;
 
-    if (profile.apcsRole === "carrier") {
-      const carrierUser = await getCarrierUser(ctx, args.userId);
-      if (booking.carrierCompanyId !== carrierUser?.carrierCompanyId)
-        return null;
+    // Carriers can only see their own bookings
+    if (role === "carrier" && booking.carrierId !== args.userId) {
+      return null;
     }
 
     // Fetch all related data
-    const [timeSlot, terminal, gate, truck, carrier] = await Promise.all([
-      ctx.db.get(booking.timeSlotId),
+    const [terminal, gate, truck] = await Promise.all([
       ctx.db.get(booking.terminalId),
-      ctx.db.get(booking.gateId),
+      booking.gateId ? ctx.db.get(booking.gateId) : null,
       ctx.db.get(booking.truckId),
-      ctx.db.get(booking.carrierCompanyId),
     ]);
+
+    // Fetch containers
+    const containers = await Promise.all(
+      (booking.containerIds || []).map((id: Id<"containers">) => ctx.db.get(id))
+    );
+    const validContainers = containers.filter(Boolean);
 
     return {
       bookingReference: booking.bookingReference,
       status: booking.status,
       qrCode: booking.qrCode,
-      // Time slot
-      date: timeSlot?.date ?? "",
-      startTime: timeSlot?.startTime ?? "",
-      endTime: timeSlot?.endTime ?? "",
+      wasAutoValidated: booking.wasAutoValidated ?? false,
+      // Time info (from booking directly, not timeSlot)
+      date: booking.preferredDate,
+      startTime: booking.preferredTimeStart,
+      endTime: booking.preferredTimeEnd,
       // Terminal / Gate
-      terminalName: terminal?.name ?? "Unknown",
+      terminalName: terminal?.name ?? "Inconnu",
       terminalCode: terminal?.code ?? "",
-      gateName: gate?.name ?? "Unknown",
-      gateCode: gate?.code ?? "",
+      gateName: gate?.name ?? null,
+      gateCode: gate?.code ?? null,
       // Truck
-      licensePlate: truck?.licensePlate ?? "Unknown",
+      licensePlate: truck?.licensePlate ?? "Inconnu",
       truckType: truck?.truckType ?? "unknown",
       truckClass: truck?.truckClass ?? "unknown",
-      // Carrier
-      carrierCompanyName: carrier?.name ?? "Unknown",
-      carrierCompanyCode: carrier?.code ?? "",
+      // Containers (new schema)
+      containerCount: validContainers.length,
+      containers: validContainers.map((c: any) => ({
+        containerNumber: c.containerNumber,
+        containerType: c.containerType,
+        dimensions: c.dimensions,
+        operationType: c.operationType,
+        isEmpty: c.isEmpty,
+      })),
       // Driver
       driverName: booking.driverName,
       driverPhone: booking.driverPhone,
       driverIdNumber: booking.driverIdNumber,
-      // Cargo
-      containerNumber: booking.containerNumber,
-      cargoDescription: booking.cargoDescription,
       // Status
       statusReason: booking.statusReason,
       // Timestamps
@@ -229,12 +257,10 @@ export const listBookingsByTerminal = internalQuery({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const profile = await getUserProfile(ctx, args.userId);
-    if (
-      !profile?.apcsRole ||
-      !["port_admin", "terminal_operator"].includes(profile.apcsRole)
-    )
+    const role = await getUserRoleHelper(ctx, args.userId);
+    if (!role || !["port_admin", "terminal_operator"].includes(role)) {
       return [];
+    }
 
     // Find terminal by code
     const terminal = await ctx.db
@@ -244,7 +270,7 @@ export const listBookingsByTerminal = internalQuery({
     if (!terminal) return [];
 
     // Check operator assignment
-    if (profile.apcsRole === "terminal_operator") {
+    if (role === "terminal_operator") {
       const assignment = await ctx.db
         .query("terminalOperatorAssignments")
         .withIndex("by_user_and_terminal", (q: any) =>
@@ -257,7 +283,21 @@ export const listBookingsByTerminal = internalQuery({
     const limit = args.limit ?? 50;
     let bookings: Doc<"bookings">[];
 
-    if (args.status) {
+    // If date is provided, use by_terminal_and_date index
+    if (args.date) {
+      bookings = await ctx.db
+        .query("bookings")
+        .withIndex("by_terminal_and_date", (q: any) =>
+          q.eq("terminalId", terminal._id).eq("preferredDate", args.date),
+        )
+        .order("desc")
+        .take(limit);
+      
+      // Filter by status if provided
+      if (args.status) {
+        bookings = bookings.filter(b => b.status === args.status);
+      }
+    } else if (args.status) {
       bookings = await ctx.db
         .query("bookings")
         .withIndex("by_terminal_and_status", (q: any) =>
@@ -275,18 +315,6 @@ export const listBookingsByTerminal = internalQuery({
         .take(limit);
     }
 
-    // Filter by date if provided
-    if (args.date) {
-      const slotsForDate = await ctx.db
-        .query("timeSlots")
-        .withIndex("by_date", (q: any) => q.eq("date", args.date))
-        .collect();
-      const slotIds = new Set(slotsForDate.map((s: any) => s._id as string));
-      bookings = bookings.filter((b) =>
-        slotIds.has(b.timeSlotId as unknown as string),
-      );
-    }
-
     return enrichBookings(ctx, bookings);
   },
 });
@@ -294,19 +322,13 @@ export const listBookingsByTerminal = internalQuery({
 export const listBookingsByCarrier = internalQuery({
   args: {
     userId: v.string(),
-    carrierCode: v.string(),
+    carrierId: v.string(),
     status: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const profile = await getUserProfile(ctx, args.userId);
-    if (profile?.apcsRole !== "port_admin") return [];
-
-    const carrier = await ctx.db
-      .query("carrierCompanies")
-      .withIndex("by_code", (q: any) => q.eq("code", args.carrierCode))
-      .unique();
-    if (!carrier) return [];
+    const role = await getUserRoleHelper(ctx, args.userId);
+    if (role !== "port_admin") return [];
 
     const limit = args.limit ?? 50;
     let bookings: Doc<"bookings">[];
@@ -315,7 +337,7 @@ export const listBookingsByCarrier = internalQuery({
       bookings = await ctx.db
         .query("bookings")
         .withIndex("by_carrier_and_status", (q: any) =>
-          q.eq("carrierCompanyId", carrier._id).eq("status", args.status),
+          q.eq("carrierId", args.carrierId).eq("status", args.status),
         )
         .order("desc")
         .take(limit);
@@ -323,7 +345,7 @@ export const listBookingsByCarrier = internalQuery({
       bookings = await ctx.db
         .query("bookings")
         .withIndex("by_carrier", (q: any) =>
-          q.eq("carrierCompanyId", carrier._id),
+          q.eq("carrierId", args.carrierId),
         )
         .order("desc")
         .take(limit);
@@ -340,12 +362,10 @@ export const listPendingBookings = internalQuery({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const profile = await getUserProfile(ctx, args.userId);
-    if (
-      !profile?.apcsRole ||
-      !["port_admin", "terminal_operator"].includes(profile.apcsRole)
-    )
+    const role = await getUserRoleHelper(ctx, args.userId);
+    if (!role || !["port_admin", "terminal_operator"].includes(role)) {
       return [];
+    }
 
     const limit = args.limit ?? 50;
 
@@ -359,7 +379,7 @@ export const listPendingBookings = internalQuery({
         .unique();
       if (!terminal) return [];
       terminalIds = [terminal._id];
-    } else if (profile.apcsRole === "port_admin") {
+    } else if (role === "port_admin") {
       const allTerminals = await ctx.db.query("terminals").collect();
       terminalIds = allTerminals.map((t: any) => t._id);
     } else {
@@ -429,6 +449,10 @@ export const listTerminals = internalQuery({
           timezone: t.timezone,
           isActive: t.isActive,
           gateCount: gates.length,
+          defaultSlotCapacity: t.defaultSlotCapacity,
+          autoValidationThreshold: t.autoValidationThreshold,
+          operatingHoursStart: t.operatingHoursStart,
+          operatingHoursEnd: t.operatingHoursEnd,
         };
       }),
     );
@@ -459,19 +483,21 @@ export const getTerminalDetails = internalQuery({
       address: terminal.address ?? null,
       timezone: terminal.timezone,
       isActive: terminal.isActive,
+      // Terminal-level capacity settings
+      defaultSlotCapacity: terminal.defaultSlotCapacity,
+      autoValidationThreshold: terminal.autoValidationThreshold,
+      operatingHoursStart: terminal.operatingHoursStart,
+      operatingHoursEnd: terminal.operatingHoursEnd,
+      slotDurationMinutes: terminal.slotDurationMinutes,
       gates: gates.map((g: any) => ({
         name: g.name,
         code: g.code,
         description: g.description ?? null,
         isActive: g.isActive,
-        defaultCapacity: g.defaultCapacity,
         allowedTruckTypes: g.allowedTruckTypes,
         allowedTruckClasses: g.allowedTruckClasses,
       })),
-      totalCapacity: gates.reduce(
-        (sum: number, g: any) => sum + g.defaultCapacity,
-        0,
-      ),
+      gateCount: gates.filter((g: any) => g.isActive).length,
     };
   },
 });
@@ -479,7 +505,6 @@ export const getTerminalDetails = internalQuery({
 export const getAvailableSlots = internalQuery({
   args: {
     terminalCode: v.string(),
-    gateCode: v.optional(v.string()),
     date: v.string(),
   },
   handler: async (ctx, args) => {
@@ -489,57 +514,100 @@ export const getAvailableSlots = internalQuery({
       .unique();
     if (!terminal) return null;
 
-    // Get gates (optionally filtered)
-    let gates;
-    if (args.gateCode) {
-      const gate = await ctx.db
-        .query("gates")
-        .withIndex("by_code", (q: any) => q.eq("code", args.gateCode))
-        .unique();
-      gates = gate ? [gate] : [];
-    } else {
-      gates = await ctx.db
-        .query("gates")
-        .withIndex("by_terminal_and_active", (q: any) =>
-          q.eq("terminalId", terminal._id).eq("isActive", true),
-        )
-        .collect();
+    // Get existing slot records for this terminal and date
+    const existingSlots = await ctx.db
+      .query("timeSlots")
+      .withIndex("by_terminal_and_date", (q: any) =>
+        q.eq("terminalId", terminal._id).eq("date", args.date),
+      )
+      .collect();
+
+    // Build map of existing slots by startTime
+    const slotMap = new Map(existingSlots.map((s: any) => [s.startTime, s]));
+
+    // Generate all possible slots based on terminal operating hours
+    const slots: Array<{
+      startTime: string;
+      endTime: string;
+      maxCapacity: number;
+      currentBookings: number;
+      remainingCapacity: number;
+      isAvailable: boolean;
+      autoValidationRemaining: number;
+    }> = [];
+
+    const startHour = parseInt(terminal.operatingHoursStart?.split(":")[0] ?? "6", 10);
+    const endHour = parseInt(terminal.operatingHoursEnd?.split(":")[0] ?? "22", 10);
+    const durationMinutes = terminal.slotDurationMinutes ?? 60;
+
+    for (let hour = startHour; hour < endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += durationMinutes) {
+        const startTime = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
+        const endMinute = minute + durationMinutes;
+        const endHourActual = hour + Math.floor(endMinute / 60);
+        const endMinuteActual = endMinute % 60;
+        const endTime = `${endHourActual.toString().padStart(2, "0")}:${endMinuteActual.toString().padStart(2, "0")}`;
+
+        const existingSlot = slotMap.get(startTime);
+
+        if (existingSlot && existingSlot.isActive) {
+          // Real slot with bookings
+          const maxAutoValidated = Math.floor(
+            (existingSlot.maxCapacity * (existingSlot.autoValidationThreshold ?? terminal.autoValidationThreshold)) / 100
+          );
+          
+          // Count auto-validated bookings for this slot
+          const autoValidatedBookings = await ctx.db
+            .query("bookings")
+            .withIndex("by_terminal_and_date", (q: any) =>
+              q.eq("terminalId", terminal._id).eq("preferredDate", args.date)
+            )
+            .filter((q: any) =>
+              q.and(
+                q.eq(q.field("preferredTimeStart"), startTime),
+                q.eq(q.field("wasAutoValidated"), true),
+                q.or(
+                  q.eq(q.field("status"), "confirmed"),
+                  q.eq(q.field("status"), "consumed")
+                )
+              )
+            )
+            .collect();
+
+          slots.push({
+            startTime,
+            endTime,
+            maxCapacity: existingSlot.maxCapacity,
+            currentBookings: existingSlot.currentBookings,
+            remainingCapacity: existingSlot.maxCapacity - existingSlot.currentBookings,
+            isAvailable: existingSlot.currentBookings < existingSlot.maxCapacity,
+            autoValidationRemaining: Math.max(0, maxAutoValidated - autoValidatedBookings.length),
+          });
+        } else if (!existingSlot) {
+          // Virtual slot (no bookings yet)
+          const maxAutoValidated = Math.floor(
+            (terminal.defaultSlotCapacity * terminal.autoValidationThreshold) / 100
+          );
+
+          slots.push({
+            startTime,
+            endTime,
+            maxCapacity: terminal.defaultSlotCapacity,
+            currentBookings: 0,
+            remainingCapacity: terminal.defaultSlotCapacity,
+            isAvailable: true,
+            autoValidationRemaining: maxAutoValidated,
+          });
+        }
+      }
     }
-
-    // Get time slots for each gate on the given date
-    const results = await Promise.all(
-      gates.map(async (gate: any) => {
-        const slots = await ctx.db
-          .query("timeSlots")
-          .withIndex("by_gate_and_date", (q: any) =>
-            q.eq("gateId", gate._id).eq("date", args.date),
-          )
-          .collect();
-
-        return {
-          gateName: gate.name,
-          gateCode: gate.code,
-          allowedTruckTypes: gate.allowedTruckTypes,
-          allowedTruckClasses: gate.allowedTruckClasses,
-          slots: slots
-            .filter((s: any) => s.isActive)
-            .map((s: any) => ({
-              startTime: s.startTime,
-              endTime: s.endTime,
-              maxCapacity: s.maxCapacity,
-              currentBookings: s.currentBookings,
-              remainingCapacity: s.maxCapacity - s.currentBookings,
-              isAvailable: s.currentBookings < s.maxCapacity,
-            })),
-        };
-      }),
-    );
 
     return {
       terminalName: terminal.name,
       terminalCode: terminal.code,
       date: args.date,
-      gates: results,
+      slots: slots.sort((a, b) => a.startTime.localeCompare(b.startTime)),
+      totalCapacity: terminal.defaultSlotCapacity * slots.length,
     };
   },
 });
@@ -551,9 +619,8 @@ export const getAvailableSlots = internalQuery({
 export const getUserRole = internalQuery({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
-    const profile = await getUserProfile(ctx, args.userId);
-    if (!profile) return null;
-    return { apcsRole: profile.apcsRole ?? null };
+    const role = await getUserRoleHelper(ctx, args.userId);
+    return { role };
   },
 });
 
@@ -568,10 +635,102 @@ export const getSystemConfig = internalQuery({
     if (!config) return null;
 
     return {
-      cancellationWindowHours: config.cancellationWindowHours,
+      // Removed: cancellationWindowHours (carriers can cancel anytime)
       maxAdvanceBookingDays: config.maxAdvanceBookingDays,
       minAdvanceBookingHours: config.minAdvanceBookingHours,
+      noShowGracePeriodMinutes: config.noShowGracePeriodMinutes,
+      defaultAutoValidationThreshold: config.defaultAutoValidationThreshold,
       reminderHoursBefore: config.reminderHoursBefore,
+      maxContainersPerBooking: config.maxContainersPerBooking,
     };
+  },
+});
+
+// ============================================================================
+// CONTAINER QUERIES (New)
+// ============================================================================
+
+export const listMyContainers = internalQuery({
+  args: {
+    userId: v.string(),
+    operationType: v.optional(v.string()),
+    availableOnly: v.optional(v.boolean()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 50;
+
+    let containers = await ctx.db
+      .query("containers")
+      .withIndex("by_owner_and_active", (q: any) =>
+        q.eq("ownerId", args.userId).eq("isActive", true)
+      )
+      .collect();
+
+    // Filter by operation type if provided
+    if (args.operationType) {
+      containers = containers.filter(c => c.operationType === args.operationType);
+    }
+
+    // Filter to available only (not in a booking)
+    if (args.availableOnly) {
+      containers = containers.filter(c => !c.bookingId);
+    }
+
+    return containers.slice(0, limit).map(c => ({
+      containerNumber: c.containerNumber,
+      containerType: c.containerType,
+      dimensions: c.dimensions,
+      weightClass: c.weightClass,
+      operationType: c.operationType,
+      isEmpty: c.isEmpty,
+      isBooked: !!c.bookingId,
+      readyDate: c.readyDate,
+      departureDate: c.departureDate,
+    }));
+  },
+});
+
+// ============================================================================
+// TRUCK QUERIES (Updated)
+// ============================================================================
+
+export const listMyTrucks = internalQuery({
+  args: {
+    userId: v.string(),
+    activeOnly: v.optional(v.boolean()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 50;
+    const activeOnly = args.activeOnly ?? true;
+
+    let trucks;
+    if (activeOnly) {
+      trucks = await ctx.db
+        .query("trucks")
+        .withIndex("by_owner_and_active", (q: any) =>
+          q.eq("ownerId", args.userId).eq("isActive", true)
+        )
+        .take(limit);
+    } else {
+      trucks = await ctx.db
+        .query("trucks")
+        .withIndex("by_owner", (q: any) =>
+          q.eq("ownerId", args.userId)
+        )
+        .take(limit);
+    }
+
+    return trucks.map((t: any) => ({
+      licensePlate: t.licensePlate,
+      truckType: t.truckType,
+      truckClass: t.truckClass,
+      make: t.make,
+      model: t.model,
+      year: t.year,
+      maxWeight: t.maxWeight,
+      isActive: t.isActive,
+    }));
   },
 });

@@ -68,20 +68,15 @@ export const getTerminalDetails = createTool({
 });
 
 /**
- * Get available time slots for a given gate and date range.
+ * Get available time slots for a terminal on a given date.
  * Frontend component: <SlotGrid />
  */
 export const getAvailableSlots = createTool({
   description:
-    "Get available time slots for booking. You can filter by terminal code, " +
-    "gate code, and date. Shows slot times, remaining capacity, and " +
-    "booking availability.",
+    "Get available time slots for booking. Shows slot times, remaining capacity, " +
+    "and booking availability for a terminal on a specific date.",
   args: z.object({
     terminalCode: z.string().describe("Terminal code (e.g. 'TRM-001')"),
-    gateCode: z
-      .string()
-      .optional()
-      .describe("Specific gate code (e.g. 'GATE-A1'). If omitted, shows all gates."),
     date: z
       .string()
       .describe("Date in YYYY-MM-DD format to check availability"),
@@ -94,7 +89,6 @@ export const getAvailableSlots = createTool({
       internal.ai.internalQueries.getAvailableSlots,
       {
         terminalCode: args.terminalCode,
-        gateCode: args.gateCode,
         date: args.date,
       },
     );

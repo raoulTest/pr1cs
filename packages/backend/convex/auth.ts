@@ -5,7 +5,7 @@ import {
   type AuthFunctions,
 } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
-import { betterAuth, BetterAuthOptions } from "better-auth";
+import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { createAccessControl } from "better-auth/plugins/access";
 import {
   defaultStatements,
@@ -42,7 +42,7 @@ export const authComponent = createClient<DataModel, typeof authSchema>(
           const now = Date.now();
           await ctx.db.insert("userProfiles", {
             userId: doc._id,
-            preferredLanguage: "en",
+            preferredLanguage: "fr",
             notificationChannel: "in_app",
             createdAt: now,
             updatedAt: now,

@@ -1,30 +1,35 @@
 /**
  * Time Slot Queries
+ * 
+ * Updated for new schema:
+ * - Time slots are terminal-level (not gate-level)
+ * - Uses terminalId instead of gateId
+ * - Uses by_terminal_and_date index
  */
 import { query } from "../_generated/server";
 import { v } from "convex/values";
 import { getAuthenticatedUser, requireAnyRole } from "../lib/permissions";
-import { getAvailableCapacity } from "../lib/capacity";
 
 /**
- * Get available time slots for a gate on a specific date
+ * Get available time slots for a terminal on a specific date
  * Real-time subscription for capacity updates
  */
-export const listByGateAndDate = query({
+export const listByTerminalAndDate = query({
   args: {
-    gateId: v.id("gates"),
+    terminalId: v.id("terminals"),
     date: v.string(), // YYYY-MM-DD
   },
   returns: v.array(
     v.object({
       _id: v.id("timeSlots"),
-      gateId: v.id("gates"),
+      terminalId: v.id("terminals"),
       date: v.string(),
       startTime: v.string(),
       endTime: v.string(),
       maxCapacity: v.number(),
       currentBookings: v.number(),
       availableCapacity: v.number(),
+      autoValidationThreshold: v.optional(v.number()),
       isAvailable: v.boolean(),
       isActive: v.boolean(),
     })
@@ -35,20 +40,21 @@ export const listByGateAndDate = query({
 
     const slots = await ctx.db
       .query("timeSlots")
-      .withIndex("by_gate_and_date", (q) =>
-        q.eq("gateId", args.gateId).eq("date", args.date)
+      .withIndex("by_terminal_and_date", (q) =>
+        q.eq("terminalId", args.terminalId).eq("date", args.date)
       )
       .collect();
 
     return slots.map((slot) => ({
       _id: slot._id,
-      gateId: slot.gateId,
+      terminalId: slot.terminalId,
       date: slot.date,
       startTime: slot.startTime,
       endTime: slot.endTime,
       maxCapacity: slot.maxCapacity,
       currentBookings: slot.currentBookings,
       availableCapacity: Math.max(0, slot.maxCapacity - slot.currentBookings),
+      autoValidationThreshold: slot.autoValidationThreshold,
       isAvailable: slot.currentBookings < slot.maxCapacity && slot.isActive,
       isActive: slot.isActive,
     }));
@@ -56,23 +62,25 @@ export const listByGateAndDate = query({
 });
 
 /**
- * Get all time slots for a gate (for management)
+ * Get all time slots for a terminal (for management)
  */
-export const listByGate = query({
+export const listByTerminal = query({
   args: {
-    gateId: v.id("gates"),
+    terminalId: v.id("terminals"),
     startDate: v.optional(v.string()),
     endDate: v.optional(v.string()),
+    activeOnly: v.optional(v.boolean()),
   },
   returns: v.array(
     v.object({
       _id: v.id("timeSlots"),
-      gateId: v.id("gates"),
+      terminalId: v.id("terminals"),
       date: v.string(),
       startTime: v.string(),
       endTime: v.string(),
       maxCapacity: v.number(),
       currentBookings: v.number(),
+      autoValidationThreshold: v.optional(v.number()),
       isActive: v.boolean(),
     })
   ),
@@ -80,10 +88,21 @@ export const listByGate = query({
     const user = await getAuthenticatedUser(ctx);
     requireAnyRole(user);
 
-    let slots = await ctx.db
-      .query("timeSlots")
-      .withIndex("by_gate", (q) => q.eq("gateId", args.gateId))
-      .collect();
+    let slots;
+
+    if (args.activeOnly) {
+      slots = await ctx.db
+        .query("timeSlots")
+        .withIndex("by_terminal_and_active", (q) =>
+          q.eq("terminalId", args.terminalId).eq("isActive", true)
+        )
+        .collect();
+    } else {
+      slots = await ctx.db
+        .query("timeSlots")
+        .withIndex("by_terminal", (q) => q.eq("terminalId", args.terminalId))
+        .collect();
+    }
 
     // Filter by date range if provided
     if (args.startDate) {
@@ -95,12 +114,13 @@ export const listByGate = query({
 
     return slots.map((slot) => ({
       _id: slot._id,
-      gateId: slot.gateId,
+      terminalId: slot.terminalId,
       date: slot.date,
       startTime: slot.startTime,
       endTime: slot.endTime,
       maxCapacity: slot.maxCapacity,
       currentBookings: slot.currentBookings,
+      autoValidationThreshold: slot.autoValidationThreshold,
       isActive: slot.isActive,
     }));
   },
@@ -114,8 +134,6 @@ export const get = query({
   returns: v.union(
     v.object({
       _id: v.id("timeSlots"),
-      gateId: v.id("gates"),
-      gateName: v.string(),
       terminalId: v.id("terminals"),
       terminalName: v.string(),
       date: v.string(),
@@ -124,6 +142,7 @@ export const get = query({
       maxCapacity: v.number(),
       currentBookings: v.number(),
       availableCapacity: v.number(),
+      autoValidationThreshold: v.optional(v.number()),
       isAvailable: v.boolean(),
       isActive: v.boolean(),
     }),
@@ -133,21 +152,19 @@ export const get = query({
     const slot = await ctx.db.get(args.timeSlotId);
     if (!slot) return null;
 
-    const gate = await ctx.db.get(slot.gateId);
-    const terminal = gate ? await ctx.db.get(gate.terminalId) : null;
+    const terminal = await ctx.db.get(slot.terminalId);
 
     return {
       _id: slot._id,
-      gateId: slot.gateId,
-      gateName: gate?.name ?? "Unknown",
-      terminalId: gate?.terminalId ?? ("" as any),
-      terminalName: terminal?.name ?? "Unknown",
+      terminalId: slot.terminalId,
+      terminalName: terminal?.name ?? "Inconnu",
       date: slot.date,
       startTime: slot.startTime,
       endTime: slot.endTime,
       maxCapacity: slot.maxCapacity,
       currentBookings: slot.currentBookings,
       availableCapacity: Math.max(0, slot.maxCapacity - slot.currentBookings),
+      autoValidationThreshold: slot.autoValidationThreshold,
       isAvailable: slot.currentBookings < slot.maxCapacity && slot.isActive,
       isActive: slot.isActive,
     };
@@ -167,82 +184,110 @@ export const getTerminalCapacityOverview = query({
       _id: v.id("terminals"),
       name: v.string(),
     }),
-    gates: v.array(
+    slots: v.array(
       v.object({
-        _id: v.id("gates"),
-        name: v.string(),
-        totalCapacity: v.number(),
-        totalBooked: v.number(),
+        _id: v.id("timeSlots"),
+        startTime: v.string(),
+        endTime: v.string(),
+        maxCapacity: v.number(),
+        currentBookings: v.number(),
+        availableCapacity: v.number(),
         utilizationPercent: v.number(),
-        slotCount: v.number(),
       })
     ),
     summary: v.object({
       totalCapacity: v.number(),
       totalBooked: v.number(),
       overallUtilization: v.number(),
+      slotCount: v.number(),
     }),
   }),
   handler: async (ctx, args) => {
     const terminal = await ctx.db.get(args.terminalId);
     if (!terminal) {
-      throw new Error("Terminal not found");
+      throw new Error("Terminal introuvable");
     }
 
-    const gates = await ctx.db
-      .query("gates")
-      .withIndex("by_terminal_and_active", (q) =>
-        q.eq("terminalId", args.terminalId).eq("isActive", true)
+    const slots = await ctx.db
+      .query("timeSlots")
+      .withIndex("by_terminal_and_date", (q) =>
+        q.eq("terminalId", args.terminalId).eq("date", args.date)
       )
       .collect();
 
-    const gateData = await Promise.all(
-      gates.map(async (gate) => {
-        const slots = await ctx.db
-          .query("timeSlots")
-          .withIndex("by_gate_and_date", (q) =>
-            q.eq("gateId", gate._id).eq("date", args.date)
-          )
-          .collect();
+    const activeSlots = slots.filter((s) => s.isActive);
 
-        const activeSlots = slots.filter((s) => s.isActive);
-        const totalCapacity = activeSlots.reduce(
-          (sum, s) => sum + s.maxCapacity,
-          0
-        );
-        const totalBooked = activeSlots.reduce(
-          (sum, s) => sum + s.currentBookings,
-          0
-        );
+    const slotData = activeSlots.map((slot) => {
+      const availableCapacity = Math.max(0, slot.maxCapacity - slot.currentBookings);
+      return {
+        _id: slot._id,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        maxCapacity: slot.maxCapacity,
+        currentBookings: slot.currentBookings,
+        availableCapacity,
+        utilizationPercent:
+          slot.maxCapacity > 0
+            ? Math.round((slot.currentBookings / slot.maxCapacity) * 100)
+            : 0,
+      };
+    });
 
-        return {
-          _id: gate._id,
-          name: gate.name,
-          totalCapacity,
-          totalBooked,
-          utilizationPercent:
-            totalCapacity > 0
-              ? Math.round((totalBooked / totalCapacity) * 100)
-              : 0,
-          slotCount: activeSlots.length,
-        };
-      })
-    );
-
-    const summary = {
-      totalCapacity: gateData.reduce((sum, g) => sum + g.totalCapacity, 0),
-      totalBooked: gateData.reduce((sum, g) => sum + g.totalBooked, 0),
-      overallUtilization: 0,
-    };
-    summary.overallUtilization =
-      summary.totalCapacity > 0
-        ? Math.round((summary.totalBooked / summary.totalCapacity) * 100)
-        : 0;
+    const totalCapacity = slotData.reduce((sum, s) => sum + s.maxCapacity, 0);
+    const totalBooked = slotData.reduce((sum, s) => sum + s.currentBookings, 0);
 
     return {
       terminal: { _id: terminal._id, name: terminal.name },
-      gates: gateData,
-      summary,
+      slots: slotData,
+      summary: {
+        totalCapacity,
+        totalBooked,
+        overallUtilization:
+          totalCapacity > 0 ? Math.round((totalBooked / totalCapacity) * 100) : 0,
+        slotCount: activeSlots.length,
+      },
     };
+  },
+});
+
+/**
+ * Get available slots for booking (carrier-facing)
+ * Returns only slots with available capacity
+ */
+export const getAvailableSlots = query({
+  args: {
+    terminalId: v.id("terminals"),
+    date: v.string(),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("timeSlots"),
+      startTime: v.string(),
+      endTime: v.string(),
+      availableCapacity: v.number(),
+      autoValidationThreshold: v.optional(v.number()),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+    requireAnyRole(user);
+
+    const slots = await ctx.db
+      .query("timeSlots")
+      .withIndex("by_terminal_and_date", (q) =>
+        q.eq("terminalId", args.terminalId).eq("date", args.date)
+      )
+      .collect();
+
+    return slots
+      .filter((s) => s.isActive && s.currentBookings < s.maxCapacity)
+      .map((slot) => ({
+        _id: slot._id,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        availableCapacity: slot.maxCapacity - slot.currentBookings,
+        autoValidationThreshold: slot.autoValidationThreshold,
+      }))
+      .sort((a, b) => a.startTime.localeCompare(b.startTime));
   },
 });

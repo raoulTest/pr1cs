@@ -1,6 +1,13 @@
 /**
  * Booking Queries
  * Read operations for booking data with role-based access control
+ * 
+ * Updated for new schema:
+ * - Terminal-level bookings (not gate-level)
+ * - carrierId instead of carrierCompanyId
+ * - containerIds array instead of single containerNumber
+ * - gateId is optional (assigned at confirmation)
+ * - Time info directly on booking (preferredDate/preferredTimeStart/preferredTimeEnd)
  */
 import { query } from "../_generated/server";
 import { v } from "convex/values";
@@ -13,7 +20,12 @@ import {
   canManageTerminal,
   getManagedTerminalIds,
 } from "../lib/permissions";
-import { bookingStatusValidator } from "../lib/validators";
+import {
+  bookingStatusValidator,
+  containerTypeValidator,
+  containerDimensionsValidator,
+  containerOperationValidator,
+} from "../lib/validators";
 import type { QueryCtx } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
 
@@ -21,27 +33,37 @@ import type { Id, Doc } from "../_generated/dataModel";
 // RETURN TYPE VALIDATORS
 // ============================================================================
 
+const containerSummaryValidator = v.object({
+  _id: v.id("containers"),
+  containerNumber: v.string(),
+  containerType: containerTypeValidator,
+  dimensions: containerDimensionsValidator,
+  operationType: containerOperationValidator,
+  isEmpty: v.boolean(),
+});
+
 const bookingListItemValidator = v.object({
   _id: v.id("bookings"),
   _creationTime: v.number(),
   bookingReference: v.string(),
   status: bookingStatusValidator,
-  // Time slot info
-  timeSlotId: v.id("timeSlots"),
-  date: v.string(),
-  startTime: v.string(),
-  endTime: v.string(),
+  wasAutoValidated: v.boolean(),
+  // Time info (directly on booking)
+  preferredDate: v.string(),
+  preferredTimeStart: v.string(),
+  preferredTimeEnd: v.string(),
   // Terminal/Gate info
   terminalId: v.id("terminals"),
   terminalName: v.string(),
-  gateId: v.id("gates"),
-  gateName: v.string(),
+  gateId: v.optional(v.id("gates")),
+  gateName: v.optional(v.string()),
   // Truck info
   truckId: v.id("trucks"),
   licensePlate: v.string(),
   // Carrier info
-  carrierCompanyId: v.id("carrierCompanies"),
-  carrierCompanyName: v.string(),
+  carrierId: v.string(),
+  // Container count
+  containerCount: v.number(),
   // Driver info
   driverName: v.optional(v.string()),
   // Timestamps
@@ -54,38 +76,38 @@ const bookingDetailValidator = v.object({
   _creationTime: v.number(),
   bookingReference: v.string(),
   status: bookingStatusValidator,
+  wasAutoValidated: v.boolean(),
   qrCode: v.optional(v.string()),
-  // Time slot info
-  timeSlotId: v.id("timeSlots"),
-  date: v.string(),
-  startTime: v.string(),
-  endTime: v.string(),
+  // Time info
+  preferredDate: v.string(),
+  preferredTimeStart: v.string(),
+  preferredTimeEnd: v.string(),
   // Terminal/Gate info
   terminalId: v.id("terminals"),
   terminalName: v.string(),
   terminalCode: v.string(),
-  gateId: v.id("gates"),
-  gateName: v.string(),
-  gateCode: v.string(),
+  gateId: v.optional(v.id("gates")),
+  gateName: v.optional(v.string()),
+  gateCode: v.optional(v.string()),
   // Truck info
   truckId: v.id("trucks"),
   licensePlate: v.string(),
   truckType: v.string(),
   truckClass: v.string(),
   // Carrier info
-  carrierCompanyId: v.id("carrierCompanies"),
-  carrierCompanyName: v.string(),
-  carrierCompanyCode: v.string(),
+  carrierId: v.string(),
+  // Container info
+  containers: v.array(containerSummaryValidator),
   // Driver info
   driverName: v.optional(v.string()),
   driverPhone: v.optional(v.string()),
   driverIdNumber: v.optional(v.string()),
-  // Cargo info
-  containerNumber: v.optional(v.string()),
-  cargoDescription: v.optional(v.string()),
   // Status details
   statusReason: v.optional(v.string()),
   processedBy: v.optional(v.string()),
+  // QR scan timestamps
+  entryScannedAt: v.optional(v.number()),
+  exitScannedAt: v.optional(v.number()),
   // Timestamps
   bookedAt: v.number(),
   confirmedAt: v.optional(v.number()),
@@ -116,51 +138,62 @@ export const get = query({
     if (!canView) return null;
 
     // Fetch related data
-    const [timeSlot, terminal, gate, truck, carrier] = await Promise.all([
-      ctx.db.get(booking.timeSlotId),
+    const [terminal, gate, truck] = await Promise.all([
       ctx.db.get(booking.terminalId),
-      ctx.db.get(booking.gateId),
+      booking.gateId ? ctx.db.get(booking.gateId) : null,
       ctx.db.get(booking.truckId),
-      ctx.db.get(booking.carrierCompanyId),
     ]);
+
+    // Fetch containers
+    const containers = await Promise.all(
+      booking.containerIds.map((id) => ctx.db.get(id))
+    );
+    const validContainers = containers.filter((c): c is Doc<"containers"> => c !== null);
 
     return {
       _id: booking._id,
       _creationTime: booking._creationTime,
       bookingReference: booking.bookingReference,
       status: booking.status,
+      wasAutoValidated: booking.wasAutoValidated,
       qrCode: booking.qrCode,
-      // Time slot
-      timeSlotId: booking.timeSlotId,
-      date: timeSlot?.date ?? "",
-      startTime: timeSlot?.startTime ?? "",
-      endTime: timeSlot?.endTime ?? "",
+      // Time info
+      preferredDate: booking.preferredDate,
+      preferredTimeStart: booking.preferredTimeStart,
+      preferredTimeEnd: booking.preferredTimeEnd,
       // Terminal/Gate
       terminalId: booking.terminalId,
-      terminalName: terminal?.name ?? "Unknown",
+      terminalName: terminal?.name ?? "Inconnu",
       terminalCode: terminal?.code ?? "",
       gateId: booking.gateId,
-      gateName: gate?.name ?? "Unknown",
-      gateCode: gate?.code ?? "",
+      gateName: gate?.name,
+      gateCode: gate?.code,
       // Truck
       truckId: booking.truckId,
-      licensePlate: truck?.licensePlate ?? "Unknown",
+      licensePlate: truck?.licensePlate ?? "Inconnu",
       truckType: truck?.truckType ?? "unknown",
       truckClass: truck?.truckClass ?? "unknown",
       // Carrier
-      carrierCompanyId: booking.carrierCompanyId,
-      carrierCompanyName: carrier?.name ?? "Unknown",
-      carrierCompanyCode: carrier?.code ?? "",
+      carrierId: booking.carrierId,
+      // Containers
+      containers: validContainers.map((c) => ({
+        _id: c._id,
+        containerNumber: c.containerNumber,
+        containerType: c.containerType,
+        dimensions: c.dimensions,
+        operationType: c.operationType,
+        isEmpty: c.isEmpty,
+      })),
       // Driver
       driverName: booking.driverName,
       driverPhone: booking.driverPhone,
       driverIdNumber: booking.driverIdNumber,
-      // Cargo
-      containerNumber: booking.containerNumber,
-      cargoDescription: booking.cargoDescription,
       // Status
       statusReason: booking.statusReason,
       processedBy: booking.processedBy,
+      // QR scan
+      entryScannedAt: booking.entryScannedAt,
+      exitScannedAt: booking.exitScannedAt,
       // Timestamps
       bookedAt: booking.bookedAt,
       confirmedAt: booking.confirmedAt,
@@ -195,44 +228,54 @@ export const getByReference = query({
     if (!canView) return null;
 
     // Fetch related data
-    const [timeSlot, terminal, gate, truck, carrier] = await Promise.all([
-      ctx.db.get(booking.timeSlotId),
+    const [terminal, gate, truck] = await Promise.all([
       ctx.db.get(booking.terminalId),
-      ctx.db.get(booking.gateId),
+      booking.gateId ? ctx.db.get(booking.gateId) : null,
       ctx.db.get(booking.truckId),
-      ctx.db.get(booking.carrierCompanyId),
     ]);
+
+    // Fetch containers
+    const containers = await Promise.all(
+      booking.containerIds.map((id) => ctx.db.get(id))
+    );
+    const validContainers = containers.filter((c): c is Doc<"containers"> => c !== null);
 
     return {
       _id: booking._id,
       _creationTime: booking._creationTime,
       bookingReference: booking.bookingReference,
       status: booking.status,
+      wasAutoValidated: booking.wasAutoValidated,
       qrCode: booking.qrCode,
-      timeSlotId: booking.timeSlotId,
-      date: timeSlot?.date ?? "",
-      startTime: timeSlot?.startTime ?? "",
-      endTime: timeSlot?.endTime ?? "",
+      preferredDate: booking.preferredDate,
+      preferredTimeStart: booking.preferredTimeStart,
+      preferredTimeEnd: booking.preferredTimeEnd,
       terminalId: booking.terminalId,
-      terminalName: terminal?.name ?? "Unknown",
+      terminalName: terminal?.name ?? "Inconnu",
       terminalCode: terminal?.code ?? "",
       gateId: booking.gateId,
-      gateName: gate?.name ?? "Unknown",
-      gateCode: gate?.code ?? "",
+      gateName: gate?.name,
+      gateCode: gate?.code,
       truckId: booking.truckId,
-      licensePlate: truck?.licensePlate ?? "Unknown",
+      licensePlate: truck?.licensePlate ?? "Inconnu",
       truckType: truck?.truckType ?? "unknown",
       truckClass: truck?.truckClass ?? "unknown",
-      carrierCompanyId: booking.carrierCompanyId,
-      carrierCompanyName: carrier?.name ?? "Unknown",
-      carrierCompanyCode: carrier?.code ?? "",
+      carrierId: booking.carrierId,
+      containers: validContainers.map((c) => ({
+        _id: c._id,
+        containerNumber: c.containerNumber,
+        containerType: c.containerType,
+        dimensions: c.dimensions,
+        operationType: c.operationType,
+        isEmpty: c.isEmpty,
+      })),
       driverName: booking.driverName,
       driverPhone: booking.driverPhone,
       driverIdNumber: booking.driverIdNumber,
-      containerNumber: booking.containerNumber,
-      cargoDescription: booking.cargoDescription,
       statusReason: booking.statusReason,
       processedBy: booking.processedBy,
+      entryScannedAt: booking.entryScannedAt,
+      exitScannedAt: booking.exitScannedAt,
       bookedAt: booking.bookedAt,
       confirmedAt: booking.confirmedAt,
       rejectedAt: booking.rejectedAt,
@@ -244,7 +287,7 @@ export const getByReference = query({
 });
 
 /**
- * List bookings for the current user's carrier company
+ * List bookings for the current user (carrier)
  */
 export const listMyBookings = query({
   args: {
@@ -255,7 +298,7 @@ export const listMyBookings = query({
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
 
-    if (!isCarrier(user) || !user.carrierCompanyId) {
+    if (!isCarrier(user)) {
       return [];
     }
 
@@ -266,15 +309,13 @@ export const listMyBookings = query({
       bookingsQuery = ctx.db
         .query("bookings")
         .withIndex("by_carrier_and_status", (q) =>
-          q.eq("carrierCompanyId", user.carrierCompanyId!).eq("status", args.status!)
+          q.eq("carrierId", user.userId).eq("status", args.status!)
         )
         .order("desc");
     } else {
       bookingsQuery = ctx.db
         .query("bookings")
-        .withIndex("by_carrier", (q) =>
-          q.eq("carrierCompanyId", user.carrierCompanyId!)
-        )
+        .withIndex("by_carrier", (q) => q.eq("carrierId", user.userId))
         .order("desc");
     }
 
@@ -285,11 +326,11 @@ export const listMyBookings = query({
 });
 
 /**
- * List bookings for a specific carrier company (port admin)
+ * List bookings for a specific carrier (port admin)
  */
 export const listByCarrier = query({
   args: {
-    carrierCompanyId: v.id("carrierCompanies"),
+    carrierId: v.string(),
     status: v.optional(bookingStatusValidator),
     limit: v.optional(v.number()),
   },
@@ -300,7 +341,7 @@ export const listByCarrier = query({
     // Only port admins can query any carrier's bookings
     if (!isPortAdmin(user)) {
       // Carriers can only see their own
-      if (!isCarrier(user) || user.carrierCompanyId !== args.carrierCompanyId) {
+      if (!isCarrier(user) || user.userId !== args.carrierId) {
         return [];
       }
     }
@@ -312,15 +353,13 @@ export const listByCarrier = query({
       bookingsQuery = ctx.db
         .query("bookings")
         .withIndex("by_carrier_and_status", (q) =>
-          q.eq("carrierCompanyId", args.carrierCompanyId).eq("status", args.status!)
+          q.eq("carrierId", args.carrierId).eq("status", args.status!)
         )
         .order("desc");
     } else {
       bookingsQuery = ctx.db
         .query("bookings")
-        .withIndex("by_carrier", (q) =>
-          q.eq("carrierCompanyId", args.carrierCompanyId)
-        )
+        .withIndex("by_carrier", (q) => q.eq("carrierId", args.carrierId))
         .order("desc");
     }
 
@@ -360,6 +399,13 @@ export const listByTerminal = query({
           q.eq("terminalId", args.terminalId).eq("status", args.status!)
         )
         .order("desc");
+    } else if (args.date) {
+      bookingsQuery = ctx.db
+        .query("bookings")
+        .withIndex("by_terminal_and_date", (q) =>
+          q.eq("terminalId", args.terminalId).eq("preferredDate", args.date!)
+        )
+        .order("desc");
     } else {
       bookingsQuery = ctx.db
         .query("bookings")
@@ -369,16 +415,9 @@ export const listByTerminal = query({
 
     let bookings = await bookingsQuery.take(limit * 2); // Fetch more to allow filtering
 
-    // Filter by date if provided
-    if (args.date) {
-      const timeSlotIds = new Set<Id<"timeSlots">>();
-      const slotsForDate = await ctx.db
-        .query("timeSlots")
-        .withIndex("by_date", (q) => q.eq("date", args.date!))
-        .collect();
-      slotsForDate.forEach((s) => timeSlotIds.add(s._id));
-
-      bookings = bookings.filter((b) => timeSlotIds.has(b.timeSlotId));
+    // Additional date filter if status was specified
+    if (args.date && args.status) {
+      bookings = bookings.filter((b) => b.preferredDate === args.date);
     }
 
     return await enrichBookingList(ctx, bookings.slice(0, limit));
@@ -410,35 +449,22 @@ export const listByGate = query({
 
     const limit = args.limit ?? 100;
 
-    let bookingsQuery;
-    if (args.status) {
-      bookingsQuery = ctx.db
-        .query("bookings")
-        .withIndex("by_gate_and_status", (q) =>
-          q.eq("gateId", args.gateId).eq("status", args.status!)
-        )
-        .order("desc");
-    } else {
-      bookingsQuery = ctx.db
-        .query("bookings")
-        .withIndex("by_gate", (q) => q.eq("gateId", args.gateId))
-        .order("desc");
-    }
+    // Note: Gate is assigned at confirmation, so we filter bookings with this gate
+    let bookingsQuery = ctx.db
+      .query("bookings")
+      .withIndex("by_gate", (q) => q.eq("gateId", args.gateId))
+      .order("desc");
 
     let bookings = await bookingsQuery.take(limit * 2);
 
+    // Filter by status if provided
+    if (args.status) {
+      bookings = bookings.filter((b) => b.status === args.status);
+    }
+
     // Filter by date if provided
     if (args.date) {
-      const timeSlotIds = new Set<Id<"timeSlots">>();
-      const slotsForDate = await ctx.db
-        .query("timeSlots")
-        .withIndex("by_gate_and_date", (q) =>
-          q.eq("gateId", args.gateId).eq("date", args.date!)
-        )
-        .collect();
-      slotsForDate.forEach((s) => timeSlotIds.add(s._id));
-
-      bookings = bookings.filter((b) => timeSlotIds.has(b.timeSlotId));
+      bookings = bookings.filter((b) => b.preferredDate === args.date);
     }
 
     return await enrichBookingList(ctx, bookings.slice(0, limit));
@@ -446,50 +472,61 @@ export const listByGate = query({
 });
 
 /**
- * List bookings for a specific time slot
+ * List bookings for a specific date (terminal operators)
  */
-export const listByTimeSlot = query({
+export const listByDate = query({
   args: {
-    timeSlotId: v.id("timeSlots"),
+    date: v.string(), // YYYY-MM-DD
+    terminalId: v.optional(v.id("terminals")),
     status: v.optional(bookingStatusValidator),
+    limit: v.optional(v.number()),
   },
   returns: v.array(bookingListItemValidator),
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
 
-    // Get time slot to check terminal access
-    const timeSlot = await ctx.db.get(args.timeSlotId);
-    if (!timeSlot) return [];
-
-    const gate = await ctx.db.get(timeSlot.gateId);
-    if (!gate) return [];
-
-    const canAccess = await canManageTerminal(ctx, user, gate.terminalId);
-    if (!canAccess && !isCarrier(user)) {
+    if (!isPortAdmin(user) && !isTerminalOperator(user)) {
       return [];
     }
 
-    let bookingsQuery;
-    if (args.status) {
-      bookingsQuery = ctx.db
+    const limit = args.limit ?? 100;
+
+    let bookings: Doc<"bookings">[] = [];
+
+    if (args.terminalId) {
+      const canAccess = await canManageTerminal(ctx, user, args.terminalId);
+      if (!canAccess) return [];
+
+      bookings = await ctx.db
         .query("bookings")
-        .withIndex("by_time_slot_and_status", (q) =>
-          q.eq("timeSlotId", args.timeSlotId).eq("status", args.status!)
-        );
+        .withIndex("by_terminal_and_date", (q) =>
+          q.eq("terminalId", args.terminalId!).eq("preferredDate", args.date)
+        )
+        .order("desc")
+        .take(limit * 2);
     } else {
-      bookingsQuery = ctx.db
-        .query("bookings")
-        .withIndex("by_time_slot", (q) => q.eq("timeSlotId", args.timeSlotId));
+      // Query by date across all terminals user can access
+      const terminalIds = await getManagedTerminalIds(ctx, user);
+
+      for (const terminalId of terminalIds) {
+        const terminalBookings = await ctx.db
+          .query("bookings")
+          .withIndex("by_terminal_and_date", (q) =>
+            q.eq("terminalId", terminalId).eq("preferredDate", args.date)
+          )
+          .take(limit);
+        bookings.push(...terminalBookings);
+      }
     }
 
-    let bookings = await bookingsQuery.collect();
-
-    // For carriers, filter to only their own bookings
-    if (isCarrier(user) && user.carrierCompanyId) {
-      bookings = bookings.filter(
-        (b) => b.carrierCompanyId === user.carrierCompanyId
-      );
+    // Filter by status if provided
+    if (args.status) {
+      bookings = bookings.filter((b) => b.status === args.status);
     }
+
+    // Sort and limit
+    bookings.sort((a, b) => b._creationTime - a._creationTime);
+    bookings = bookings.slice(0, limit);
 
     return await enrichBookingList(ctx, bookings);
   },
@@ -552,7 +589,7 @@ export const listPendingForOperator = query({
 export const countByStatus = query({
   args: {
     terminalId: v.optional(v.id("terminals")),
-    carrierCompanyId: v.optional(v.id("carrierCompanies")),
+    carrierId: v.optional(v.string()),
   },
   returns: v.object({
     pending: v.number(),
@@ -587,27 +624,23 @@ export const countByStatus = query({
         .query("bookings")
         .withIndex("by_terminal", (q) => q.eq("terminalId", args.terminalId!))
         .collect();
-    } else if (args.carrierCompanyId) {
+    } else if (args.carrierId) {
       // Carrier-specific counts
       if (!isPortAdmin(user)) {
-        if (!isCarrier(user) || user.carrierCompanyId !== args.carrierCompanyId) {
+        if (!isCarrier(user) || user.userId !== args.carrierId) {
           return counts;
         }
       }
 
       bookings = await ctx.db
         .query("bookings")
-        .withIndex("by_carrier", (q) =>
-          q.eq("carrierCompanyId", args.carrierCompanyId!)
-        )
+        .withIndex("by_carrier", (q) => q.eq("carrierId", args.carrierId!))
         .collect();
-    } else if (isCarrier(user) && user.carrierCompanyId) {
+    } else if (isCarrier(user)) {
       // Default for carrier: their own bookings
       bookings = await ctx.db
         .query("bookings")
-        .withIndex("by_carrier", (q) =>
-          q.eq("carrierCompanyId", user.carrierCompanyId!)
-        )
+        .withIndex("by_carrier", (q) => q.eq("carrierId", user.userId))
         .collect();
     } else if (isPortAdmin(user)) {
       // Admin: all bookings (might be slow for large datasets)
@@ -653,45 +686,36 @@ async function enrichBookingList(
     _creationTime: number;
     bookingReference: string;
     status: Doc<"bookings">["status"];
-    timeSlotId: Id<"timeSlots">;
-    date: string;
-    startTime: string;
-    endTime: string;
+    wasAutoValidated: boolean;
+    preferredDate: string;
+    preferredTimeStart: string;
+    preferredTimeEnd: string;
     terminalId: Id<"terminals">;
     terminalName: string;
-    gateId: Id<"gates">;
-    gateName: string;
+    gateId?: Id<"gates">;
+    gateName?: string;
     truckId: Id<"trucks">;
     licensePlate: string;
-    carrierCompanyId: Id<"carrierCompanies">;
-    carrierCompanyName: string;
+    carrierId: string;
+    containerCount: number;
     driverName?: string;
     bookedAt: number;
     confirmedAt?: number;
   }[]
 > {
   // Collect all unique IDs
-  const timeSlotIds = [...new Set(bookings.map((b) => b.timeSlotId))];
   const terminalIds = [...new Set(bookings.map((b) => b.terminalId))];
-  const gateIds = [...new Set(bookings.map((b) => b.gateId))];
+  const gateIds = [...new Set(bookings.filter((b) => b.gateId).map((b) => b.gateId!))] as Id<"gates">[];
   const truckIds = [...new Set(bookings.map((b) => b.truckId))];
-  const carrierIds = [...new Set(bookings.map((b) => b.carrierCompanyId))];
 
   // Batch fetch all related data
-  const [timeSlots, terminals, gates, trucks, carriers] = await Promise.all([
-    Promise.all(timeSlotIds.map((id) => ctx.db.get(id))),
+  const [terminals, gates, trucks] = await Promise.all([
     Promise.all(terminalIds.map((id) => ctx.db.get(id))),
     Promise.all(gateIds.map((id) => ctx.db.get(id))),
     Promise.all(truckIds.map((id) => ctx.db.get(id))),
-    Promise.all(carrierIds.map((id) => ctx.db.get(id))),
   ]);
 
   // Create lookup maps
-  const timeSlotMap = new Map<Id<"timeSlots">, Doc<"timeSlots">>();
-  for (const slot of timeSlots) {
-    if (slot) timeSlotMap.set(slot._id, slot);
-  }
-
   const terminalMap = new Map<Id<"terminals">, Doc<"terminals">>();
   for (const terminal of terminals) {
     if (terminal) terminalMap.set(terminal._id, terminal);
@@ -707,36 +731,29 @@ async function enrichBookingList(
     if (truck) truckMap.set(truck._id, truck);
   }
 
-  const carrierMap = new Map<Id<"carrierCompanies">, Doc<"carrierCompanies">>();
-  for (const carrier of carriers) {
-    if (carrier) carrierMap.set(carrier._id, carrier);
-  }
-
   // Map bookings with enriched data
   return bookings.map((booking) => {
-    const timeSlot = timeSlotMap.get(booking.timeSlotId);
     const terminal = terminalMap.get(booking.terminalId);
-    const gate = gateMap.get(booking.gateId);
+    const gate = booking.gateId ? gateMap.get(booking.gateId) : undefined;
     const truck = truckMap.get(booking.truckId);
-    const carrier = carrierMap.get(booking.carrierCompanyId);
 
     return {
       _id: booking._id,
       _creationTime: booking._creationTime,
       bookingReference: booking.bookingReference,
       status: booking.status,
-      timeSlotId: booking.timeSlotId,
-      date: timeSlot?.date ?? "",
-      startTime: timeSlot?.startTime ?? "",
-      endTime: timeSlot?.endTime ?? "",
+      wasAutoValidated: booking.wasAutoValidated,
+      preferredDate: booking.preferredDate,
+      preferredTimeStart: booking.preferredTimeStart,
+      preferredTimeEnd: booking.preferredTimeEnd,
       terminalId: booking.terminalId,
-      terminalName: terminal?.name ?? "Unknown",
+      terminalName: terminal?.name ?? "Inconnu",
       gateId: booking.gateId,
-      gateName: gate?.name ?? "Unknown",
+      gateName: gate?.name,
       truckId: booking.truckId,
-      licensePlate: truck?.licensePlate ?? "Unknown",
-      carrierCompanyId: booking.carrierCompanyId,
-      carrierCompanyName: carrier?.name ?? "Unknown",
+      licensePlate: truck?.licensePlate ?? "Inconnu",
+      carrierId: booking.carrierId,
+      containerCount: booking.containerIds.length,
       driverName: booking.driverName,
       bookedAt: booking.bookedAt,
       confirmedAt: booking.confirmedAt,

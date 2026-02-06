@@ -1,6 +1,8 @@
 /**
  * Notification Queries
  * Read operations for user notifications
+ * 
+ * Updated: French only (title/body, not titleEn/titleFr/bodyEn/bodyFr)
  */
 import { query } from "../_generated/server";
 import { v } from "convex/values";
@@ -8,7 +10,6 @@ import { getAuthenticatedUser } from "../lib/permissions";
 import {
   notificationTypeValidator,
   notificationChannelValidator,
-  languageValidator,
 } from "../lib/validators";
 
 // ============================================================================
@@ -20,11 +21,9 @@ const notificationItemValidator = v.object({
   _creationTime: v.number(),
   type: notificationTypeValidator,
   channel: notificationChannelValidator,
-  // Bilingual content
-  titleEn: v.string(),
-  titleFr: v.string(),
-  bodyEn: v.string(),
-  bodyFr: v.string(),
+  // French only content
+  title: v.string(),
+  body: v.string(),
   // Status
   isRead: v.boolean(),
   readAt: v.optional(v.number()),
@@ -76,10 +75,8 @@ export const list = query({
       _creationTime: n._creationTime,
       type: n.type,
       channel: n.channel,
-      titleEn: n.titleEn,
-      titleFr: n.titleFr,
-      bodyEn: n.bodyEn,
-      bodyFr: n.bodyFr,
+      title: n.title,
+      body: n.body,
       isRead: n.isRead,
       readAt: n.readAt,
       relatedEntityType: n.relatedEntityType,
@@ -131,10 +128,8 @@ export const get = query({
       _creationTime: notification._creationTime,
       type: notification.type,
       channel: notification.channel,
-      titleEn: notification.titleEn,
-      titleFr: notification.titleFr,
-      bodyEn: notification.bodyEn,
-      bodyFr: notification.bodyFr,
+      title: notification.title,
+      body: notification.body,
       isRead: notification.isRead,
       readAt: notification.readAt,
       relatedEntityType: notification.relatedEntityType,
@@ -170,10 +165,8 @@ export const listByType = query({
       _creationTime: n._creationTime,
       type: n.type,
       channel: n.channel,
-      titleEn: n.titleEn,
-      titleFr: n.titleFr,
-      bodyEn: n.bodyEn,
-      bodyFr: n.bodyFr,
+      title: n.title,
+      body: n.body,
       isRead: n.isRead,
       readAt: n.readAt,
       relatedEntityType: n.relatedEntityType,

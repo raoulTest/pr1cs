@@ -1,5 +1,10 @@
 /**
  * Truck Queries
+ * 
+ * Updated for new schema:
+ * - Trucks are owned directly by carrier users (ownerId), not carrier companies
+ * - Uses by_owner and by_owner_and_active indexes
+ * - No carrierCompanies table
  */
 import { query } from "../_generated/server";
 import { v } from "convex/values";
@@ -7,16 +12,16 @@ import {
   getAuthenticatedUser,
   isPortAdmin,
   isCarrier,
-  canViewCarrier,
 } from "../lib/permissions";
 import { truckTypeValidator, truckClassValidator } from "../lib/validators";
+import { authComponent } from "../auth";
 
 /**
- * List trucks for a carrier company
+ * List trucks for a carrier (by owner userId)
  */
-export const listByCompany = query({
+export const listByOwner = query({
   args: {
-    carrierCompanyId: v.id("carrierCompanies"),
+    ownerId: v.string(),
     activeOnly: v.optional(v.boolean()),
   },
   returns: v.array(
@@ -36,9 +41,9 @@ export const listByCompany = query({
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
 
-    // Check access
-    const canView = await canViewCarrier(ctx, user, args.carrierCompanyId);
-    if (!canView) {
+    // Port admins can view any carrier's trucks
+    // Carriers can only view their own trucks
+    if (!isPortAdmin(user) && user.userId !== args.ownerId) {
       return [];
     }
 
@@ -47,16 +52,14 @@ export const listByCompany = query({
     if (args.activeOnly) {
       trucks = await ctx.db
         .query("trucks")
-        .withIndex("by_carrier_and_active", (q) =>
-          q.eq("carrierCompanyId", args.carrierCompanyId).eq("isActive", true)
+        .withIndex("by_owner_and_active", (q) =>
+          q.eq("ownerId", args.ownerId).eq("isActive", true)
         )
         .collect();
     } else {
       trucks = await ctx.db
         .query("trucks")
-        .withIndex("by_carrier", (q) =>
-          q.eq("carrierCompanyId", args.carrierCompanyId)
-        )
+        .withIndex("by_owner", (q) => q.eq("ownerId", args.ownerId))
         .collect();
     }
 
@@ -76,7 +79,7 @@ export const listByCompany = query({
 });
 
 /**
- * Get my company's trucks (carrier shortcut)
+ * Get my trucks (carrier shortcut)
  */
 export const listMyTrucks = query({
   args: {
@@ -99,7 +102,8 @@ export const listMyTrucks = query({
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
 
-    if (!isCarrier(user) || !user.carrierCompanyId) {
+    // Only carriers can use this endpoint
+    if (!isCarrier(user)) {
       return [];
     }
 
@@ -108,16 +112,14 @@ export const listMyTrucks = query({
     if (args.activeOnly) {
       trucks = await ctx.db
         .query("trucks")
-        .withIndex("by_carrier_and_active", (q) =>
-          q.eq("carrierCompanyId", user.carrierCompanyId!).eq("isActive", true)
+        .withIndex("by_owner_and_active", (q) =>
+          q.eq("ownerId", user.userId).eq("isActive", true)
         )
         .collect();
     } else {
       trucks = await ctx.db
         .query("trucks")
-        .withIndex("by_carrier", (q) =>
-          q.eq("carrierCompanyId", user.carrierCompanyId!)
-        )
+        .withIndex("by_owner", (q) => q.eq("ownerId", user.userId))
         .collect();
     }
 
@@ -145,8 +147,8 @@ export const get = query({
     v.object({
       _id: v.id("trucks"),
       _creationTime: v.number(),
-      carrierCompanyId: v.id("carrierCompanies"),
-      carrierCompanyName: v.string(),
+      ownerId: v.string(),
+      ownerName: v.optional(v.string()),
       licensePlate: v.string(),
       truckType: truckTypeValidator,
       truckClass: truckClassValidator,
@@ -166,19 +168,20 @@ export const get = query({
     const truck = await ctx.db.get(args.truckId);
     if (!truck) return null;
 
-    // Check access
-    const canView = await canViewCarrier(ctx, user, truck.carrierCompanyId);
-    if (!canView) {
+    // Port admins can view any truck
+    // Carriers can only view their own trucks
+    if (!isPortAdmin(user) && user.userId !== truck.ownerId) {
       return null;
     }
 
-    const company = await ctx.db.get(truck.carrierCompanyId);
+    // Get owner info from Better Auth
+    const owner = await authComponent.getAnyUserById(ctx, truck.ownerId);
 
     return {
       _id: truck._id,
       _creationTime: truck._creationTime,
-      carrierCompanyId: truck.carrierCompanyId,
-      carrierCompanyName: company?.name ?? "Unknown",
+      ownerId: truck.ownerId,
+      ownerName: owner?.name,
       licensePlate: truck.licensePlate,
       truckType: truck.truckType,
       truckClass: truck.truckClass,
@@ -201,7 +204,7 @@ export const getByLicensePlate = query({
   returns: v.union(
     v.object({
       _id: v.id("trucks"),
-      carrierCompanyId: v.id("carrierCompanies"),
+      ownerId: v.string(),
       licensePlate: v.string(),
       truckType: truckTypeValidator,
       truckClass: truckClassValidator,
@@ -215,25 +218,103 @@ export const getByLicensePlate = query({
     const truck = await ctx.db
       .query("trucks")
       .withIndex("by_license_plate", (q) =>
-        q.eq("licensePlate", args.licensePlate)
+        q.eq("licensePlate", args.licensePlate.toUpperCase().trim())
       )
       .unique();
 
     if (!truck) return null;
 
-    // Check access
-    const canView = await canViewCarrier(ctx, user, truck.carrierCompanyId);
-    if (!canView && !isPortAdmin(user)) {
+    // Port admins can view any truck
+    // Carriers can only view their own trucks
+    if (!isPortAdmin(user) && user.userId !== truck.ownerId) {
       return null;
     }
 
     return {
       _id: truck._id,
-      carrierCompanyId: truck.carrierCompanyId,
+      ownerId: truck.ownerId,
       licensePlate: truck.licensePlate,
       truckType: truck.truckType,
       truckClass: truck.truckClass,
       isActive: truck.isActive,
     };
+  },
+});
+
+/**
+ * List all trucks (admin only)
+ */
+export const listAll = query({
+  args: {
+    activeOnly: v.optional(v.boolean()),
+    truckType: v.optional(truckTypeValidator),
+    truckClass: v.optional(truckClassValidator),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("trucks"),
+      _creationTime: v.number(),
+      ownerId: v.string(),
+      ownerName: v.optional(v.string()),
+      licensePlate: v.string(),
+      truckType: truckTypeValidator,
+      truckClass: truckClassValidator,
+      make: v.optional(v.string()),
+      model: v.optional(v.string()),
+      isActive: v.boolean(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const user = await getAuthenticatedUser(ctx);
+
+    // Only port admins can list all trucks
+    if (!isPortAdmin(user)) {
+      return [];
+    }
+
+    let trucks;
+
+    if (args.truckType) {
+      trucks = await ctx.db
+        .query("trucks")
+        .withIndex("by_type", (q) => q.eq("truckType", args.truckType!))
+        .collect();
+    } else if (args.truckClass) {
+      trucks = await ctx.db
+        .query("trucks")
+        .withIndex("by_class", (q) => q.eq("truckClass", args.truckClass!))
+        .collect();
+    } else {
+      trucks = await ctx.db.query("trucks").collect();
+    }
+
+    // Filter by active status
+    if (args.activeOnly) {
+      trucks = trucks.filter((t) => t.isActive);
+    }
+
+    // Get owner names
+    const ownerIds = [...new Set(trucks.map((t) => t.ownerId))];
+    const ownerMap = new Map<string, string>();
+
+    for (const ownerId of ownerIds) {
+      const owner = await authComponent.getAnyUserById(ctx, ownerId);
+      if (owner?.name) {
+        ownerMap.set(ownerId, owner.name);
+      }
+    }
+
+    return trucks.map((t) => ({
+      _id: t._id,
+      _creationTime: t._creationTime,
+      ownerId: t.ownerId,
+      ownerName: ownerMap.get(t.ownerId),
+      licensePlate: t.licensePlate,
+      truckType: t.truckType,
+      truckClass: t.truckClass,
+      make: t.make,
+      model: t.model,
+      isActive: t.isActive,
+    }));
   },
 });

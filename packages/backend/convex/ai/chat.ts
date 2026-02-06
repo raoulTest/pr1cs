@@ -102,7 +102,7 @@ export const initiateStream = action({
       internal.ai.internalQueries.getUserRole,
       { userId: args.userId },
     );
-    const role = profile?.apcsRole as ApcsRole | null;
+    const role = profile?.role as ApcsRole | null;
     const context = buildUserContext(role);
     const fullPrompt = context + "USER MESSAGE: " + args.prompt;
 
@@ -136,7 +136,7 @@ export const generateResponse = action({
       internal.ai.internalQueries.getUserRole,
       { userId: args.userId },
     );
-    const role = profile?.apcsRole as ApcsRole | null;
+    const role = profile?.role as ApcsRole | null;
     const context = buildUserContext(role);
     const fullPrompt = context + "USER MESSAGE: " + args.prompt;
 

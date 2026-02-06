@@ -122,7 +122,9 @@ export const get = query({
       .withIndex("by_terminal", (q) => q.eq("terminalId", args.terminalId))
       .collect();
 
-    const totalCapacity = gates.reduce((sum, g) => sum + g.defaultCapacity, 0);
+    // Capacity is now at the terminal level, not gate level
+    // Use terminal's defaultSlotCapacity * number of active gates as a rough estimate
+    const totalCapacity = terminal.defaultSlotCapacity ?? 10;
 
     return {
       _id: terminal._id,

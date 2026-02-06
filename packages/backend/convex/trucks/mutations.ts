@@ -1,14 +1,16 @@
 /**
  * Truck Mutations
  * CRUD operations for managing trucks in a carrier's fleet
+ * 
+ * Updated for new schema:
+ * - Trucks are owned directly by carrier users (ownerId), not carrier companies
+ * - No transfer function (ownership is assigned at creation)
  */
 import { mutation } from "../_generated/server";
 import { v, ConvexError } from "convex/values";
 import {
   getAuthenticatedUser,
   requireRole,
-  canManageCarrier,
-  requireCarrierManagement,
   requireTruckAccess,
   isPortAdmin,
 } from "../lib/permissions";
@@ -19,38 +21,33 @@ import {
 } from "../lib/validators";
 
 /**
- * Create a new truck for a carrier company
+ * Create a new truck
  * Port admins can create trucks for any carrier
- * Carrier company admins can create trucks for their own company
+ * Carriers can only create trucks for themselves
  */
 export const create = mutation({
-  args: truckInputValidator.fields,
+  args: {
+    ...truckInputValidator.fields,
+    // Optional: for port admins to assign to specific carrier
+    ownerId: v.optional(v.string()),
+  },
   returns: v.id("trucks"),
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
     requireRole(user, ["port_admin", "carrier"]);
 
-    // Check permission to manage this carrier
-    const canManage = await canManageCarrier(ctx, user, args.carrierCompanyId);
-    if (!canManage) {
+    // Determine owner
+    let ownerId: string;
+    if (isPortAdmin(user) && args.ownerId) {
+      // Admin creating truck for specific carrier
+      ownerId = args.ownerId;
+    } else if (user.apcsRole === "carrier") {
+      // Carrier creating truck for themselves
+      ownerId = user.userId;
+    } else {
       throw new ConvexError({
-        code: "FORBIDDEN",
-        message: "You do not have permission to add trucks to this company",
-      });
-    }
-
-    // Verify carrier company exists and is active
-    const carrier = await ctx.db.get(args.carrierCompanyId);
-    if (!carrier) {
-      throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Carrier company not found",
-      });
-    }
-    if (!carrier.isActive) {
-      throw new ConvexError({
-        code: "INVALID_STATE",
-        message: "Cannot add trucks to an inactive carrier company",
+        code: "INVALID_INPUT",
+        message: "ownerId est requis pour les administrateurs",
       });
     }
 
@@ -65,7 +62,7 @@ export const create = mutation({
     if (existingTruck) {
       throw new ConvexError({
         code: "DUPLICATE",
-        message: `A truck with license plate "${args.licensePlate}" already exists`,
+        message: `Un camion avec la plaque d'immatriculation "${args.licensePlate}" existe deja`,
       });
     }
 
@@ -75,7 +72,7 @@ export const create = mutation({
       if (args.year < 1900 || args.year > currentYear + 1) {
         throw new ConvexError({
           code: "INVALID_INPUT",
-          message: "Invalid truck year",
+          message: "Annee du camion invalide",
         });
       }
     }
@@ -84,14 +81,14 @@ export const create = mutation({
     if (args.maxWeight !== undefined && args.maxWeight <= 0) {
       throw new ConvexError({
         code: "INVALID_INPUT",
-        message: "Max weight must be a positive number",
+        message: "Le poids maximal doit etre un nombre positif",
       });
     }
 
     const now = Date.now();
 
     const truckId = await ctx.db.insert("trucks", {
-      carrierCompanyId: args.carrierCompanyId,
+      ownerId,
       licensePlate: args.licensePlate.toUpperCase().trim(),
       truckType: args.truckType,
       truckClass: args.truckClass,
@@ -135,7 +132,7 @@ export const update = mutation({
     if (!truck) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Truck not found",
+        message: "Camion introuvable",
       });
     }
 
@@ -153,7 +150,7 @@ export const update = mutation({
         if (existingTruck) {
           throw new ConvexError({
             code: "DUPLICATE",
-            message: `A truck with license plate "${args.licensePlate}" already exists`,
+            message: `Un camion avec la plaque d'immatriculation "${args.licensePlate}" existe deja`,
           });
         }
       }
@@ -165,7 +162,7 @@ export const update = mutation({
       if (args.year < 1900 || args.year > currentYear + 1) {
         throw new ConvexError({
           code: "INVALID_INPUT",
-          message: "Invalid truck year",
+          message: "Annee du camion invalide",
         });
       }
     }
@@ -174,7 +171,7 @@ export const update = mutation({
     if (args.maxWeight !== undefined && args.maxWeight <= 0) {
       throw new ConvexError({
         code: "INVALID_INPUT",
-        message: "Max weight must be a positive number",
+        message: "Le poids maximal doit etre un nombre positif",
       });
     }
 
@@ -231,14 +228,14 @@ export const deactivate = mutation({
     if (!truck) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Truck not found",
+        message: "Camion introuvable",
       });
     }
 
     if (!truck.isActive) {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: "Truck is already inactive",
+        message: "Le camion est deja inactif",
       });
     }
 
@@ -255,7 +252,7 @@ export const deactivate = mutation({
     if (pendingOrConfirmed.length > 0) {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: `Cannot deactivate truck with ${pendingOrConfirmed.length} active booking(s). Cancel bookings first.`,
+        message: `Impossible de desactiver un camion avec ${pendingOrConfirmed.length} reservation(s) active(s). Annulez d'abord les reservations.`,
       });
     }
 
@@ -287,97 +284,19 @@ export const reactivate = mutation({
     if (!truck) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Truck not found",
+        message: "Camion introuvable",
       });
     }
 
     if (truck.isActive) {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: "Truck is already active",
-      });
-    }
-
-    // Check if the carrier company is still active
-    const carrier = await ctx.db.get(truck.carrierCompanyId);
-    if (!carrier?.isActive) {
-      throw new ConvexError({
-        code: "INVALID_STATE",
-        message: "Cannot reactivate truck for an inactive carrier company",
+        message: "Le camion est deja actif",
       });
     }
 
     await ctx.db.patch(args.truckId, {
       isActive: true,
-      updatedAt: Date.now(),
-    });
-
-    return null;
-  },
-});
-
-/**
- * Transfer a truck to a different carrier company (port admin only)
- */
-export const transfer = mutation({
-  args: {
-    truckId: v.id("trucks"),
-    newCarrierCompanyId: v.id("carrierCompanies"),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const user = await getAuthenticatedUser(ctx);
-    requireRole(user, ["port_admin"]);
-
-    const truck = await ctx.db.get(args.truckId);
-    if (!truck) {
-      throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Truck not found",
-      });
-    }
-
-    if (truck.carrierCompanyId === args.newCarrierCompanyId) {
-      throw new ConvexError({
-        code: "INVALID_INPUT",
-        message: "Truck is already assigned to this carrier company",
-      });
-    }
-
-    // Verify new carrier exists and is active
-    const newCarrier = await ctx.db.get(args.newCarrierCompanyId);
-    if (!newCarrier) {
-      throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "Target carrier company not found",
-      });
-    }
-    if (!newCarrier.isActive) {
-      throw new ConvexError({
-        code: "INVALID_STATE",
-        message: "Cannot transfer truck to an inactive carrier company",
-      });
-    }
-
-    // Check for active bookings
-    const activeBookings = await ctx.db
-      .query("bookings")
-      .withIndex("by_truck", (q) => q.eq("truckId", args.truckId))
-      .collect();
-
-    const pendingOrConfirmed = activeBookings.filter(
-      (b) => b.status === "pending" || b.status === "confirmed"
-    );
-
-    if (pendingOrConfirmed.length > 0) {
-      throw new ConvexError({
-        code: "INVALID_STATE",
-        message: `Cannot transfer truck with ${pendingOrConfirmed.length} active booking(s). Cancel or complete bookings first.`,
-      });
-    }
-
-    await ctx.db.patch(args.truckId, {
-      carrierCompanyId: args.newCarrierCompanyId,
       updatedAt: Date.now(),
     });
 

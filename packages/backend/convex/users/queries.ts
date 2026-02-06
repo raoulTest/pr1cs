@@ -33,8 +33,6 @@ export const getMyProfile = query({
       preferredLanguage: v.optional(languageValidator),
       notificationChannel: v.optional(notificationChannelValidator),
       phone: v.optional(v.string()),
-      carrierCompanyId: v.union(v.id("carrierCompanies"), v.null()),
-      isCompanyAdmin: v.boolean(),
     }),
     v.null()
   ),
@@ -55,8 +53,6 @@ export const getMyProfile = query({
       preferredLanguage: profile?.preferredLanguage,
       notificationChannel: profile?.notificationChannel,
       phone: profile?.phone,
-      carrierCompanyId: user.carrierCompanyId,
-      isCompanyAdmin: user.isCompanyAdmin,
     };
   },
 });
