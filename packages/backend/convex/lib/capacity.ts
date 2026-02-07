@@ -62,10 +62,30 @@ export async function checkAndReserveCapacity(
   let slot = await getSlotForTerminal(ctx, terminalId, date, startTime);
 
   if (!slot) {
-    // Create slot on-demand with terminal defaults
+    // Create slot on-demand using slotTemplate for this day/hour
     const terminal = await ctx.db.get(terminalId);
     if (!terminal) {
       return { success: false, error: "Terminal introuvable" };
+    }
+
+    // Get the template for this day of week and hour
+    const dateObj = new Date(date);
+    const dayOfWeek = dateObj.getDay();
+    const hour = parseInt(startTime.split(":")[0], 10);
+
+    const template = await ctx.db
+      .query("slotTemplates")
+      .withIndex("by_terminal_day_hour", (q) =>
+        q.eq("terminalId", terminalId).eq("dayOfWeek", dayOfWeek).eq("hour", hour)
+      )
+      .first();
+
+    if (!template) {
+      return { success: false, error: "Template de créneau introuvable" };
+    }
+
+    if (!template.isActive) {
+      return { success: false, error: "Ce créneau horaire n'est pas disponible" };
     }
 
     const now = Date.now();
@@ -74,7 +94,7 @@ export async function checkAndReserveCapacity(
       date,
       startTime,
       endTime,
-      maxCapacity: terminal.defaultSlotCapacity,
+      maxCapacity: template.maxCapacity,
       currentBookings: 0,
       isActive: true,
       createdAt: now,
@@ -157,26 +177,15 @@ export async function getTerminalCapacityForDate(
   // Build map of existing slots by startTime
   const slotMap = new Map(existingSlots.map((s) => [s.startTime, s]));
 
-  // Generate all possible slots based on terminal operating hours
+  // Generate all possible slots based on terminal operating hours (1-hour slots)
   const results: SlotCapacity[] = [];
-  const startHour = parseInt(terminal.operatingHoursStart?.split(":")[0] ?? "6", 10);
-  const startMinute = parseInt(terminal.operatingHoursStart?.split(":")[1] ?? "0", 10);
-  const endHour = parseInt(terminal.operatingHoursEnd?.split(":")[0] ?? "22", 10);
-  const durationMinutes = terminal.slotDurationMinutes ?? 60;
+  const startHour = parseInt(terminal.operatingHoursStart?.split(":")[0] ?? "0", 10);
+  const endHour = parseInt(terminal.operatingHoursEnd?.split(":")[0] ?? "23", 10);
 
-  // Calculate total minutes from start
-  let currentMinutes = startHour * 60 + startMinute;
-  const endMinutes = endHour * 60;
-
-  while (currentMinutes < endMinutes) {
-    const hour = Math.floor(currentMinutes / 60);
-    const minute = currentMinutes % 60;
-    const startTime = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
-
-    const nextMinutes = currentMinutes + durationMinutes;
-    const endHourActual = Math.floor(nextMinutes / 60);
-    const endMinuteActual = nextMinutes % 60;
-    const endTime = `${endHourActual.toString().padStart(2, "0")}:${endMinuteActual.toString().padStart(2, "0")}`;
+  // Iterate hour by hour
+  for (let hour = startHour; hour <= endHour; hour++) {
+    const startTime = `${hour.toString().padStart(2, "0")}:00`;
+    const endTime = `${(hour + 1).toString().padStart(2, "0")}:00`;
 
     const existingSlot = slotMap.get(startTime);
 
@@ -225,30 +234,42 @@ export async function getTerminalCapacityForDate(
         isActive: existingSlot.isActive,
       });
     } else {
-      // Virtual slot (no bookings yet) - use terminal defaults
+      // Virtual slot (no bookings yet) - get from template
+      const dateObj = new Date(date);
+      const dayOfWeek = dateObj.getDay();
+
+      const template = await ctx.db
+        .query("slotTemplates")
+        .withIndex("by_terminal_day_hour", (q) =>
+          q.eq("terminalId", terminalId).eq("dayOfWeek", dayOfWeek).eq("hour", hour)
+        )
+        .first();
+
+      // Skip if no template found
+      if (!template) {
+        continue;
+      }
+
+      const capacity = template.maxCapacity;
       const threshold = terminal.autoValidationThreshold;
-      const maxAutoValidated = Math.floor(
-        (terminal.defaultSlotCapacity * threshold) / 100
-      );
+      const maxAutoValidated = Math.floor((capacity * threshold) / 100);
 
       results.push({
         slotId: undefined, // No record exists yet
         date,
         startTime,
         endTime,
-        available: terminal.defaultSlotCapacity,
-        total: terminal.defaultSlotCapacity,
+        available: template.isActive ? capacity : 0,
+        total: capacity,
         booked: 0,
         utilizationPercent: 0,
         autoValidationThreshold: threshold,
         autoValidatedCount: 0,
         remainingAutoValidation: maxAutoValidated,
         isVirtual: true, // Flag to indicate this is a computed slot
-        isActive: true, // Virtual slots are always active
+        isActive: template.isActive,
       });
     }
-
-    currentMinutes = nextMinutes;
   }
 
   return results.sort((a, b) => a.startTime.localeCompare(b.startTime));
@@ -305,15 +326,30 @@ export async function getAvailableCapacity(
   const slot = await getSlotForTerminal(ctx, terminalId, date, startTime);
 
   if (!slot) {
-    // Virtual slot - use terminal defaults
+    // Virtual slot - get from template
     const terminal = await ctx.db.get(terminalId);
     if (!terminal) {
       return { available: 0, total: 0, booked: 0, utilizationPercent: 0 };
     }
 
+    const dateObj = new Date(date);
+    const dayOfWeek = dateObj.getDay();
+    const hour = parseInt(startTime.split(":")[0], 10);
+
+    const template = await ctx.db
+      .query("slotTemplates")
+      .withIndex("by_terminal_day_hour", (q) =>
+        q.eq("terminalId", terminalId).eq("dayOfWeek", dayOfWeek).eq("hour", hour)
+      )
+      .first();
+
+    if (!template) {
+      return { available: 0, total: 0, booked: 0, utilizationPercent: 0 };
+    }
+
     return {
-      available: terminal.defaultSlotCapacity,
-      total: terminal.defaultSlotCapacity,
+      available: template.isActive ? template.maxCapacity : 0,
+      total: template.maxCapacity,
       booked: 0,
       utilizationPercent: 0,
     };

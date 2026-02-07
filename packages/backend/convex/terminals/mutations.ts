@@ -1,7 +1,8 @@
 /**
  * Terminal Mutations
- * 
+ *
  * Updated: Terminals now have capacity settings at terminal level
+ * SlotTemplates (168 rows) are created automatically when a terminal is created
  */
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
@@ -10,6 +11,7 @@ import { getAuthenticatedUser, requireRole } from "../lib/permissions";
 
 /**
  * Create a new terminal
+ * Also creates 168 slotTemplates (7 days × 24 hours)
  */
 export const create = mutation({
   args: {
@@ -23,7 +25,6 @@ export const create = mutation({
     capacityAlertThresholds: v.optional(v.array(v.number())),
     operatingHoursStart: v.optional(v.string()),
     operatingHoursEnd: v.optional(v.string()),
-    slotDurationMinutes: v.optional(v.number()),
   },
   returns: v.id("terminals"),
   handler: async (ctx, args) => {
@@ -44,28 +45,58 @@ export const create = mutation({
     }
 
     const now = Date.now();
-    return await ctx.db.insert("terminals", {
+
+    // Default values
+    const defaultCapacity = args.defaultSlotCapacity ?? 20;
+    const opStart = args.operatingHoursStart ?? "00:00";
+    const opEnd = args.operatingHoursEnd ?? "23:59";
+
+    const terminalId = await ctx.db.insert("terminals", {
       name: args.name,
       code: args.code,
       address: args.address,
       timezone: args.timezone,
       isActive: true,
       // Terminal-level capacity settings with defaults
-      defaultSlotCapacity: args.defaultSlotCapacity ?? 20,
+      defaultSlotCapacity: defaultCapacity,
       autoValidationThreshold: args.autoValidationThreshold ?? 50,
       capacityAlertThresholds: args.capacityAlertThresholds ?? [70, 85, 95],
-      operatingHoursStart: args.operatingHoursStart ?? "06:00",
-      operatingHoursEnd: args.operatingHoursEnd ?? "22:00",
-      slotDurationMinutes: args.slotDurationMinutes ?? 60,
+      operatingHoursStart: opStart,
+      operatingHoursEnd: opEnd,
       createdAt: now,
       updatedAt: now,
       createdBy: user.userId,
     });
+
+    // Create 168 slotTemplates (7 days × 24 hours)
+    const opStartHour = parseInt(opStart.split(":")[0], 10);
+    const opEndHour = parseInt(opEnd.split(":")[0], 10);
+
+    for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
+      for (let hour = 0; hour < 24; hour++) {
+        // Determine if this slot is within operating hours
+        const isActive = hour >= opStartHour && hour <= opEndHour;
+
+        await ctx.db.insert("slotTemplates", {
+          terminalId,
+          dayOfWeek,
+          hour,
+          maxCapacity: defaultCapacity,
+          isActive,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    }
+
+    return terminalId;
   },
 });
 
 /**
  * Update a terminal
+ * Note: Capacity settings (defaultSlotCapacity, operatingHours)
+ * are IMMUTABLE after creation. Use slotTemplates mutations to modify capacity.
  */
 export const update = mutation({
   args: {
@@ -74,13 +105,9 @@ export const update = mutation({
     address: v.optional(v.string()),
     timezone: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
-    // Terminal-level capacity settings
-    defaultSlotCapacity: v.optional(v.number()),
+    // Only autoValidationThreshold and capacityAlertThresholds can be updated
     autoValidationThreshold: v.optional(v.number()),
     capacityAlertThresholds: v.optional(v.array(v.number())),
-    operatingHoursStart: v.optional(v.string()),
-    operatingHoursEnd: v.optional(v.string()),
-    slotDurationMinutes: v.optional(v.number()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {

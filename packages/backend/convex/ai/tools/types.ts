@@ -16,39 +16,69 @@ import { internal } from "../../_generated/api";
  * Maps each role to the tool names it can access.
  * Add new tools here when you create them.
  *
- * - carrier: booking / truck / terminal viewing, slot availability
- * - terminal_operator: everything a carrier can do + terminal management
+ * - carrier: booking / truck / terminal viewing, slot availability, booking creation
+ * - terminal_operator: everything a carrier can do + terminal management (no booking creation)
  * - port_admin: everything
  */
 export const TOOL_PERMISSIONS: Record<ApcsRole, readonly string[]> = {
   carrier: [
+    // Booking queries
     "listMyBookings",
     "getBookingDetails",
+    // Terminal queries
     "listTerminals",
     "getTerminalDetails",
     "getAvailableSlots",
+    // Config
     "getSystemConfig",
+    // Container & Truck queries
+    "listMyContainers",
+    "getContainerDetails",
+    "listMyTrucks",
+    // Suggestions
+    "suggestOptimalSlots",
+    // Booking mutations (carriers only)
+    "createBookingViaAI",
+    "cancelBookingViaAI",
   ] as const,
   terminal_operator: [
+    // Booking queries
     "listMyBookings",
     "getBookingDetails",
-    "listTerminals",
-    "getTerminalDetails",
-    "getAvailableSlots",
     "listBookingsByTerminal",
     "listPendingBookings",
-    "getSystemConfig",
-  ] as const,
-  port_admin: [
-    "listMyBookings",
-    "getBookingDetails",
+    // Terminal queries
     "listTerminals",
     "getTerminalDetails",
     "getAvailableSlots",
+    // Config
+    "getSystemConfig",
+    // Container & Truck queries
+    "listMyContainers",
+    "getContainerDetails",
+    "listMyTrucks",
+    // Suggestions
+    "suggestOptimalSlots",
+  ] as const,
+  port_admin: [
+    // Booking queries
+    "listMyBookings",
+    "getBookingDetails",
     "listBookingsByTerminal",
     "listBookingsByCarrier",
     "listPendingBookings",
+    // Terminal queries
+    "listTerminals",
+    "getTerminalDetails",
+    "getAvailableSlots",
+    // Config
     "getSystemConfig",
+    // Container & Truck queries
+    "listMyContainers",
+    "getContainerDetails",
+    "listMyTrucks",
+    // Suggestions
+    "suggestOptimalSlots",
   ] as const,
 };
 

@@ -1,7 +1,7 @@
 /**
  * Booking Mutations
  * Create, update, and manage booking lifecycle
- * 
+ *
  * Updated for new schema:
  * - Terminal-level booking (not gate-level)
  * - Multiple containers per booking (containerIds array)
@@ -42,6 +42,7 @@ import {
   assignGateForBooking,
 } from "./internal";
 import { internal } from "../_generated/api";
+import { logAudit } from "../lib/audit";
 
 // ============================================================================
 // CREATE BOOKING
@@ -262,6 +263,20 @@ export const create = mutation({
       requiredRebook: false,
     });
 
+    // 16. Audit log
+    await logAudit(ctx, {
+      userId: user.userId,
+      action: "mutation",
+      resource: "bookings.create",
+      resourceId: bookingId,
+      args: {
+        terminalId: args.terminalId,
+        truckId: args.truckId,
+        containerIds: args.containerIds,
+      },
+      result: autoValidation.shouldAutoValidate ? "auto_validated" : "pending",
+    });
+
     return bookingId;
   },
 });
@@ -337,6 +352,15 @@ export const confirm = mutation({
       requiredRebook: false,
     });
 
+    // Audit log
+    await logAudit(ctx, {
+      userId: user.userId,
+      action: "mutation",
+      resource: "bookings.confirm",
+      resourceId: args.bookingId,
+      result: "confirmed",
+    });
+
     return null;
   },
 });
@@ -410,6 +434,16 @@ export const reject = mutation({
       changedBy: user.userId,
       note: args.reason,
       requiredRebook: false,
+    });
+
+    // Audit log
+    await logAudit(ctx, {
+      userId: user.userId,
+      action: "mutation",
+      resource: "bookings.reject",
+      resourceId: args.bookingId,
+      args: { reason: args.reason },
+      result: "rejected",
     });
 
     return null;
@@ -497,6 +531,16 @@ export const cancel = mutation({
       changedBy: user.userId,
       note: args.reason,
       requiredRebook: false,
+    });
+
+    // Audit log
+    await logAudit(ctx, {
+      userId: user.userId,
+      action: "mutation",
+      resource: "bookings.cancel",
+      resourceId: args.bookingId,
+      args: { reason: args.reason },
+      result: "cancelled",
     });
 
     return null;

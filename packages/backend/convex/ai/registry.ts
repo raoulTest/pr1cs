@@ -27,6 +27,13 @@ import {
   getAvailableSlots,
 } from "./tools/terminals";
 import { getSystemConfig } from "./tools/config";
+import {
+  listMyContainers,
+  getContainerDetails,
+  listMyTrucks,
+} from "./tools/containers";
+import { suggestOptimalSlots } from "./tools/suggestions";
+import { createBookingViaAI, cancelBookingViaAI } from "./tools/bookingFlow";
 
 // ============================================================================
 // ALL TOOLS (name -> tool)
@@ -37,15 +44,27 @@ import { getSystemConfig } from "./tools/config";
  * Keys must match what's in TOOL_PERMISSIONS.
  */
 export const ALL_TOOLS = {
+  // Booking queries
   listMyBookings,
   getBookingDetails,
   listBookingsByTerminal,
   listBookingsByCarrier,
   listPendingBookings,
+  // Terminal queries
   listTerminals,
   getTerminalDetails,
   getAvailableSlots,
+  // Config
   getSystemConfig,
+  // Container & Truck queries
+  listMyContainers,
+  getContainerDetails,
+  listMyTrucks,
+  // Suggestions
+  suggestOptimalSlots,
+  // Booking mutations
+  createBookingViaAI,
+  cancelBookingViaAI,
 } as const;
 
 export type ToolName = keyof typeof ALL_TOOLS;

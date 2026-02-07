@@ -150,10 +150,9 @@ export default defineSchema({
     // Capacity alert thresholds
     capacityAlertThresholds: v.array(v.number()), // e.g., [70, 85, 95]
 
-    // Operating hours
+    // Operating hours (slots are always 1 hour)
     operatingHoursStart: v.string(), // e.g., "00:00"
     operatingHoursEnd: v.string(), // e.g., "23:00"
-    slotDurationMinutes: v.number(), // e.g., 60
 
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -213,6 +212,24 @@ export default defineSchema({
     .index("by_terminal_and_date", ["terminalId", "date"])
     .index("by_date", ["date"])
     .index("by_terminal_and_active", ["terminalId", "isActive"]),
+
+  /**
+   * SlotTemplates - Weekly recurring slot capacity templates
+   * 168 rows per terminal (7 days × 24 hours)
+   * Created automatically when terminal is created
+   */
+  slotTemplates: defineTable({
+    terminalId: v.id("terminals"),
+    dayOfWeek: v.number(), // 0=Sunday, 1=Monday, ..., 6=Saturday
+    hour: v.number(), // 0-23
+    maxCapacity: v.number(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_terminal", ["terminalId"])
+    .index("by_terminal_and_day", ["terminalId", "dayOfWeek"])
+    .index("by_terminal_day_hour", ["terminalId", "dayOfWeek", "hour"]),
 
   // --------------------------------------------------------------------------
   // TERMINAL OPERATOR ASSIGNMENTS (Many-to-Many)

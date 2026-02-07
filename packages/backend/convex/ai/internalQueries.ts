@@ -488,7 +488,6 @@ export const getTerminalDetails = internalQuery({
       autoValidationThreshold: terminal.autoValidationThreshold,
       operatingHoursStart: terminal.operatingHoursStart,
       operatingHoursEnd: terminal.operatingHoursEnd,
-      slotDurationMinutes: terminal.slotDurationMinutes,
       gates: gates.map((g: any) => ({
         name: g.name,
         code: g.code,
@@ -525,7 +524,7 @@ export const getAvailableSlots = internalQuery({
     // Build map of existing slots by startTime
     const slotMap = new Map(existingSlots.map((s: any) => [s.startTime, s]));
 
-    // Generate all possible slots based on terminal operating hours
+    // Generate all possible slots based on terminal operating hours (1-hour slots)
     const slots: Array<{
       startTime: string;
       endTime: string;
@@ -536,69 +535,63 @@ export const getAvailableSlots = internalQuery({
       autoValidationRemaining: number;
     }> = [];
 
-    const startHour = parseInt(terminal.operatingHoursStart?.split(":")[0] ?? "6", 10);
-    const endHour = parseInt(terminal.operatingHoursEnd?.split(":")[0] ?? "22", 10);
-    const durationMinutes = terminal.slotDurationMinutes ?? 60;
+    const startHour = parseInt(terminal.operatingHoursStart?.split(":")[0] ?? "0", 10);
+    const endHour = parseInt(terminal.operatingHoursEnd?.split(":")[0] ?? "23", 10);
 
-    for (let hour = startHour; hour < endHour; hour++) {
-      for (let minute = 0; minute < 60; minute += durationMinutes) {
-        const startTime = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
-        const endMinute = minute + durationMinutes;
-        const endHourActual = hour + Math.floor(endMinute / 60);
-        const endMinuteActual = endMinute % 60;
-        const endTime = `${endHourActual.toString().padStart(2, "0")}:${endMinuteActual.toString().padStart(2, "0")}`;
+    for (let hour = startHour; hour <= endHour; hour++) {
+      const startTime = `${hour.toString().padStart(2, "0")}:00`;
+      const endTime = `${(hour + 1).toString().padStart(2, "0")}:00`;
 
-        const existingSlot = slotMap.get(startTime);
+      const existingSlot = slotMap.get(startTime);
 
-        if (existingSlot && existingSlot.isActive) {
-          // Real slot with bookings
-          const maxAutoValidated = Math.floor(
-            (existingSlot.maxCapacity * (existingSlot.autoValidationThreshold ?? terminal.autoValidationThreshold)) / 100
-          );
-          
-          // Count auto-validated bookings for this slot
-          const autoValidatedBookings = await ctx.db
-            .query("bookings")
-            .withIndex("by_terminal_and_date", (q: any) =>
-              q.eq("terminalId", terminal._id).eq("preferredDate", args.date)
-            )
-            .filter((q: any) =>
-              q.and(
-                q.eq(q.field("preferredTimeStart"), startTime),
-                q.eq(q.field("wasAutoValidated"), true),
-                q.or(
-                  q.eq(q.field("status"), "confirmed"),
-                  q.eq(q.field("status"), "consumed")
-                )
+      if (existingSlot && existingSlot.isActive) {
+        // Real slot with bookings
+        const maxAutoValidated = Math.floor(
+          (existingSlot.maxCapacity * (existingSlot.autoValidationThreshold ?? terminal.autoValidationThreshold)) / 100
+        );
+        
+        // Count auto-validated bookings for this slot
+        const autoValidatedBookings = await ctx.db
+          .query("bookings")
+          .withIndex("by_terminal_and_date", (q: any) =>
+            q.eq("terminalId", terminal._id).eq("preferredDate", args.date)
+          )
+          .filter((q: any) =>
+            q.and(
+              q.eq(q.field("preferredTimeStart"), startTime),
+              q.eq(q.field("wasAutoValidated"), true),
+              q.or(
+                q.eq(q.field("status"), "confirmed"),
+                q.eq(q.field("status"), "consumed")
               )
             )
-            .collect();
+          )
+          .collect();
 
-          slots.push({
-            startTime,
-            endTime,
-            maxCapacity: existingSlot.maxCapacity,
-            currentBookings: existingSlot.currentBookings,
-            remainingCapacity: existingSlot.maxCapacity - existingSlot.currentBookings,
-            isAvailable: existingSlot.currentBookings < existingSlot.maxCapacity,
-            autoValidationRemaining: Math.max(0, maxAutoValidated - autoValidatedBookings.length),
-          });
-        } else if (!existingSlot) {
-          // Virtual slot (no bookings yet)
-          const maxAutoValidated = Math.floor(
-            (terminal.defaultSlotCapacity * terminal.autoValidationThreshold) / 100
-          );
+        slots.push({
+          startTime,
+          endTime,
+          maxCapacity: existingSlot.maxCapacity,
+          currentBookings: existingSlot.currentBookings,
+          remainingCapacity: existingSlot.maxCapacity - existingSlot.currentBookings,
+          isAvailable: existingSlot.currentBookings < existingSlot.maxCapacity,
+          autoValidationRemaining: Math.max(0, maxAutoValidated - autoValidatedBookings.length),
+        });
+      } else if (!existingSlot) {
+        // Virtual slot (no bookings yet)
+        const maxAutoValidated = Math.floor(
+          (terminal.defaultSlotCapacity * terminal.autoValidationThreshold) / 100
+        );
 
-          slots.push({
-            startTime,
-            endTime,
-            maxCapacity: terminal.defaultSlotCapacity,
-            currentBookings: 0,
-            remainingCapacity: terminal.defaultSlotCapacity,
-            isAvailable: true,
-            autoValidationRemaining: maxAutoValidated,
-          });
-        }
+        slots.push({
+          startTime,
+          endTime,
+          maxCapacity: terminal.defaultSlotCapacity,
+          currentBookings: 0,
+          remainingCapacity: terminal.defaultSlotCapacity,
+          isAvailable: true,
+          autoValidationRemaining: maxAutoValidated,
+        });
       }
     }
 
@@ -723,6 +716,7 @@ export const listMyTrucks = internalQuery({
     }
 
     return trucks.map((t: any) => ({
+      _id: t._id,
       licensePlate: t.licensePlate,
       truckType: t.truckType,
       truckClass: t.truckClass,
@@ -732,5 +726,215 @@ export const listMyTrucks = internalQuery({
       maxWeight: t.maxWeight,
       isActive: t.isActive,
     }));
+  },
+});
+
+// ============================================================================
+// CONTAINER DETAIL QUERY
+// ============================================================================
+
+export const getContainerByNumber = internalQuery({
+  args: {
+    userId: v.string(),
+    containerNumber: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const container = await ctx.db
+      .query("containers")
+      .withIndex("by_container_number", (q: any) =>
+        q.eq("containerNumber", args.containerNumber)
+      )
+      .unique();
+
+    if (!container) return null;
+
+    // Check ownership
+    if (container.ownerId !== args.userId) {
+      const role = await getUserRoleHelper(ctx, args.userId);
+      if (role !== "port_admin") return null;
+    }
+
+    // Get booking if assigned
+    let bookingInfo = null;
+    if (container.bookingId) {
+      const booking = await ctx.db.get(container.bookingId);
+      if (booking) {
+        bookingInfo = {
+          bookingReference: booking.bookingReference,
+          status: booking.status,
+          date: booking.preferredDate,
+          startTime: booking.preferredTimeStart,
+        };
+      }
+    }
+
+    return {
+      containerNumber: container.containerNumber,
+      containerType: container.containerType,
+      dimensions: container.dimensions,
+      weightClass: container.weightClass,
+      operationType: container.operationType,
+      isEmpty: container.isEmpty,
+      isActive: container.isActive,
+      readyDate: container.readyDate,
+      departureDate: container.departureDate,
+      notes: container.notes,
+      booking: bookingInfo,
+    };
+  },
+});
+
+// ============================================================================
+// SLOT SUGGESTION QUERY
+// ============================================================================
+
+export const suggestOptimalSlots = internalQuery({
+  args: {
+    userId: v.string(),
+    terminalCode: v.string(),
+    containerNumbers: v.optional(v.array(v.string())),
+    preferredDate: v.optional(v.string()),
+    daysToCheck: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    // Find terminal
+    const terminal = await ctx.db
+      .query("terminals")
+      .withIndex("by_code", (q: any) => q.eq("code", args.terminalCode))
+      .unique();
+
+    if (!terminal) {
+      return { error: "Terminal introuvable" };
+    }
+
+    const daysToCheck = args.daysToCheck ?? 3;
+    const today = args.preferredDate ?? new Date().toISOString().slice(0, 10);
+    
+    // Calculate urgency from containers (departure date as timestamp)
+    let urgencyTimestamp: number | null = null;
+    if (args.containerNumbers && args.containerNumbers.length > 0) {
+      for (const num of args.containerNumbers) {
+        const container = await ctx.db
+          .query("containers")
+          .withIndex("by_container_number", (q: any) => q.eq("containerNumber", num))
+          .unique();
+        if (container?.departureDate) {
+          if (!urgencyTimestamp || container.departureDate < urgencyTimestamp) {
+            urgencyTimestamp = container.departureDate;
+          }
+        }
+      }
+    }
+    
+    // Convert to date string for comparison
+    const urgencyDate = urgencyTimestamp 
+      ? new Date(urgencyTimestamp).toISOString().slice(0, 10) 
+      : null;
+
+    const suggestions: Array<{
+      date: string;
+      startTime: string;
+      endTime: string;
+      availableCapacity: number;
+      utilizationPercent: number;
+      autoValidationRemaining: number;
+      score: number;
+      reason: string;
+    }> = [];
+
+    // Check each day
+    for (let d = 0; d < daysToCheck; d++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() + d);
+      const dateStr = checkDate.toISOString().slice(0, 10);
+
+      // Get day of week for template lookup
+      const dayOfWeek = checkDate.getDay();
+
+      // Get slot templates for this day
+      const templates = await ctx.db
+        .query("slotTemplates")
+        .withIndex("by_terminal_and_day", (q: any) =>
+          q.eq("terminalId", terminal._id).eq("dayOfWeek", dayOfWeek)
+        )
+        .collect();
+
+      // Get existing slots for this date
+      const existingSlots = await ctx.db
+        .query("timeSlots")
+        .withIndex("by_terminal_and_date", (q: any) =>
+          q.eq("terminalId", terminal._id).eq("date", dateStr)
+        )
+        .collect();
+
+      const slotMap = new Map(existingSlots.map((s: any) => [s.startTime, s]));
+
+      for (const template of templates) {
+        if (!template.isActive) continue;
+
+        const startTime = `${template.hour.toString().padStart(2, "0")}:00`;
+        const endTime = `${(template.hour + 1).toString().padStart(2, "0")}:00`;
+
+        const existingSlot = slotMap.get(startTime);
+        const currentBookings = existingSlot?.currentBookings ?? 0;
+        const maxCapacity = existingSlot?.maxCapacity ?? template.maxCapacity;
+        const availableCapacity = maxCapacity - currentBookings;
+
+        if (availableCapacity <= 0) continue;
+
+        const utilizationPercent = Math.round((currentBookings / maxCapacity) * 100);
+        
+        // Calculate auto-validation remaining
+        const threshold = terminal.autoValidationThreshold ?? 50;
+        const maxAutoValidated = Math.floor((maxCapacity * threshold) / 100);
+        const autoValidationRemaining = Math.max(0, maxAutoValidated - currentBookings);
+
+        // Score calculation: lower utilization = higher score
+        // Also boost score for urgency matching
+        let score = 100 - utilizationPercent;
+        
+        // Boost for auto-validation availability
+        if (autoValidationRemaining > 0) {
+          score += 20;
+        }
+
+        // Boost for urgency (if date is before departure)
+        if (urgencyDate && dateStr <= urgencyDate) {
+          score += 15;
+        }
+
+        let reason = `${availableCapacity} places disponibles`;
+        if (autoValidationRemaining > 0) {
+          reason += ", validation automatique possible";
+        }
+        if (utilizationPercent < 30) {
+          reason += ", faible affluence";
+        }
+
+        suggestions.push({
+          date: dateStr,
+          startTime,
+          endTime,
+          availableCapacity,
+          utilizationPercent,
+          autoValidationRemaining,
+          score,
+          reason,
+        });
+      }
+    }
+
+    // Sort by score (descending) and take top 5
+    suggestions.sort((a, b) => b.score - a.score);
+    const top5 = suggestions.slice(0, 5);
+
+    return {
+      terminal: {
+        name: terminal.name,
+        code: terminal.code,
+      },
+      urgencyDate,
+      suggestions: top5,
+    };
   },
 });

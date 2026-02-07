@@ -155,7 +155,6 @@ export const terminalInputValidator = v.object({
   capacityAlertThresholds: v.array(v.number()),
   operatingHoursStart: v.string(),
   operatingHoursEnd: v.string(),
-  slotDurationMinutes: v.number(),
 });
 
 /** Gate input for creation */
