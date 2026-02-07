@@ -1,0 +1,91 @@
+"use client";
+
+import { Link, useParams } from "@tanstack/react-router";
+import { Skeleton } from "@/components/ui/skeleton";
+import { MessageCircleIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { groupThreadsByDate } from "../lib/thread-utils";
+import { useThreads, type Thread } from "../hooks/use-threads";
+import { useCurrentUser } from "@/hooks/use-role";
+
+const DATE_GROUP_LABELS: Record<string, string> = {
+  today: "Aujourd'hui",
+  yesterday: "Hier",
+  last7days: "7 derniers jours",
+  last30days: "30 derniers jours",
+  older: "Plus ancien",
+};
+
+export function ChatSidebarThreads() {
+  const user = useCurrentUser();
+  const { threads, isLoading } = useThreads(user?._id);
+  const params = useParams({ strict: false });
+  const currentThreadId = (params as { threadId?: string }).threadId;
+
+  // Transform threads for grouping (add createdAt from _creationTime)
+  const threadsWithDate = threads.map((thread) => ({
+    ...thread,
+    createdAt: thread._creationTime,
+  }));
+
+  if (isLoading) {
+    return (
+      <div className="px-3 py-4 space-y-2">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-8 w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  if (threads.length === 0) {
+    return (
+      <div className="px-3 py-8 text-center">
+        <MessageCircleIcon className="size-8 mx-auto text-muted-foreground/50 mb-2" />
+        <p className="text-sm text-muted-foreground">
+          Aucune conversation
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Commencez une nouvelle conversation
+        </p>
+      </div>
+    );
+  }
+
+  const groupedThreads = groupThreadsByDate(threadsWithDate);
+
+  return (
+    <div className="px-2 py-3 space-y-4">
+      {Object.entries(groupedThreads).map(([group, groupThreads]) => {
+        if (groupThreads.length === 0) return null;
+
+        return (
+          <div key={group}>
+            <h3 className="px-3 mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              {DATE_GROUP_LABELS[group]}
+            </h3>
+            <div className="space-y-1">
+              {groupThreads.map((thread) => (
+                <Link
+                  key={thread._id}
+                  to={`/_chat/${thread._id}`}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm",
+                    "hover:bg-muted transition-colors",
+                    "truncate",
+                    currentThreadId === thread._id && "bg-muted"
+                  )}
+                >
+                  <MessageCircleIcon className="size-4 flex-shrink-0 text-muted-foreground" />
+                  <span className="truncate">
+                    {thread.title || "Nouvelle conversation"}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

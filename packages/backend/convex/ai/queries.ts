@@ -14,6 +14,31 @@ import { components } from "../_generated/api";
 // ============================================================================
 
 /**
+ * List threads for a user.
+ * Returns threads sorted by most recent first.
+ */
+export const listUserThreads = query({
+  args: {
+    userId: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const result = await ctx.runQuery(
+      components.agent.threads.listThreadsByUserId,
+      {
+        userId: args.userId,
+        order: "desc",
+        paginationOpts: {
+          cursor: null,
+          numItems: args.limit ?? 50,
+        },
+      }
+    );
+    return result;
+  },
+});
+
+/**
  * List messages in a thread (for initial load & real-time updates).
  * The frontend subscribes to this for live streaming.
  *
