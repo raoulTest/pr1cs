@@ -4,7 +4,6 @@
 @import "@fontsource-variable/jetbrains-mono";
 
 @custom-variant dark (&:is(.dark *));
-
 :root {
   --background: oklch(0.9842 0.0034 247.8575);
   --foreground: oklch(0.2077 0.0398 265.7549);

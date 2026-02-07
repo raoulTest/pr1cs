@@ -205,37 +205,31 @@ export const listByRole = query({
     const user = await getAuthenticatedUser(ctx);
     requireRole(user, ["port_admin"]);
 
-    // Get all userProfiles to find user IDs
-    const profiles = await ctx.db.query("userProfiles").collect();
-
-    // Filter users by role from Better Auth
-    const result = await Promise.all(
-      profiles.map(async (profile) => {
-        const authUser = await authComponent.getAnyUserById(
-          ctx,
-          profile.userId,
-        );
-        if (!authUser) return null;
-
-        const userRole = (authUser as unknown as { role: string }).role;
-        if (userRole !== args.role) return null;
-
-        return {
-          userId: profile.userId,
-          email: authUser.email,
-          name: authUser.name,
-          role: userRole as
-            | "port_admin"
-            | "terminal_operator"
-            | "carrier"
-            | "user",
-          preferredLanguage: profile.preferredLanguage,
-          createdAt: profile.createdAt,
-        };
-      }),
+    // Use Better Auth component directly to list users by role
+    const authUsers = await ctx.runQuery(
+      components.betterAuth.users.listByRole,
+      { role: args.role },
     );
 
-    return result.filter((r): r is NonNullable<typeof r> => r !== null);
+    // Get userProfiles for preferences (optional enrichment)
+    const profiles = await ctx.db.query("userProfiles").collect();
+    const profileMap = new Map(profiles.map((p) => [p.userId, p]));
+
+    return authUsers.map((authUser) => {
+      const profile = profileMap.get(authUser._id);
+      return {
+        userId: authUser._id,
+        email: authUser.email,
+        name: authUser.name,
+        role: authUser.role as
+          | "port_admin"
+          | "terminal_operator"
+          | "carrier"
+          | "user",
+        preferredLanguage: profile?.preferredLanguage,
+        createdAt: authUser.createdAt,
+      };
+    });
   },
 });
 

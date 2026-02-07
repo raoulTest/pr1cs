@@ -20,6 +20,7 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AppOperatorPendingRouteImport } from './routes/_app/operator/pending'
 import { Route as AppOperatorCapacityRouteImport } from './routes/_app/operator/capacity'
 import { Route as AppOperatorBookingsRouteImport } from './routes/_app/operator/bookings'
+import { Route as AppOperatorAnalyticsRouteImport } from './routes/_app/operator/analytics'
 import { Route as AppCarrierTrucksRouteImport } from './routes/_app/carrier/trucks'
 import { Route as AppCarrierContainersRouteImport } from './routes/_app/carrier/containers'
 import { Route as AppCarrierBookingsRouteImport } from './routes/_app/carrier/bookings'
@@ -30,6 +31,8 @@ import { Route as AppAdminOperatorsRouteImport } from './routes/_app/admin/opera
 import { Route as AppAdminGatesRouteImport } from './routes/_app/admin/gates'
 import { Route as AppAdminConfigRouteImport } from './routes/_app/admin/config'
 import { Route as AppAdminCarriersRouteImport } from './routes/_app/admin/carriers'
+import { Route as AppAdminAuditLogsRouteImport } from './routes/_app/admin/audit-logs'
+import { Route as AppAdminAnalyticsRouteImport } from './routes/_app/admin/analytics'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -85,6 +88,11 @@ const AppOperatorBookingsRoute = AppOperatorBookingsRouteImport.update({
   path: '/operator/bookings',
   getParentRoute: () => AppRoute,
 } as any)
+const AppOperatorAnalyticsRoute = AppOperatorAnalyticsRouteImport.update({
+  id: '/operator/analytics',
+  path: '/operator/analytics',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCarrierTrucksRoute = AppCarrierTrucksRouteImport.update({
   id: '/carrier/trucks',
   path: '/carrier/trucks',
@@ -135,12 +143,24 @@ const AppAdminCarriersRoute = AppAdminCarriersRouteImport.update({
   path: '/admin/carriers',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminAuditLogsRoute = AppAdminAuditLogsRouteImport.update({
+  id: '/admin/audit-logs',
+  path: '/admin/audit-logs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminAnalyticsRoute = AppAdminAnalyticsRouteImport.update({
+  id: '/admin/analytics',
+  path: '/admin/analytics',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
   '/$threadId': typeof AppThreadIdRoute
   '/settings': typeof AppSettingsRoute
+  '/admin/analytics': typeof AppAdminAnalyticsRoute
+  '/admin/audit-logs': typeof AppAdminAuditLogsRoute
   '/admin/carriers': typeof AppAdminCarriersRoute
   '/admin/config': typeof AppAdminConfigRoute
   '/admin/gates': typeof AppAdminGatesRoute
@@ -151,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/carrier/bookings': typeof AppCarrierBookingsRoute
   '/carrier/containers': typeof AppCarrierContainersRoute
   '/carrier/trucks': typeof AppCarrierTrucksRoute
+  '/operator/analytics': typeof AppOperatorAnalyticsRoute
   '/operator/bookings': typeof AppOperatorBookingsRoute
   '/operator/capacity': typeof AppOperatorCapacityRoute
   '/operator/pending': typeof AppOperatorPendingRoute
@@ -163,6 +184,8 @@ export interface FileRoutesByTo {
   '/$threadId': typeof AppThreadIdRoute
   '/settings': typeof AppSettingsRoute
   '/': typeof AppIndexRoute
+  '/admin/analytics': typeof AppAdminAnalyticsRoute
+  '/admin/audit-logs': typeof AppAdminAuditLogsRoute
   '/admin/carriers': typeof AppAdminCarriersRoute
   '/admin/config': typeof AppAdminConfigRoute
   '/admin/gates': typeof AppAdminGatesRoute
@@ -173,6 +196,7 @@ export interface FileRoutesByTo {
   '/carrier/bookings': typeof AppCarrierBookingsRoute
   '/carrier/containers': typeof AppCarrierContainersRoute
   '/carrier/trucks': typeof AppCarrierTrucksRoute
+  '/operator/analytics': typeof AppOperatorAnalyticsRoute
   '/operator/bookings': typeof AppOperatorBookingsRoute
   '/operator/capacity': typeof AppOperatorCapacityRoute
   '/operator/pending': typeof AppOperatorPendingRoute
@@ -187,6 +211,8 @@ export interface FileRoutesById {
   '/_app/$threadId': typeof AppThreadIdRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/admin/analytics': typeof AppAdminAnalyticsRoute
+  '/_app/admin/audit-logs': typeof AppAdminAuditLogsRoute
   '/_app/admin/carriers': typeof AppAdminCarriersRoute
   '/_app/admin/config': typeof AppAdminConfigRoute
   '/_app/admin/gates': typeof AppAdminGatesRoute
@@ -197,6 +223,7 @@ export interface FileRoutesById {
   '/_app/carrier/bookings': typeof AppCarrierBookingsRoute
   '/_app/carrier/containers': typeof AppCarrierContainersRoute
   '/_app/carrier/trucks': typeof AppCarrierTrucksRoute
+  '/_app/operator/analytics': typeof AppOperatorAnalyticsRoute
   '/_app/operator/bookings': typeof AppOperatorBookingsRoute
   '/_app/operator/capacity': typeof AppOperatorCapacityRoute
   '/_app/operator/pending': typeof AppOperatorPendingRoute
@@ -211,6 +238,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/$threadId'
     | '/settings'
+    | '/admin/analytics'
+    | '/admin/audit-logs'
     | '/admin/carriers'
     | '/admin/config'
     | '/admin/gates'
@@ -221,6 +250,7 @@ export interface FileRouteTypes {
     | '/carrier/bookings'
     | '/carrier/containers'
     | '/carrier/trucks'
+    | '/operator/analytics'
     | '/operator/bookings'
     | '/operator/capacity'
     | '/operator/pending'
@@ -233,6 +263,8 @@ export interface FileRouteTypes {
     | '/$threadId'
     | '/settings'
     | '/'
+    | '/admin/analytics'
+    | '/admin/audit-logs'
     | '/admin/carriers'
     | '/admin/config'
     | '/admin/gates'
@@ -243,6 +275,7 @@ export interface FileRouteTypes {
     | '/carrier/bookings'
     | '/carrier/containers'
     | '/carrier/trucks'
+    | '/operator/analytics'
     | '/operator/bookings'
     | '/operator/capacity'
     | '/operator/pending'
@@ -256,6 +289,8 @@ export interface FileRouteTypes {
     | '/_app/$threadId'
     | '/_app/settings'
     | '/_app/'
+    | '/_app/admin/analytics'
+    | '/_app/admin/audit-logs'
     | '/_app/admin/carriers'
     | '/_app/admin/config'
     | '/_app/admin/gates'
@@ -266,6 +301,7 @@ export interface FileRouteTypes {
     | '/_app/carrier/bookings'
     | '/_app/carrier/containers'
     | '/_app/carrier/trucks'
+    | '/_app/operator/analytics'
     | '/_app/operator/bookings'
     | '/_app/operator/capacity'
     | '/_app/operator/pending'
@@ -359,6 +395,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppOperatorBookingsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/operator/analytics': {
+      id: '/_app/operator/analytics'
+      path: '/operator/analytics'
+      fullPath: '/operator/analytics'
+      preLoaderRoute: typeof AppOperatorAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/carrier/trucks': {
       id: '/_app/carrier/trucks'
       path: '/carrier/trucks'
@@ -429,6 +472,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminCarriersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/audit-logs': {
+      id: '/_app/admin/audit-logs'
+      path: '/admin/audit-logs'
+      fullPath: '/admin/audit-logs'
+      preLoaderRoute: typeof AppAdminAuditLogsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/analytics': {
+      id: '/_app/admin/analytics'
+      path: '/admin/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AppAdminAnalyticsRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -436,6 +493,8 @@ interface AppRouteChildren {
   AppThreadIdRoute: typeof AppThreadIdRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAdminAnalyticsRoute: typeof AppAdminAnalyticsRoute
+  AppAdminAuditLogsRoute: typeof AppAdminAuditLogsRoute
   AppAdminCarriersRoute: typeof AppAdminCarriersRoute
   AppAdminConfigRoute: typeof AppAdminConfigRoute
   AppAdminGatesRoute: typeof AppAdminGatesRoute
@@ -446,6 +505,7 @@ interface AppRouteChildren {
   AppCarrierBookingsRoute: typeof AppCarrierBookingsRoute
   AppCarrierContainersRoute: typeof AppCarrierContainersRoute
   AppCarrierTrucksRoute: typeof AppCarrierTrucksRoute
+  AppOperatorAnalyticsRoute: typeof AppOperatorAnalyticsRoute
   AppOperatorBookingsRoute: typeof AppOperatorBookingsRoute
   AppOperatorCapacityRoute: typeof AppOperatorCapacityRoute
   AppOperatorPendingRoute: typeof AppOperatorPendingRoute
@@ -457,6 +517,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppThreadIdRoute: AppThreadIdRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAdminAnalyticsRoute: AppAdminAnalyticsRoute,
+  AppAdminAuditLogsRoute: AppAdminAuditLogsRoute,
   AppAdminCarriersRoute: AppAdminCarriersRoute,
   AppAdminConfigRoute: AppAdminConfigRoute,
   AppAdminGatesRoute: AppAdminGatesRoute,
@@ -467,6 +529,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCarrierBookingsRoute: AppCarrierBookingsRoute,
   AppCarrierContainersRoute: AppCarrierContainersRoute,
   AppCarrierTrucksRoute: AppCarrierTrucksRoute,
+  AppOperatorAnalyticsRoute: AppOperatorAnalyticsRoute,
   AppOperatorBookingsRoute: AppOperatorBookingsRoute,
   AppOperatorCapacityRoute: AppOperatorCapacityRoute,
   AppOperatorPendingRoute: AppOperatorPendingRoute,

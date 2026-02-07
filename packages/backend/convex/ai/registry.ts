@@ -20,6 +20,7 @@ import {
   listBookingsByTerminal,
   listBookingsByCarrier,
   listPendingBookings,
+  listAllBookings,
 } from "./tools/bookings";
 import {
   listTerminals,
@@ -50,6 +51,7 @@ export const ALL_TOOLS = {
   listBookingsByTerminal,
   listBookingsByCarrier,
   listPendingBookings,
+  listAllBookings,
   // Terminal queries
   listTerminals,
   getTerminalDetails,

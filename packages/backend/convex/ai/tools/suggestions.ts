@@ -7,7 +7,7 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod/v3";
 import { internal } from "../../_generated/api";
-import { checkToolAccess } from "./types";
+import { checkToolAccess, toolResult, displayArg } from "./types";
 
 // ============================================================================
 // SUGGESTION TOOLS
@@ -39,12 +39,13 @@ export const suggestOptimalSlots = createTool({
       .number()
       .optional()
       .describe("Nombre de jours à vérifier (défaut: 3, max: 7)"),
+    ...displayArg,
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "suggestOptimalSlots");
     if (denied) return denied;
 
-    return await ctx.runQuery(
+    const data = await ctx.runQuery(
       internal.ai.internalQueries.suggestOptimalSlots,
       {
         userId: ctx.userId!,
@@ -54,5 +55,6 @@ export const suggestOptimalSlots = createTool({
         daysToCheck: Math.min(args.daysToCheck ?? 3, 7),
       },
     );
+    return toolResult(data, args._display ?? true);
   },
 });

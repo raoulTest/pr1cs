@@ -1,16 +1,25 @@
 import { z } from "zod";
 
 export const createTerminalSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
+  name: z.string().min(2, "Le nom doit avoir au moins 2 caractères"),
   code: z
     .string()
-    .min(2, "Code must be at least 2 characters")
-    .regex(/^[A-Z0-9-]+$/, "Code must be uppercase letters, numbers, or hyphens"),
+    .min(2, "Le code doit avoir au moins 2 caractères")
+    .regex(/^[A-Z0-9-]+$/, "Le code doit contenir uniquement des lettres majuscules, chiffres ou tirets"),
   address: z.string().optional(),
-  timezone: z.string().min(1, "Timezone is required"),
+  timezone: z.string().min(1, "Le fuseau horaire est requis"),
 });
 
 export type CreateTerminalFormValues = z.infer<typeof createTerminalSchema>;
+
+export const updateTerminalSchema = z.object({
+  name: z.string().min(2, "Le nom doit avoir au moins 2 caractères"),
+  address: z.string().optional(),
+  timezone: z.string().min(1, "Le fuseau horaire est requis"),
+  autoValidationThreshold: z.number().min(0).max(100).optional(),
+});
+
+export type UpdateTerminalFormValues = z.infer<typeof updateTerminalSchema>;
 
 // Common timezones for port operations
 export const COMMON_TIMEZONES = [

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ToolRendererProps } from "../index";
+import type { ToolRendererProps } from "../types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,7 +19,7 @@ export function GenericToolRenderer({ toolName, args, result, state }: ToolRende
       <Card className="border-border/50">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <WrenchIcon className="size-4" />
+            <WrenchIcon className="size-4 animate-pulse" />
             <span className="font-mono">{toolName}</span>
             <Badge variant="secondary" className="text-xs">En cours...</Badge>
           </CardTitle>

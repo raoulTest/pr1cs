@@ -7,6 +7,11 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -29,6 +34,9 @@ import {
   LogOutIcon,
   MessageSquareIcon,
   ChevronDownIcon,
+  ChevronRightIcon,
+  ScrollTextIcon,
+  BarChart3Icon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";
@@ -47,6 +55,8 @@ interface NavItem {
 
 interface NavSection {
   title: string;
+  icon: ComponentType<{ className?: string }>;
+  defaultOpen?: boolean;
   items: NavItem[];
 }
 
@@ -57,15 +67,47 @@ const getNavSections = (role: ApcsRole | null | undefined): NavSection[] => {
     case "port_admin":
       return [
         {
-          title: "Administration",
+          title: "Tableau de bord",
+          icon: LayoutDashboardIcon,
+          defaultOpen: true,
           items: [
-            { label: "Tableau de bord", href: "/admin", icon: LayoutDashboardIcon },
+            { label: "Vue d'ensemble", href: "/admin", icon: LayoutDashboardIcon },
+            { label: "Analytiques", href: "/admin/analytics", icon: BarChart3Icon },
+          ],
+        },
+        {
+          title: "Infrastructure",
+          icon: BuildingIcon,
+          defaultOpen: true,
+          items: [
             { label: "Terminaux", href: "/admin/terminals", icon: BuildingIcon },
             { label: "Portes", href: "/admin/gates", icon: DoorOpenIcon },
+          ],
+        },
+        {
+          title: "Flotte",
+          icon: TruckIcon,
+          defaultOpen: false,
+          items: [
             { label: "Transporteurs", href: "/admin/carriers", icon: TruckIcon },
             { label: "Camions", href: "/admin/trucks", icon: TruckIcon },
+          ],
+        },
+        {
+          title: "Utilisateurs",
+          icon: UsersIcon,
+          defaultOpen: false,
+          items: [
             { label: "Utilisateurs", href: "/admin/users", icon: UsersIcon },
             { label: "Opérateurs", href: "/admin/operators", icon: UserCogIcon },
+          ],
+        },
+        {
+          title: "Système",
+          icon: SettingsIcon,
+          defaultOpen: false,
+          items: [
+            { label: "Journal d'audit", href: "/admin/audit-logs", icon: ScrollTextIcon },
             { label: "Configuration", href: "/admin/config", icon: SettingsIcon },
           ],
         },
@@ -75,11 +117,21 @@ const getNavSections = (role: ApcsRole | null | undefined): NavSection[] => {
       return [
         {
           title: "Opérations",
+          icon: LayoutDashboardIcon,
+          defaultOpen: true,
           items: [
             { label: "Tableau de bord", href: "/operator", icon: LayoutDashboardIcon },
             { label: "Réservations", href: "/operator/bookings", icon: CalendarIcon },
             { label: "En attente", href: "/operator/pending", icon: ClockIcon },
+          ],
+        },
+        {
+          title: "Gestion",
+          icon: GridIcon,
+          defaultOpen: true,
+          items: [
             { label: "Capacité", href: "/operator/capacity", icon: GridIcon },
+            { label: "Analytiques", href: "/operator/analytics", icon: BarChart3Icon },
           ],
         },
       ];
@@ -88,6 +140,8 @@ const getNavSections = (role: ApcsRole | null | undefined): NavSection[] => {
       return [
         {
           title: "Mes ressources",
+          icon: CalendarIcon,
+          defaultOpen: true,
           items: [
             { label: "Mes réservations", href: "/carrier/bookings", icon: CalendarIcon },
             { label: "Mes camions", href: "/carrier/trucks", icon: TruckIcon },
@@ -100,6 +154,65 @@ const getNavSections = (role: ApcsRole | null | undefined): NavSection[] => {
       return [];
   }
 };
+
+// ============================================================================
+// COLLAPSIBLE NAV SECTION
+// ============================================================================
+
+function NavSectionGroup({
+  section,
+  pathname,
+}: {
+  section: NavSection;
+  pathname: string;
+}) {
+  const SectionIcon = section.icon;
+  const hasActiveItem = section.items.some(
+    (item) =>
+      pathname === item.href ||
+      (item.href !== "/admin" &&
+        item.href !== "/operator" &&
+        pathname.startsWith(item.href))
+  );
+
+  return (
+    <Collapsible defaultOpen={section.defaultOpen || hasActiveItem}>
+      <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors group/collapsible">
+        <ChevronRightIcon className="size-3 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+        <SectionIcon className="size-3.5" />
+        <span className="flex-1 text-left">{section.title}</span>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="space-y-0.5 mt-1">
+          {section.items.map((item) => {
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/admin" &&
+                item.href !== "/operator" &&
+                pathname.startsWith(item.href));
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-1.5 ml-3 rounded-md text-sm transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+              >
+                <Icon className="size-4" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
 
 // ============================================================================
 // SIDEBAR COMPONENT
@@ -171,57 +284,37 @@ export function AppSidebar() {
         </Button>
       </div>
 
-      {/* Role-specific navigation */}
+      {/* Role-specific navigation with collapsible sections */}
       {navSections.length > 0 && (
         <>
-          <nav className="px-2 py-2 space-y-4">
+          <nav className="px-2 py-2 space-y-1">
             {navSections.map((section) => (
-              <div key={section.title}>
-                <p className="px-3 mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {section.title}
-                </p>
-                <div className="space-y-1">
-                  {section.items.map((item) => {
-                    const isActive = location.pathname === item.href || 
-                      (item.href !== "/admin" && 
-                       item.href !== "/operator" && 
-                       location.pathname.startsWith(item.href));
-                    const Icon = item.icon;
-
-                    return (
-                      <Link
-                        key={item.href}
-                        to={item.href}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
-                          isActive
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                        )}
-                      >
-                        <Icon className="size-4" />
-                        {item.label}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
+              <NavSectionGroup
+                key={section.title}
+                section={section}
+                pathname={location.pathname}
+              />
             ))}
           </nav>
           <Separator />
         </>
       )}
 
-      {/* Chat threads section */}
-      <div className="px-2 py-2">
-        <p className="px-3 mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-          <MessageSquareIcon className="size-3" />
-          Conversations
-        </p>
-      </div>
-      <ScrollArea className="flex-1">
-        <ChatSidebarThreads />
-      </ScrollArea>
+      {/* Collapsible chat threads section */}
+      <Collapsible defaultOpen className="flex flex-col min-h-0 flex-1">
+        <div className="px-2 py-2">
+          <CollapsibleTrigger className="flex w-full items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors group/collapsible">
+            <ChevronRightIcon className="size-3 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            <MessageSquareIcon className="size-3.5" />
+            <span className="flex-1 text-left">Conversations</span>
+          </CollapsibleTrigger>
+        </div>
+        <CollapsibleContent className="flex-1 min-h-0">
+          <ScrollArea className="h-full">
+            <ChatSidebarThreads />
+          </ScrollArea>
+        </CollapsibleContent>
+      </Collapsible>
 
       <Separator />
 

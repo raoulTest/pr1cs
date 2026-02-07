@@ -15,6 +15,7 @@ import {
   isCarrier,
 } from "../lib/permissions";
 import { notificationChannelValidator } from "../lib/validators";
+import { authComponent } from "../auth";
 
 /**
  * Get current carrier's profile and stats
@@ -87,6 +88,8 @@ export const listCarriers = query({
   returns: v.array(
     v.object({
       userId: v.string(),
+      name: v.optional(v.string()),
+      email: v.optional(v.string()),
       truckCount: v.number(),
       containerCount: v.number(),
       bookingCount: v.number(),
@@ -110,6 +113,9 @@ export const listCarriers = query({
 
     const results = await Promise.all(
       paginatedCarrierIds.map(async (carrierId) => {
+        // Get user info from Better Auth
+        const authUser = await authComponent.getAnyUserById(ctx, carrierId);
+        
         const trucks = await ctx.db
           .query("trucks")
           .withIndex("by_owner_and_active", (q) =>
@@ -131,6 +137,8 @@ export const listCarriers = query({
 
         return {
           userId: carrierId,
+          name: authUser?.name,
+          email: authUser?.email,
           truckCount: trucks.length,
           containerCount: containers.length,
           bookingCount: bookings.length,

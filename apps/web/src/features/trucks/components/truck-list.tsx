@@ -80,7 +80,7 @@ export function TruckList({ onCreateClick }: TruckListProps) {
             <SelectContent>
               {carriers.map((carrier) => (
                 <SelectItem key={carrier.userId} value={carrier.userId}>
-                  {carrier.userId} ({carrier.truckCount} camions)
+                  {carrier.name ?? carrier.email ?? carrier.userId} ({carrier.truckCount} camions)
                 </SelectItem>
               ))}
             </SelectContent>

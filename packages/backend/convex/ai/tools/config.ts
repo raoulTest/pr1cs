@@ -8,7 +8,7 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod/v3";
 import { internal } from "../../_generated/api";
-import { checkToolAccess } from "./types";
+import { checkToolAccess, toolResult, displayArg } from "./types";
 
 // ============================================================================
 // QUERY TOOLS
@@ -23,14 +23,18 @@ export const getSystemConfig = createTool({
     "Get the system configuration including booking policies: " +
     "cancellation window, max advance booking days, minimum booking lead time, " +
     "and reminder settings. Useful when the user asks about rules or policies.",
-  args: z.object({}),
-  handler: async (ctx, _args): Promise<unknown> => {
+  args: z.object({
+    ...displayArg,
+  }),
+  handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "getSystemConfig");
     if (denied) return denied;
 
-    return await ctx.runQuery(
+    const data = await ctx.runQuery(
       internal.ai.internalQueries.getSystemConfig,
       {},
     );
+    // Default to hidden — config is typically fetched for internal reasoning
+    return toolResult(data, args._display ?? false);
   },
 });

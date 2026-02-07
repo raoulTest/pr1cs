@@ -7,7 +7,7 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod/v3";
 import { internal } from "../../_generated/api";
-import { checkToolAccess } from "./types";
+import { checkToolAccess, toolResult, displayArg } from "./types";
 
 // ============================================================================
 // MUTATION TOOLS
@@ -50,12 +50,13 @@ export const createBookingViaAI = createTool({
       .string()
       .optional()
       .describe("Téléphone du chauffeur"),
+    ...displayArg,
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "createBookingViaAI");
     if (denied) return denied;
 
-    return await ctx.runMutation(internal.ai.mutations.createBookingFromAI, {
+    const data = await ctx.runMutation(internal.ai.mutations.createBookingFromAI, {
       userId: ctx.userId!,
       terminalCode: args.terminalCode,
       licensePlate: args.licensePlate,
@@ -66,6 +67,7 @@ export const createBookingViaAI = createTool({
       driverName: args.driverName,
       driverPhone: args.driverPhone,
     });
+    return toolResult(data, args._display ?? true);
   },
 });
 
@@ -85,15 +87,17 @@ export const cancelBookingViaAI = createTool({
       .string()
       .optional()
       .describe("Raison de l'annulation (optionnel)"),
+    ...displayArg,
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "cancelBookingViaAI");
     if (denied) return denied;
 
-    return await ctx.runMutation(internal.ai.mutations.cancelBookingFromAI, {
+    const data = await ctx.runMutation(internal.ai.mutations.cancelBookingFromAI, {
       userId: ctx.userId!,
       bookingReference: args.bookingReference.toUpperCase().trim(),
       reason: args.reason,
     });
+    return toolResult(data, args._display ?? true);
   },
 });

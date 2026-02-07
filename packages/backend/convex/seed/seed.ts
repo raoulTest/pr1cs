@@ -458,7 +458,7 @@ export default mutation({
             userId: bookingDef.carrierId,
             type: notificationType as any,
             channel: "in_app",
-            title: notificationTitles[bookingDef.status],
+            title: notificationTitles[bookingDef.status] ?? "Notification",
             body: `Votre réservation ${bookingRef} au terminal ${bookingDef.terminalCode} est ${bookingDef.status}`,
             relatedEntityType: "booking",
             relatedEntityId: bookingId,

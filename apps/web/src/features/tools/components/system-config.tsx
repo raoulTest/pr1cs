@@ -1,6 +1,6 @@
 "use client";
 
-import type { ToolRendererProps } from "../index";
+import type { ToolRendererProps } from "../types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SettingsIcon, ClockIcon, CalendarIcon, TruckIcon } from "lucide-react";
@@ -10,14 +10,31 @@ interface SystemConfig {
   maxAdvanceBookingDays?: number;
   minAdvanceBookingHours?: number;
   autoValidationThreshold?: number;
+  defaultAutoValidationThreshold?: number;
   cancellationDeadlineHours?: number;
+  noShowGracePeriodMinutes?: number;
+  reminderHoursBefore?: number;
+  maxContainersPerBooking?: number;
   operatingHoursStart?: string;
   operatingHoursEnd?: string;
   workingDays?: number[];
 }
 
-interface SystemConfigResult {
-  config?: SystemConfig;
+// Helper to normalize config result
+function normalizeConfigResult(result: unknown): SystemConfig | null {
+  if (!result) return null;
+  
+  // If result is already a config object (direct return from backend)
+  if (typeof result === "object" && ("maxAdvanceBookingDays" in result || "minAdvanceBookingHours" in result || "defaultAutoValidationThreshold" in result)) {
+    return result as SystemConfig;
+  }
+  
+  // If wrapped in { config: ... }
+  if (result && typeof result === "object" && "config" in result) {
+    return (result as { config: SystemConfig }).config;
+  }
+  
+  return null;
 }
 
 const WEEKDAY_LABELS: Record<number, string> = {
@@ -30,13 +47,13 @@ const WEEKDAY_LABELS: Record<number, string> = {
   6: "Samedi",
 };
 
-export function SystemConfigRenderer({ result, state }: ToolRendererProps<SystemConfigResult>) {
+export function SystemConfigRenderer({ result, state }: ToolRendererProps<unknown>) {
   if (state === "running") {
     return (
       <Card className="border-border/50">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <SettingsIcon className="size-4" />
+            <SettingsIcon className="size-4 animate-pulse" />
             Chargement de la configuration...
           </CardTitle>
         </CardHeader>
@@ -47,7 +64,9 @@ export function SystemConfigRenderer({ result, state }: ToolRendererProps<System
     );
   }
 
-  if (state === "error" || !result?.config) {
+  const config = normalizeConfigResult(result);
+
+  if (state === "error" || !config) {
     return (
       <Card className="border-destructive/50 bg-destructive/5">
         <CardContent className="py-4 text-sm text-destructive">
@@ -56,8 +75,6 @@ export function SystemConfigRenderer({ result, state }: ToolRendererProps<System
       </Card>
     );
   }
-
-  const { config } = result;
 
   return (
     <Card className="border-border/50">
@@ -123,14 +140,35 @@ export function SystemConfigRenderer({ result, state }: ToolRendererProps<System
         </div>
 
         {/* Auto-validation */}
-        {config.autoValidationThreshold && (
+        {(config.autoValidationThreshold || config.defaultAutoValidationThreshold) && (
           <div className="flex items-center gap-4 pt-2 border-t border-border/50">
             <TruckIcon className="size-4 text-muted-foreground" />
             <div>
               <p className="text-xs text-muted-foreground">Seuil d'auto-validation</p>
               <p className="text-sm">
-                {config.autoValidationThreshold}% de la capacite
+                {config.autoValidationThreshold || config.defaultAutoValidationThreshold}% de la capacite
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* Additional settings from backend */}
+        {config.noShowGracePeriodMinutes && (
+          <div className="flex items-center gap-4 pt-2 border-t border-border/50">
+            <ClockIcon className="size-4 text-muted-foreground" />
+            <div>
+              <p className="text-xs text-muted-foreground">Delai de grace (no-show)</p>
+              <p className="text-sm">{config.noShowGracePeriodMinutes} minutes</p>
+            </div>
+          </div>
+        )}
+
+        {config.maxContainersPerBooking && (
+          <div className="flex items-center gap-4 pt-2 border-t border-border/50">
+            <TruckIcon className="size-4 text-muted-foreground" />
+            <div>
+              <p className="text-xs text-muted-foreground">Conteneurs max par reservation</p>
+              <p className="text-sm">{config.maxContainersPerBooking}</p>
             </div>
           </div>
         )}

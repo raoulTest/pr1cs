@@ -14,6 +14,7 @@ import {
   ClockIcon,
   GridIcon,
   UserCogIcon,
+  ScrollTextIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ComponentType } from "react";
@@ -32,6 +33,7 @@ const NAV_ITEMS: Record<ApcsRole, NavItem[]> = {
     { label: "Portails", href: "/admin/gates", icon: DoorOpenIcon },
     { label: "Réservations", href: "/admin/bookings", icon: CalendarIcon },
     { label: "Utilisateurs", href: "/admin/users", icon: UserCogIcon },
+    { label: "Journal d'audit", href: "/admin/audit-logs", icon: ScrollTextIcon },
     { label: "Configuration", href: "/admin/config", icon: SettingsIcon },
   ],
   terminal_operator: [

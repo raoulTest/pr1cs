@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useAction, useQuery } from "convex/react";
 import { api } from "@microhack/backend/convex/_generated/api";
 import { type MessageDoc } from "@convex-dev/agent";
@@ -14,6 +14,8 @@ interface UseThreadReturn {
   isLoading: boolean;
   isStreaming: boolean;
   status: "ready" | "submitted" | "streaming" | "error";
+  suggestions: string[];
+  isSuggestionsLoading: boolean;
   sendMessage: (message: string) => Promise<void>;
   createThread: () => Promise<string>;
   stop: () => void;
@@ -32,6 +34,11 @@ export function useThread({
   const [status, setStatus] = useState<
     "ready" | "submitted" | "streaming" | "error"
   >("ready");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
+
+  // Ref to access latest messages in callbacks
+  const messagesRef = useRef<MessageDoc[]>([]);
 
   // Sync threadId state with prop changes (for navigation)
   useEffect(() => {
@@ -41,7 +48,7 @@ export function useThread({
   // Actions
   const createThreadAction = useAction(api.ai.chat.createThread);
   const initiateStreamAction = useAction(api.ai.chat.initiateStream);
-  const generateTitleAction = useAction(api.ai.chat.generateThreadTitle);
+  const generateFollowUpsAction = useAction(api.ai.chat.generateFollowUps);
 
   // Query for messages - reactive subscription for real-time updates
   const messagesResult = useQuery(
@@ -57,6 +64,11 @@ export function useThread({
   const messages = ([...(messagesResult?.page ?? [])].reverse()) as unknown as MessageDoc[];
   const isLoading = messagesResult === undefined;
 
+  // Keep messagesRef in sync with messages
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
   const createThread = useCallback(async (): Promise<string> => {
     const newThreadId = await createThreadAction({ userId });
     setThreadId(newThreadId);
@@ -67,12 +79,14 @@ export function useThread({
     async (message: string) => {
       if (!message.trim()) return;
 
+      // Clear previous suggestions immediately
+      setSuggestions([]);
+      setIsSuggestionsLoading(false);
       setStatus("submitted");
 
       try {
         // Create thread if needed
         let currentThreadId = threadId;
-        const isNewThread = !currentThreadId;
         
         if (!currentThreadId) {
           currentThreadId = await createThread();
@@ -82,19 +96,32 @@ export function useThread({
         setIsStreaming(true);
 
         // Initiate the stream - messages will appear via the query subscription
+        // Title generation is handled server-side after streaming completes
         await initiateStreamAction({
           threadId: currentThreadId,
           prompt: message,
           userId,
         });
 
-        // Generate title for new threads (fire and forget)
-        if (isNewThread) {
-          generateTitleAction({
-            threadId: currentThreadId,
-            firstMessage: message,
-          }).catch(console.error);
-        }
+        // Generate follow-up suggestions (fire and forget)
+        // Small delay to let the reactive query update with the final message
+        setIsSuggestionsLoading(true);
+        setTimeout(() => {
+          const currentMessages = messagesRef.current;
+          const lastAssistant = [...currentMessages]
+            .reverse()
+            .find((m) => m.message?.role === "assistant");
+          const lastText = lastAssistant?.text ?? "";
+
+          if (lastText.trim().length >= 10) {
+            generateFollowUpsAction({ lastAssistantMessage: lastText })
+              .then((result) => setSuggestions(result))
+              .catch(() => setSuggestions([]))
+              .finally(() => setIsSuggestionsLoading(false));
+          } else {
+            setIsSuggestionsLoading(false);
+          }
+        }, 100);
 
         setStatus("ready");
       } catch (error) {
@@ -104,7 +131,7 @@ export function useThread({
         setIsStreaming(false);
       }
     },
-    [threadId, createThread, initiateStreamAction, generateTitleAction, userId],
+    [threadId, createThread, initiateStreamAction, generateFollowUpsAction, userId],
   );
 
   const stop = useCallback(() => {
@@ -120,6 +147,8 @@ export function useThread({
     isLoading,
     isStreaming,
     status,
+    suggestions,
+    isSuggestionsLoading,
     sendMessage,
     createThread,
     stop,

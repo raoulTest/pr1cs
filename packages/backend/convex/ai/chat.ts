@@ -9,7 +9,7 @@
  * not at the action level — so these actions are simple pass-throughs.
  */
 import { v } from "convex/values";
-import { action } from "../_generated/server";
+import { action, internalAction } from "../_generated/server";
 import { internal, components } from "../_generated/api";
 import { apcsAgent } from "./agent";
 import { getToolNamesForRole } from "./tools/types";
@@ -45,10 +45,19 @@ function buildUserContext(role: ApcsRole | null): string {
       "List bookings for a specific carrier (port_admin only)",
     listPendingBookings:
       "List pending bookings awaiting approval (terminal_operator and port_admin only)",
+    listAllBookings:
+      "List all bookings across all terminals with optional filters (port_admin and terminal_operator only)",
     listTerminals: "List all terminals",
     getTerminalDetails: "Get detailed information about a terminal",
     getAvailableSlots: "Get available time slots for booking",
     getSystemConfig: "Get system configuration and policies",
+    listMyContainers: "List the user's containers",
+    getContainerDetails: "Get details of a specific container",
+    listMyTrucks: "List the user's trucks",
+    suggestOptimalSlots:
+      "Suggest optimal time slots based on terminal congestion",
+    createBookingViaAI: "Create a new booking through the AI assistant",
+    cancelBookingViaAI: "Cancel an existing booking through the AI assistant",
   };
 
   let toolList = "";
@@ -133,6 +142,17 @@ export const initiateStream = action({
       { saveStreamDeltas: true },
     );
 
+    // Generate title for new threads (check if thread has no title yet)
+    const thread = await ctx.runQuery(components.agent.threads.getThread, {
+      threadId: args.threadId,
+    });
+    if (thread && !thread.title) {
+      await ctx.scheduler.runAfter(0, internal.ai.chat.generateThreadTitle, {
+        threadId: args.threadId,
+        firstMessage: args.prompt,
+      });
+    }
+
     return null;
   },
 });
@@ -176,29 +196,89 @@ export const generateResponse = action({
 
 /**
  * Generate a title for a thread based on the first message.
- * Called asynchronously after the first message is sent.
+ * Called server-side via scheduler after the first message is sent.
  */
-export const generateThreadTitle = action({
+export const generateThreadTitle = internalAction({
   args: {
     threadId: v.string(),
     firstMessage: v.string(),
   },
-  returns: v.string(),
   handler: async (ctx, args) => {
-    const { text } = await generateText({
-      model: google("gemini-3-flash-preview"),
-      prompt: `Generate a very short title (max 5 words, in French) for a conversation that starts with this message: "${args.firstMessage}". Return only the title, no quotes or punctuation.`,
-      maxOutputTokens: 20,
-    });
+    let title: string;
 
-    const title = text.trim();
+    try {
+      const { text } = await generateText({
+        model: google("gemini-3-flash-preview"),
+        prompt: `Generate a very short title (max 5 words, in French) for a conversation that starts with this message: "${args.firstMessage}". Return only the title, no quotes or punctuation.`,
+        maxOutputTokens: 60,
+      });
+      title = text.trim();
+    } catch (error) {
+      console.error("Title generation failed, using fallback:", error);
+      // Fallback: first ~5 words of the message
+      title = args.firstMessage.split(/\s+/).slice(0, 5).join(" ");
+      if (title.length > 40) title = title.slice(0, 40) + "...";
+    }
+
+    // Ensure we have a title
+    if (!title) {
+      title = args.firstMessage.split(/\s+/).slice(0, 5).join(" ");
+      if (title.length > 40) title = title.slice(0, 40) + "...";
+    }
 
     // Update thread title using the component's internal mutation
     await ctx.runMutation(components.agent.threads.updateThread, {
       threadId: args.threadId,
       patch: { title },
     });
+  },
+});
 
-    return title;
+// ============================================================================
+// FOLLOW-UP SUGGESTIONS
+// ============================================================================
+
+/**
+ * Generate follow-up suggestion prompts based on the last assistant response.
+ * Called fire-and-forget after streaming completes.
+ */
+export const generateFollowUps = action({
+  args: {
+    lastAssistantMessage: v.string(),
+  },
+  returns: v.array(v.string()),
+  handler: async (_ctx, args) => {
+    // Don't generate follow-ups for very short / empty responses
+    if (args.lastAssistantMessage.trim().length < 10) {
+      return [];
+    }
+
+    try {
+      const { text } = await generateText({
+        model: google("gemini-3-flash-preview"),
+        prompt: `Tu es l'assistant APCS. L'utilisateur vient de recevoir cette réponse:
+
+"${args.lastAssistantMessage}"
+
+Génère exactement 3 questions de suivi courtes (max 8 mots chacune) que l'utilisateur pourrait poser ensuite. Les questions doivent être en français, naturelles et pertinentes au contexte portuaire/logistique.
+
+Réponds UNIQUEMENT avec un JSON array de strings, sans markdown ni explication.
+Exemple: ["Voir les détails", "Filtrer par date", "Créer une réservation"]`,
+        maxOutputTokens: 100,
+      });
+
+      // Parse the JSON array from the response
+      const cleaned = text.trim();
+      const parsed = JSON.parse(cleaned);
+
+      if (Array.isArray(parsed) && parsed.every((s) => typeof s === "string")) {
+        return parsed.slice(0, 3);
+      }
+
+      return [];
+    } catch {
+      // Non-critical feature — silently return empty on any error
+      return [];
+    }
   },
 });

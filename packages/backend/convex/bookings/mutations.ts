@@ -32,7 +32,6 @@ import {
 import { shouldAutoValidateBooking } from "../lib/autoValidation";
 import {
   generateBookingReference,
-  generateQRCodePlaceholder,
   validateTruckForTerminal,
   getSystemConfig,
   canCancelBooking,
@@ -227,7 +226,6 @@ export const create = mutation({
       preferredDate: args.preferredDate,
       preferredTimeStart: args.preferredTimeStart,
       preferredTimeEnd: args.preferredTimeEnd,
-      qrCode: generateQRCodePlaceholder(bookingReference),
       driverName: args.driverName?.trim(),
       driverPhone: args.driverPhone?.trim(),
       driverIdNumber: args.driverIdNumber?.trim(),

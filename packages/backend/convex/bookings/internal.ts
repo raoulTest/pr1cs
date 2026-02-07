@@ -62,20 +62,6 @@ export async function generateBookingReference(
 }
 
 // ============================================================================
-// QR CODE GENERATION
-// ============================================================================
-
-/**
- * Generate a simple QR code data URL placeholder
- * In production, use an action with a proper QR library
- */
-export function generateQRCodePlaceholder(bookingReference: string): string {
-  // For now, return a placeholder
-  // In production, use an action with 'qrcode' library
-  return `qr:${bookingReference}`;
-}
-
-// ============================================================================
 // GATE ASSIGNMENT (Load-Balanced)
 // ============================================================================
 

@@ -7,6 +7,7 @@
  */
 import type { ApcsRole } from "../../lib/validators";
 import { internal } from "../../_generated/api";
+import { z } from "zod/v3";
 
 // ============================================================================
 // ROLE-BASED TOOL ACCESS
@@ -47,6 +48,7 @@ export const TOOL_PERMISSIONS: Record<ApcsRole, readonly string[]> = {
     "getBookingDetails",
     "listBookingsByTerminal",
     "listPendingBookings",
+    "listAllBookings",
     // Terminal queries
     "listTerminals",
     "getTerminalDetails",
@@ -67,6 +69,7 @@ export const TOOL_PERMISSIONS: Record<ApcsRole, readonly string[]> = {
     "listBookingsByTerminal",
     "listBookingsByCarrier",
     "listPendingBookings",
+    "listAllBookings",
     // Terminal queries
     "listTerminals",
     "getTerminalDetails",
@@ -151,3 +154,34 @@ export async function checkToolAccess(
 
   return null; // access granted
 }
+
+// ============================================================================
+// DISPLAY WRAPPER
+// ============================================================================
+
+/**
+ * Wrap a tool result with display metadata.
+ *
+ * The frontend reads `_display` to decide whether to render a UI card.
+ * - `true` (default): the tool result is shown to the user as a card.
+ * - `false`: the result is hidden (used when the AI gathers data internally).
+ *
+ * The AI can override the default by passing `_display` as a tool argument.
+ */
+export function toolResult(data: unknown, display: boolean = true) {
+  return { _display: display, data };
+}
+
+/**
+ * Reusable Zod field for the optional `_display` argument.
+ * Spread this into any tool's z.object({...}) args.
+ */
+export const displayArg = {
+  _display: z
+    .boolean()
+    .optional()
+    .describe(
+      "Set to false if this data is only needed internally for reasoning " +
+      "and should NOT be shown to the user as a UI card. Defaults to true.",
+    ),
+} as const;

@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { PanelLeftIcon, PanelLeftCloseIcon, MenuIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-media-query";
+import { NotificationBell } from "@/features/notifications";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -38,10 +39,12 @@ export function AppLayout({ children }: AppLayoutProps) {
             </SheetContent>
           </Sheet>
           <span className="font-semibold">APCS</span>
+          <div className="flex-1" />
+          <NotificationBell />
         </header>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto p-4">{children}</main>
       </div>
     );
   }
@@ -75,10 +78,12 @@ export function AppLayout({ children }: AppLayoutProps) {
               <PanelLeftIcon className="size-5" />
             )}
           </Button>
+          <div className="flex-1" />
+          <NotificationBell />
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto p-4">{children}</main>
       </div>
     </div>
   );

@@ -22,6 +22,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { BookingQRCode } from "@/components/ui/booking-qr-code";
 
 type BookingStatus = "pending" | "confirmed" | "rejected" | "consumed" | "cancelled" | "expired";
 
@@ -348,6 +349,13 @@ export function BookingCalendar() {
                 <p className="text-sm text-muted-foreground">Terminal</p>
                 <p className="font-medium">{selectedBooking.terminalName}</p>
               </div>
+
+              {/* QR Code for confirmed/consumed bookings */}
+              {(selectedBooking.status === "confirmed" || selectedBooking.status === "consumed") && (
+                <div className="flex justify-center pt-4 border-t">
+                  <BookingQRCode bookingReference={selectedBooking.bookingReference} size={160} />
+                </div>
+              )}
             </div>
           )}
         </DialogContent>

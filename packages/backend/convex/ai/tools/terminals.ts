@@ -8,7 +8,7 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod/v3";
 import { internal } from "../../_generated/api";
-import { checkToolAccess } from "./types";
+import { checkToolAccess, toolResult, displayArg } from "./types";
 
 // ============================================================================
 // QUERY TOOLS
@@ -27,18 +27,20 @@ export const listTerminals = createTool({
       .boolean()
       .optional()
       .describe("Only show active terminals (default true)"),
+    ...displayArg,
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "listTerminals");
     if (denied) return denied;
 
-    return await ctx.runQuery(
+    const data = await ctx.runQuery(
       internal.ai.internalQueries.listTerminals,
       {
         userId: ctx.userId!,
         activeOnly: args.activeOnly ?? true,
       },
     );
+    return toolResult(data, args._display ?? true);
   },
 });
 
@@ -53,17 +55,19 @@ export const getTerminalDetails = createTool({
     "their capacity, allowed truck types, and current status.",
   args: z.object({
     terminalCode: z.string().describe("Terminal code (e.g. 'TRM-001')"),
+    ...displayArg,
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "getTerminalDetails");
     if (denied) return denied;
 
-    return await ctx.runQuery(
+    const data = await ctx.runQuery(
       internal.ai.internalQueries.getTerminalDetails,
       {
         terminalCode: args.terminalCode,
       },
     );
+    return toolResult(data, args._display ?? true);
   },
 });
 
@@ -80,17 +84,19 @@ export const getAvailableSlots = createTool({
     date: z
       .string()
       .describe("Date in YYYY-MM-DD format to check availability"),
+    ...displayArg,
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "getAvailableSlots");
     if (denied) return denied;
 
-    return await ctx.runQuery(
+    const data = await ctx.runQuery(
       internal.ai.internalQueries.getAvailableSlots,
       {
         terminalCode: args.terminalCode,
         date: args.date,
       },
     );
+    return toolResult(data, args._display ?? true);
   },
 });

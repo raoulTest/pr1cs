@@ -26,13 +26,6 @@ import type { GenericCtx } from "@convex-dev/better-auth";
 // HELPERS
 // ============================================================================
 
-async function getUserProfile(ctx: { db: any }, userId: string) {
-  return ctx.db
-    .query("userProfiles")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
-    .unique();
-}
-
 /**
  * Get user role from Better Auth user record
  */
@@ -139,6 +132,7 @@ export const listMyBookings = internalQuery({
   args: {
     userId: v.string(),
     status: v.optional(v.string()),
+    date: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -162,6 +156,11 @@ export const listMyBookings = internalQuery({
         )
         .order("desc")
         .take(limit);
+    }
+
+    // Post-filter by date if provided (no compound index for carrier+date)
+    if (args.date) {
+      bookings = bookings.filter((b) => b.preferredDate === args.date);
     }
 
     return enrichBookings(ctx, bookings);
@@ -407,6 +406,85 @@ export const listPendingBookings = internalQuery({
 
     // Sort by creation time and limit
     allBookings.sort((a, b) => a._creationTime - b._creationTime);
+    return enrichBookings(ctx, allBookings.slice(0, limit));
+  },
+});
+
+export const listAllBookings = internalQuery({
+  args: {
+    userId: v.string(),
+    terminalCode: v.optional(v.string()),
+    status: v.optional(v.string()),
+    date: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const role = await getUserRoleHelper(ctx, args.userId);
+    if (!role || !["port_admin", "terminal_operator"].includes(role)) {
+      return [];
+    }
+
+    const limit = args.limit ?? 50;
+
+    // Determine terminal scope (same 3-branch pattern as listPendingBookings)
+    let terminalIds: Id<"terminals">[] = [];
+
+    if (args.terminalCode) {
+      const terminal = await ctx.db
+        .query("terminals")
+        .withIndex("by_code", (q: any) => q.eq("code", args.terminalCode))
+        .unique();
+      if (!terminal) return [];
+      terminalIds = [terminal._id];
+    } else if (role === "port_admin") {
+      const allTerminals = await ctx.db.query("terminals").collect();
+      terminalIds = allTerminals.map((t: any) => t._id);
+    } else {
+      const assignments = await ctx.db
+        .query("terminalOperatorAssignments")
+        .withIndex("by_user_and_active", (q: any) =>
+          q.eq("userId", args.userId).eq("isActive", true),
+        )
+        .collect();
+      terminalIds = assignments.map((a: any) => a.terminalId);
+    }
+
+    // Query bookings per terminal with optional status/date filter
+    const allBookings: Doc<"bookings">[] = [];
+    for (const terminalId of terminalIds) {
+      let bookings: Doc<"bookings">[];
+
+      if (args.status) {
+        bookings = await ctx.db
+          .query("bookings")
+          .withIndex("by_terminal_and_status", (q: any) =>
+            q.eq("terminalId", terminalId).eq("status", args.status),
+          )
+          .order("desc")
+          .take(limit);
+      } else if (args.date) {
+        bookings = await ctx.db
+          .query("bookings")
+          .withIndex("by_terminal_and_date", (q: any) =>
+            q.eq("terminalId", terminalId).eq("preferredDate", args.date),
+          )
+          .order("desc")
+          .take(limit);
+      } else {
+        bookings = await ctx.db
+          .query("bookings")
+          .withIndex("by_terminal", (q: any) =>
+            q.eq("terminalId", terminalId),
+          )
+          .order("desc")
+          .take(limit);
+      }
+
+      allBookings.push(...bookings);
+    }
+
+    // Sort desc by creation time, slice to limit, enrich
+    allBookings.sort((a, b) => b._creationTime - a._creationTime);
     return enrichBookings(ctx, allBookings.slice(0, limit));
   },
 });

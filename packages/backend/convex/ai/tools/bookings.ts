@@ -8,7 +8,7 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod/v3";
 import { internal } from "../../_generated/api";
-import { checkToolAccess } from "./types";
+import { checkToolAccess, toolResult, displayArg } from "./types";
 
 // ============================================================================
 // QUERY TOOLS
@@ -20,7 +20,7 @@ import { checkToolAccess } from "./types";
  */
 export const listMyBookings = createTool({
   description:
-    "List the current user's bookings. Optionally filter by status. " +
+    "List the current user's bookings. Optionally filter by status and/or date. " +
     "Returns a list of bookings with terminal, gate, truck, and time slot info.",
   args: z.object({
     status: z
@@ -34,23 +34,30 @@ export const listMyBookings = createTool({
       ])
       .optional()
       .describe("Filter by booking status"),
+    date: z
+      .string()
+      .optional()
+      .describe("Filter by date in YYYY-MM-DD format"),
     limit: z
       .number()
       .optional()
       .describe("Maximum number of bookings to return (default 20)"),
+    ...displayArg,
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "listMyBookings");
     if (denied) return denied;
 
-    return await ctx.runQuery(
+    const data = await ctx.runQuery(
       internal.ai.internalQueries.listMyBookings,
       {
         userId: ctx.userId!,
         status: args.status,
+        date: args.date,
         limit: args.limit ?? 20,
       },
     );
+    return toolResult(data, args._display ?? true);
   },
 });
 
@@ -69,18 +76,20 @@ export const getBookingDetails = createTool({
       .describe(
         "The booking reference number (e.g. 'BK-20240115-001')",
       ),
+    ...displayArg,
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "getBookingDetails");
     if (denied) return denied;
 
-    return await ctx.runQuery(
+    const data = await ctx.runQuery(
       internal.ai.internalQueries.getBookingByReference,
       {
         userId: ctx.userId!,
         bookingReference: args.bookingReference,
       },
     );
+    return toolResult(data, args._display ?? true);
   },
 });
 
@@ -110,12 +119,13 @@ export const listBookingsByTerminal = createTool({
       .optional()
       .describe("Filter by date in YYYY-MM-DD format"),
     limit: z.number().optional().describe("Maximum results (default 50)"),
+    ...displayArg,
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "listBookingsByTerminal");
     if (denied) return denied;
 
-    return await ctx.runQuery(
+    const data = await ctx.runQuery(
       internal.ai.internalQueries.listBookingsByTerminal,
       {
         userId: ctx.userId!,
@@ -125,6 +135,7 @@ export const listBookingsByTerminal = createTool({
         limit: args.limit ?? 50,
       },
     );
+    return toolResult(data, args._display ?? true);
   },
 });
 
@@ -150,12 +161,13 @@ export const listBookingsByCarrier = createTool({
       .optional()
       .describe("Filter by booking status"),
     limit: z.number().optional().describe("Maximum results (default 50)"),
+    ...displayArg,
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "listBookingsByCarrier");
     if (denied) return denied;
 
-    return await ctx.runQuery(
+    const data = await ctx.runQuery(
       internal.ai.internalQueries.listBookingsByCarrier,
       {
         userId: ctx.userId!,
@@ -164,6 +176,7 @@ export const listBookingsByCarrier = createTool({
         limit: args.limit ?? 50,
       },
     );
+    return toolResult(data, args._display ?? true);
   },
 });
 
@@ -181,12 +194,13 @@ export const listPendingBookings = createTool({
       .optional()
       .describe("Optionally filter by terminal code"),
     limit: z.number().optional().describe("Maximum results (default 50)"),
+    ...displayArg,
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "listPendingBookings");
     if (denied) return denied;
 
-    return await ctx.runQuery(
+    const data = await ctx.runQuery(
       internal.ai.internalQueries.listPendingBookings,
       {
         userId: ctx.userId!,
@@ -194,5 +208,61 @@ export const listPendingBookings = createTool({
         limit: args.limit ?? 50,
       },
     );
+    return toolResult(data, args._display ?? true);
+  },
+});
+
+/**
+ * List all bookings across all terminals (operator/admin).
+ * Replaces the need to call listBookingsByTerminal N times.
+ * Frontend component: <BookingList />
+ */
+export const listAllBookings = createTool({
+  description:
+    "List all bookings across all terminals. Supports optional filters by terminal, status, and date. " +
+    "Use this instead of calling listBookingsByTerminal multiple times. " +
+    "Only for port_admin and terminal_operator roles.",
+  args: z.object({
+    terminalCode: z
+      .string()
+      .optional()
+      .describe("Filter by terminal code (e.g. 'TER1'). Omit to see all terminals."),
+    status: z
+      .enum([
+        "pending",
+        "confirmed",
+        "rejected",
+        "consumed",
+        "cancelled",
+        "expired",
+      ])
+      .optional()
+      .describe("Filter by booking status."),
+    date: z
+      .string()
+      .optional()
+      .describe("Filter by date in YYYY-MM-DD format."),
+    limit: z
+      .number()
+      .optional()
+      .describe("Maximum number of results (default 50)."),
+    ...displayArg,
+  }),
+  handler: async (ctx, args): Promise<unknown> => {
+    const denied = await checkToolAccess(ctx, "listAllBookings");
+    if (denied) return denied;
+
+    const data = await ctx.runQuery(
+      internal.ai.internalQueries.listAllBookings,
+      {
+        userId: ctx.userId!,
+        terminalCode: args.terminalCode,
+        status: args.status,
+        date: args.date,
+        limit: args.limit ?? 50,
+      },
+    );
+
+    return toolResult(data, args._display ?? true);
   },
 });

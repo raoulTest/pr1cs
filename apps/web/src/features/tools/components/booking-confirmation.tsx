@@ -1,6 +1,6 @@
 "use client";
 
-import type { ToolRendererProps } from "../index";
+import type { ToolRendererProps } from "../types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +14,7 @@ import {
   AlertCircleIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BookingQRCode } from "@/components/ui/booking-qr-code";
 
 interface BookingConfirmationResult {
   success: boolean;
@@ -42,7 +43,7 @@ export function BookingConfirmationRenderer({
       <Card className="border-border/50">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Skeleton className="size-4 rounded-full" />
+            <div className="size-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
             {isCancel ? "Annulation en cours..." : "Creation en cours..."}
           </CardTitle>
         </CardHeader>
@@ -87,8 +88,9 @@ export function BookingConfirmationRenderer({
   return (
     <Card
       className={cn(
-        "border-green-500/50",
-        isCancel ? "bg-amber-500/5" : "bg-green-500/5"
+        isCancel
+          ? "border-amber-500/50 bg-amber-500/5"
+          : "border-green-500/50 bg-green-500/5"
       )}
     >
       <CardHeader className="pb-2">
@@ -183,6 +185,13 @@ export function BookingConfirmationRenderer({
           <p className="text-xs text-amber-600 pt-2 border-t border-border/50">
             Cette reservation necessite une validation manuelle par l'operateur.
           </p>
+        )}
+
+        {/* QR Code for confirmed bookings */}
+        {!isCancel && result.status === "confirmed" && result.bookingReference && (
+          <div className="flex justify-center pt-3 border-t border-border/50">
+            <BookingQRCode bookingReference={result.bookingReference} size={120} />
+          </div>
         )}
       </CardContent>
     </Card>

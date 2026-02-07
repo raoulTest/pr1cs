@@ -130,7 +130,7 @@ function AdminDashboard() {
               <ul className="space-y-2">
                 {carriers.slice(0, 5).map((carrier) => (
                   <li key={carrier.userId} className="flex items-center justify-between text-sm">
-                    <span className="truncate max-w-[200px]">{carrier.userId}</span>
+                    <span className="truncate max-w-[200px]">{carrier.name ?? carrier.email ?? carrier.userId}</span>
                     <span className="text-muted-foreground">
                       {carrier.truckCount} camions, {carrier.bookingCount} reservations
                     </span>

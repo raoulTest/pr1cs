@@ -60,14 +60,14 @@ export function CarrierList({ onCreateClick }: CarrierListProps) {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {carriers.map((carrier: { userId: string; truckCount: number; containerCount: number; bookingCount: number }) => (
+          {carriers.map((carrier: { userId: string; name?: string; email?: string; truckCount: number; containerCount: number; bookingCount: number }) => (
             <Card key={carrier.userId} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="text-lg font-mono">{carrier.userId}</CardTitle>
+                    <CardTitle className="text-lg">{carrier.name ?? carrier.email ?? carrier.userId}</CardTitle>
                     <CardDescription className="text-xs">
-                      ID Transporteur
+                      {carrier.email && carrier.name ? carrier.email : "Transporteur"}
                     </CardDescription>
                   </div>
                 </div>

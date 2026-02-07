@@ -19,6 +19,8 @@ function ThreadPage() {
     messages,
     isLoading,
     status,
+    suggestions,
+    isSuggestionsLoading,
     sendMessage,
     stop,
   } = useThread({ userId, threadId });
@@ -33,6 +35,8 @@ function ThreadPage() {
       messages={messages}
       isLoading={isLoading}
       status={status}
+      suggestions={suggestions}
+      isSuggestionsLoading={isSuggestionsLoading}
       onSendMessage={sendMessage}
       onStop={stop}
     />

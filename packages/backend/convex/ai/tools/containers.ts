@@ -7,7 +7,7 @@
 import { createTool } from "@convex-dev/agent";
 import { z } from "zod/v3";
 import { internal } from "../../_generated/api";
-import { checkToolAccess } from "./types";
+import { checkToolAccess, toolResult, displayArg } from "./types";
 
 // ============================================================================
 // QUERY TOOLS
@@ -34,17 +34,19 @@ export const listMyContainers = createTool({
       .number()
       .optional()
       .describe("Nombre maximum de résultats (défaut 50)"),
+    ...displayArg,
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "listMyContainers");
     if (denied) return denied;
 
-    return await ctx.runQuery(internal.ai.internalQueries.listMyContainers, {
+    const data = await ctx.runQuery(internal.ai.internalQueries.listMyContainers, {
       userId: ctx.userId!,
       operationType: args.operationType,
       availableOnly: args.availableOnly ?? true,
       limit: args.limit ?? 50,
     });
+    return toolResult(data, args._display ?? true);
   },
 });
 
@@ -60,18 +62,20 @@ export const getContainerDetails = createTool({
     containerNumber: z
       .string()
       .describe("Le numéro du conteneur (ex: 'MSCU1234567')"),
+    ...displayArg,
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "getContainerDetails");
     if (denied) return denied;
 
-    return await ctx.runQuery(
+    const data = await ctx.runQuery(
       internal.ai.internalQueries.getContainerByNumber,
       {
         userId: ctx.userId!,
         containerNumber: args.containerNumber.toUpperCase().trim(),
       },
     );
+    return toolResult(data, args._display ?? true);
   },
 });
 
@@ -91,15 +95,17 @@ export const listMyTrucks = createTool({
       .number()
       .optional()
       .describe("Nombre maximum de résultats (défaut 50)"),
+    ...displayArg,
   }),
   handler: async (ctx, args): Promise<unknown> => {
     const denied = await checkToolAccess(ctx, "listMyTrucks");
     if (denied) return denied;
 
-    return await ctx.runQuery(internal.ai.internalQueries.listMyTrucks, {
+    const data = await ctx.runQuery(internal.ai.internalQueries.listMyTrucks, {
       userId: ctx.userId!,
       activeOnly: args.activeOnly ?? true,
       limit: args.limit ?? 50,
     });
+    return toolResult(data, args._display ?? true);
   },
 });
