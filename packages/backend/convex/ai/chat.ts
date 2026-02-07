@@ -27,19 +27,24 @@ import { google } from "@ai-sdk/google";
  */
 function buildUserContext(role: ApcsRole | null): string {
   if (!role) {
-    return "USER CONTEXT:\n" +
+    return (
+      "USER CONTEXT:\n" +
       "- Role: unknown (no role assigned)\n" +
       "- Available Tools: none\n" +
-      "- Guidelines: The user has no assigned role. Inform them to contact an administrator.\n\n";
+      "- Guidelines: The user has no assigned role. Inform them to contact an administrator.\n\n"
+    );
   }
 
   const availableTools = getToolNamesForRole(role);
   const toolDescriptions: Record<string, string> = {
     listMyBookings: "List the user's own bookings",
     getBookingDetails: "Get details of a specific booking",
-    listBookingsByTerminal: "List bookings for a specific terminal (terminal_operator and port_admin only)",
-    listBookingsByCarrier: "List bookings for a specific carrier (port_admin only)",
-    listPendingBookings: "List pending bookings awaiting approval (terminal_operator and port_admin only)",
+    listBookingsByTerminal:
+      "List bookings for a specific terminal (terminal_operator and port_admin only)",
+    listBookingsByCarrier:
+      "List bookings for a specific carrier (port_admin only)",
+    listPendingBookings:
+      "List pending bookings awaiting approval (terminal_operator and port_admin only)",
     listTerminals: "List all terminals",
     getTerminalDetails: "Get detailed information about a terminal",
     getAvailableSlots: "Get available time slots for booking",
@@ -52,10 +57,17 @@ function buildUserContext(role: ApcsRole | null): string {
     toolList += "- " + tool + ": " + desc + "\n";
   }
 
-  return "USER CONTEXT:\n" +
-    "- Role: " + role + "\n" +
-    "- Available Tools:\n" + toolList +
-    "- Guidelines: Only suggest using the available tools listed above. If the user asks for functionality requiring a tool not in this list, politely explain that their role (" + role + ") doesn't have access to that feature.\n\n";
+  return (
+    "USER CONTEXT:\n" +
+    "- Role: " +
+    role +
+    "\n" +
+    "- Available Tools:\n" +
+    toolList +
+    "- Guidelines: Only suggest using the available tools listed above. If the user asks for functionality requiring a tool not in this list, politely explain that their role (" +
+    role +
+    ") doesn't have access to that feature.\n\n"
+  );
 }
 
 // ============================================================================
@@ -74,7 +86,7 @@ export const createThread = action({
   handler: async (ctx, args) => {
     const { threadId } = await apcsAgent.createThread(ctx, {
       userId: args.userId,
-      title: "",  // Empty, will be set after first message by generateThreadTitle
+      title: "", // Empty, will be set after first message by generateThreadTitle
     });
 
     return threadId;
@@ -114,9 +126,9 @@ export const initiateStream = action({
     await apcsAgent.streamText(
       ctx,
       { threadId: args.threadId, userId: args.userId },
-      { 
-        prompt: args.prompt,  // Original prompt only
-        system: context,      // Context as system message
+      {
+        prompt: args.prompt, // Original prompt only
+        system: context, // Context as system message
       },
       { saveStreamDeltas: true },
     );
@@ -148,9 +160,9 @@ export const generateResponse = action({
     const result = await apcsAgent.generateText(
       ctx,
       { threadId: args.threadId, userId: args.userId },
-      { 
-        prompt: args.prompt,  // Original prompt only
-        system: context,      // Context as system message
+      {
+        prompt: args.prompt, // Original prompt only
+        system: context, // Context as system message
       },
     );
 
@@ -174,19 +186,19 @@ export const generateThreadTitle = action({
   returns: v.string(),
   handler: async (ctx, args) => {
     const { text } = await generateText({
-      model: google("gemini-2.0-flash"),
+      model: google("gemini-3-flash-preview"),
       prompt: `Generate a very short title (max 5 words, in French) for a conversation that starts with this message: "${args.firstMessage}". Return only the title, no quotes or punctuation.`,
       maxOutputTokens: 20,
     });
-    
+
     const title = text.trim();
-    
+
     // Update thread title using the component's internal mutation
     await ctx.runMutation(components.agent.threads.updateThread, {
       threadId: args.threadId,
       patch: { title },
     });
-    
+
     return title;
   },
 });

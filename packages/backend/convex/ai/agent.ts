@@ -26,7 +26,7 @@ import { ALL_TOOLS } from "./registry";
  */
 export const apcsAgent = new Agent(components.agent, {
   name: "APCS Assistant",
-  languageModel: google("gemini-2.0-flash"),
+  languageModel: google("gemini-3-flash-preview"),
   instructions: `Tu es l'assistant APCS (Advanced Port Container System).
 Tu aides les utilisateurs à gérer les opérations portuaires, les réservations de camions et la logistique.
 
