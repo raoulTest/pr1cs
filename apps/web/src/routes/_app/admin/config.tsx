@@ -74,7 +74,7 @@ function ConfigPage() {
           Configuration systeme
         </h1>
         <p className="text-muted-foreground">
-          Parametres globaux du systeme APCS
+          Parametres globaux du systeme Anchor
         </p>
       </div>
 

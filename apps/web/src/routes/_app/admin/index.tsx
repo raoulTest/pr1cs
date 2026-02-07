@@ -69,7 +69,7 @@ function AdminDashboard() {
       <div>
         <h1 className="text-2xl font-bold">Tableau de bord administrateur</h1>
         <p className="text-muted-foreground">
-          Vue d'ensemble du systeme APCS
+          Vue d'ensemble du systeme Anchor
         </p>
       </div>
 

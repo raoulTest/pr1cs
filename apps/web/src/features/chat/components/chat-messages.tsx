@@ -28,6 +28,100 @@ interface ToolResultPart {
   isError?: boolean;
 }
 
+interface TextPart {
+  type: "text";
+  text: string;
+}
+
+interface ToolCallPart {
+  type: "tool-call";
+  toolCallId: string;
+  toolName: string;
+  args?: Record<string, unknown>;
+}
+
+type ContentPart = ToolCallPart | ToolResultPart | TextPart | { type: string };
+
+/**
+ * Check if a message has tool calls
+ */
+function hasToolCalls(message: MessageDoc): boolean {
+  const content = message.message?.content;
+  if (!Array.isArray(content)) return false;
+  return (content as ContentPart[]).some((part) => part.type === "tool-call");
+}
+
+/**
+ * Check if a message has text content
+ */
+function hasTextContent(message: MessageDoc): boolean {
+  const content = message.message?.content;
+  if (typeof content === "string") return content.trim().length > 0;
+  if (!Array.isArray(content)) return false;
+  return (content as ContentPart[]).some(
+    (part) => part.type === "text" && (part as TextPart).text?.trim().length > 0
+  );
+}
+
+/**
+ * Reorder messages so that text-only assistant messages appear before 
+ * tool-call assistant messages within each assistant turn.
+ * This makes the UI show: text first, then tool results.
+ */
+function reorderMessagesForDisplay(messages: MessageDoc[]): MessageDoc[] {
+  const result: MessageDoc[] = [];
+  let i = 0;
+
+  while (i < messages.length) {
+    const msg = messages[i];
+    const role = msg.message?.role;
+
+    // If it's a user message, just add it
+    if (role === "user") {
+      result.push(msg);
+      i++;
+      continue;
+    }
+
+    // For assistant/tool messages, collect the entire "turn" 
+    // (all consecutive non-user messages)
+    const turnMessages: MessageDoc[] = [];
+    while (i < messages.length && messages[i].message?.role !== "user") {
+      turnMessages.push(messages[i]);
+      i++;
+    }
+
+    // Separate into categories:
+    // - Text-only assistant messages (no tool calls)
+    // - Tool-related messages (has tool calls or is tool role)
+    const textOnlyMessages: MessageDoc[] = [];
+    const toolMessages: MessageDoc[] = [];
+
+    for (const turnMsg of turnMessages) {
+      const turnRole = turnMsg.message?.role;
+      if (turnRole === "tool") {
+        toolMessages.push(turnMsg);
+      } else if (turnRole === "assistant") {
+        if (hasToolCalls(turnMsg)) {
+          toolMessages.push(turnMsg);
+        } else if (hasTextContent(turnMsg)) {
+          textOnlyMessages.push(turnMsg);
+        } else {
+          // Empty message, add to tool messages to preserve order
+          toolMessages.push(turnMsg);
+        }
+      } else {
+        toolMessages.push(turnMsg);
+      }
+    }
+
+    // Add text-only messages first, then tool messages
+    result.push(...textOnlyMessages, ...toolMessages);
+  }
+
+  return result;
+}
+
 /**
  * Build a map of toolCallId -> result from all tool role messages
  */
@@ -79,6 +173,9 @@ export function ChatMessages({
   // Build tool results map once from all messages
   const toolResultsMap = useMemo(() => buildToolResultsMap(messages), [messages]);
 
+  // Reorder messages so text appears before tool calls
+  const orderedMessages = useMemo(() => reorderMessagesForDisplay(messages), [messages]);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -99,8 +196,8 @@ export function ChatMessages({
       ref={containerRef}
       className="flex h-full flex-col gap-6 overflow-y-auto px-4 py-6"
     >
-      {messages.map((message, index) => {
-        const isLastMessage = index === messages.length - 1;
+      {orderedMessages.map((message, index) => {
+        const isLastMessage = index === orderedMessages.length - 1;
         const isStreamingThisMessage =
           isStreaming && isLastMessage && message.message?.role === "assistant";
 

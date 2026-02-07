@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   PlusIcon,
-  ContainerIcon,
   BuildingIcon,
   UsersIcon,
   TruckIcon,
@@ -269,10 +268,9 @@ export function AppSidebar() {
       {/* Header with logo and new chat button */}
       <div className="flex items-center justify-between p-4">
         <Link to="/" className="flex items-center gap-2">
-          <div className="size-8 rounded-lg bg-primary flex items-center justify-center">
-            <ContainerIcon className="size-5 text-primary-foreground" />
+          <div className="bg-slate-900 rounded-lg p-2">
+            <img src="/Group_239193.png" alt="Anchor" className="h-10 w-auto" />
           </div>
-          <span className="font-semibold text-sm">APCS</span>
         </Link>
         <Button
           variant="ghost"

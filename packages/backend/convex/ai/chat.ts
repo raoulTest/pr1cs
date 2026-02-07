@@ -210,7 +210,7 @@ export const generateThreadTitle = internalAction({
       const { text } = await generateText({
         model: google("gemini-3-flash-preview"),
         prompt: `Generate a very short title (max 5 words, in French) for a conversation that starts with this message: "${args.firstMessage}". Return only the title, no quotes or punctuation.`,
-        maxOutputTokens: 60,
+        maxOutputTokens: 400,
       });
       title = text.trim();
     } catch (error) {
@@ -264,7 +264,7 @@ Génère exactement 3 questions de suivi courtes (max 8 mots chacune) que l'util
 
 Réponds UNIQUEMENT avec un JSON array de strings, sans markdown ni explication.
 Exemple: ["Voir les détails", "Filtrer par date", "Créer une réservation"]`,
-        maxOutputTokens: 100,
+        maxOutputTokens: 1200,
       });
 
       // Parse the JSON array from the response

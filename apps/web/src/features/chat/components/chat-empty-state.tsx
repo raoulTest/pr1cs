@@ -140,7 +140,7 @@ export function ChatEmptyState({ onSuggestionClick }: ChatEmptyStateProps) {
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Bienvenue sur APCS
+            Bienvenue sur Anchor
           </h1>
           <p className="text-muted-foreground">
             Systeme de reservation de creneaux portuaires. Comment puis-je vous aider ?

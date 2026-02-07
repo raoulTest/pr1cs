@@ -85,6 +85,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
+      disableSignUp: true,
     },
     user: {
       additionalFields: {

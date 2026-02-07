@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_app/settings")({
   component: SettingsPage,
 });
 
-// Note: APCS is French-only as per project requirements
+// Note: Anchor is French-only as per project requirements
 const LANGUAGES = [
   { value: "fr", label: "Français" },
 ] as const;
@@ -199,7 +199,7 @@ function SettingsPage() {
                       </SelectContent>
                     </Select>
                     <FieldDescription>
-                      APCS est disponible uniquement en français
+                      Anchor est disponible uniquement en français
                     </FieldDescription>
                   </FieldContent>
                 </Field>

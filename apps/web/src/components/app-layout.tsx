@@ -38,7 +38,9 @@ export function AppLayout({ children }: AppLayoutProps) {
               <AppSidebar />
             </SheetContent>
           </Sheet>
-          <span className="font-semibold">APCS</span>
+          <div className="bg-slate-900 rounded-lg p-1.5">
+            <img src="/Group_239193.png" alt="Anchor" className="h-8 w-auto" />
+          </div>
           <div className="flex-1" />
           <NotificationBell />
         </header>

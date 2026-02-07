@@ -16,7 +16,6 @@ import {
   ClockIcon,
   GridIcon,
   TruckIcon,
-  ContainerIcon,
   LayoutDashboardIcon,
   LogOutIcon,
 } from "lucide-react";
@@ -73,10 +72,9 @@ export function PageLayout({ children, role }: PageLayoutProps) {
       {/* Header */}
       <div className="p-4">
         <Link to="/" className="flex items-center gap-2">
-          <div className="size-8 rounded-lg bg-primary flex items-center justify-center">
-            <ContainerIcon className="size-5 text-primary-foreground" />
+          <div className="bg-slate-900 rounded-lg p-2">
+            <img src="/Group_239193.png" alt="Anchor" className="h-10 w-auto" />
           </div>
-          <span className="font-semibold">APCS</span>
         </Link>
       </div>
 
@@ -164,7 +162,9 @@ export function PageLayout({ children, role }: PageLayoutProps) {
               <SidebarContent />
             </SheetContent>
           </Sheet>
-          <span className="font-semibold">APCS</span>
+          <div className="bg-slate-900 rounded-lg p-1.5">
+            <img src="/Group_239193.png" alt="Anchor" className="h-8 w-auto" />
+          </div>
         </header>
 
         {/* Main Content */}

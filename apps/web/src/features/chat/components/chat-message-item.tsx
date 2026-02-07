@@ -171,21 +171,22 @@ function ChatMessageItemComponent({
           )}
         </div>
         <span className="text-xs font-medium text-muted-foreground">
-          {isUser ? "Vous" : "APCS Assistant"}
+          {isUser ? "Vous" : "Anchor Assistant"}
         </span>
       </div>
 
       {/* Message content */}
       <MessageContent>
+        {/* Text response first */}
         {textContent && (
           <MessageResponse>
             {textContent}
           </MessageResponse>
         )}
 
-        {/* Tool calls - using proper renderers */}
+        {/* Tool calls - rendered after text */}
         {toolCalls.length > 0 && (
-          <div className="mt-3 space-y-3">
+          <div className={textContent ? "mt-3 space-y-3" : "space-y-3"}>
             {toolCalls.map((tool) => {
               // Look for result in order:
               // 1. Inline results in the same message
