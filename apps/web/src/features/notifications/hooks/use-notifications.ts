@@ -2,7 +2,7 @@
  * useNotifications Hook
  * Combined hook for notification queries and mutations
  */
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { api } from "@microhack/backend/convex/_generated/api";
 import type { Id } from "@microhack/backend/convex/_generated/dataModel";
 
@@ -12,12 +12,19 @@ interface UseNotificationsOptions {
 }
 
 export function useNotifications(options?: UseNotificationsOptions) {
-  const notifications = useQuery(api.notifications.queries.list, {
-    limit: options?.limit ?? 20,
-    unreadOnly: options?.unreadOnly,
-  });
+  const { isAuthenticated } = useConvexAuth();
 
-  const unreadCount = useQuery(api.notifications.queries.unreadCount);
+  const notifications = useQuery(
+    api.notifications.queries.list,
+    isAuthenticated
+      ? { limit: options?.limit ?? 20, unreadOnly: options?.unreadOnly }
+      : "skip"
+  );
+
+  const unreadCount = useQuery(
+    api.notifications.queries.unreadCount,
+    isAuthenticated ? {} : "skip"
+  );
 
   const markAsReadMutation = useMutation(
     api.notifications.mutations.markAsRead

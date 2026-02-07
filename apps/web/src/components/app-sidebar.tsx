@@ -36,6 +36,7 @@ import {
   ChevronRightIcon,
   ScrollTextIcon,
   BarChart3Icon,
+  ContainerIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/auth-client";

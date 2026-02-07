@@ -18,6 +18,7 @@ import {
   TruckIcon,
   LayoutDashboardIcon,
   LogOutIcon,
+  ContainerIcon,
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useNavigate } from "@tanstack/react-router";

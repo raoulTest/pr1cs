@@ -33,6 +33,7 @@ import { Route as AppAdminConfigRouteImport } from './routes/_app/admin/config'
 import { Route as AppAdminCarriersRouteImport } from './routes/_app/admin/carriers'
 import { Route as AppAdminAuditLogsRouteImport } from './routes/_app/admin/audit-logs'
 import { Route as AppAdminAnalyticsRouteImport } from './routes/_app/admin/analytics'
+import { Route as AppCarrierBookingsNewRouteImport } from './routes/_app/carrier/bookings.new'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -153,6 +154,11 @@ const AppAdminAnalyticsRoute = AppAdminAnalyticsRouteImport.update({
   path: '/admin/analytics',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCarrierBookingsNewRoute = AppCarrierBookingsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppCarrierBookingsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
@@ -168,7 +174,7 @@ export interface FileRoutesByFullPath {
   '/admin/terminals': typeof AppAdminTerminalsRoute
   '/admin/trucks': typeof AppAdminTrucksRoute
   '/admin/users': typeof AppAdminUsersRoute
-  '/carrier/bookings': typeof AppCarrierBookingsRoute
+  '/carrier/bookings': typeof AppCarrierBookingsRouteWithChildren
   '/carrier/containers': typeof AppCarrierContainersRoute
   '/carrier/trucks': typeof AppCarrierTrucksRoute
   '/operator/analytics': typeof AppOperatorAnalyticsRoute
@@ -178,6 +184,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/admin/': typeof AppAdminIndexRoute
   '/operator/': typeof AppOperatorIndexRoute
+  '/carrier/bookings/new': typeof AppCarrierBookingsNewRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -193,7 +200,7 @@ export interface FileRoutesByTo {
   '/admin/terminals': typeof AppAdminTerminalsRoute
   '/admin/trucks': typeof AppAdminTrucksRoute
   '/admin/users': typeof AppAdminUsersRoute
-  '/carrier/bookings': typeof AppCarrierBookingsRoute
+  '/carrier/bookings': typeof AppCarrierBookingsRouteWithChildren
   '/carrier/containers': typeof AppCarrierContainersRoute
   '/carrier/trucks': typeof AppCarrierTrucksRoute
   '/operator/analytics': typeof AppOperatorAnalyticsRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/admin': typeof AppAdminIndexRoute
   '/operator': typeof AppOperatorIndexRoute
+  '/carrier/bookings/new': typeof AppCarrierBookingsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -220,7 +228,7 @@ export interface FileRoutesById {
   '/_app/admin/terminals': typeof AppAdminTerminalsRoute
   '/_app/admin/trucks': typeof AppAdminTrucksRoute
   '/_app/admin/users': typeof AppAdminUsersRoute
-  '/_app/carrier/bookings': typeof AppCarrierBookingsRoute
+  '/_app/carrier/bookings': typeof AppCarrierBookingsRouteWithChildren
   '/_app/carrier/containers': typeof AppCarrierContainersRoute
   '/_app/carrier/trucks': typeof AppCarrierTrucksRoute
   '/_app/operator/analytics': typeof AppOperatorAnalyticsRoute
@@ -230,6 +238,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/operator/': typeof AppOperatorIndexRoute
+  '/_app/carrier/bookings/new': typeof AppCarrierBookingsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -257,6 +266,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/admin/'
     | '/operator/'
+    | '/carrier/bookings/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -282,6 +292,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/admin'
     | '/operator'
+    | '/carrier/bookings/new'
   id:
     | '__root__'
     | '/_app'
@@ -308,6 +319,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/_app/admin/'
     | '/_app/operator/'
+    | '/_app/carrier/bookings/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -486,8 +498,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminAnalyticsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/carrier/bookings/new': {
+      id: '/_app/carrier/bookings/new'
+      path: '/new'
+      fullPath: '/carrier/bookings/new'
+      preLoaderRoute: typeof AppCarrierBookingsNewRouteImport
+      parentRoute: typeof AppCarrierBookingsRoute
+    }
   }
 }
+
+interface AppCarrierBookingsRouteChildren {
+  AppCarrierBookingsNewRoute: typeof AppCarrierBookingsNewRoute
+}
+
+const AppCarrierBookingsRouteChildren: AppCarrierBookingsRouteChildren = {
+  AppCarrierBookingsNewRoute: AppCarrierBookingsNewRoute,
+}
+
+const AppCarrierBookingsRouteWithChildren =
+  AppCarrierBookingsRoute._addFileChildren(AppCarrierBookingsRouteChildren)
 
 interface AppRouteChildren {
   AppThreadIdRoute: typeof AppThreadIdRoute
@@ -502,7 +532,7 @@ interface AppRouteChildren {
   AppAdminTerminalsRoute: typeof AppAdminTerminalsRoute
   AppAdminTrucksRoute: typeof AppAdminTrucksRoute
   AppAdminUsersRoute: typeof AppAdminUsersRoute
-  AppCarrierBookingsRoute: typeof AppCarrierBookingsRoute
+  AppCarrierBookingsRoute: typeof AppCarrierBookingsRouteWithChildren
   AppCarrierContainersRoute: typeof AppCarrierContainersRoute
   AppCarrierTrucksRoute: typeof AppCarrierTrucksRoute
   AppOperatorAnalyticsRoute: typeof AppOperatorAnalyticsRoute
@@ -526,7 +556,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminTerminalsRoute: AppAdminTerminalsRoute,
   AppAdminTrucksRoute: AppAdminTrucksRoute,
   AppAdminUsersRoute: AppAdminUsersRoute,
-  AppCarrierBookingsRoute: AppCarrierBookingsRoute,
+  AppCarrierBookingsRoute: AppCarrierBookingsRouteWithChildren,
   AppCarrierContainersRoute: AppCarrierContainersRoute,
   AppCarrierTrucksRoute: AppCarrierTrucksRoute,
   AppOperatorAnalyticsRoute: AppOperatorAnalyticsRoute,

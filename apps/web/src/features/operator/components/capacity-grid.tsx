@@ -283,6 +283,48 @@ export function CapacityGrid({ terminalId }: CapacityGridProps) {
 
   const clearSelection = () => setSelectedSlots(new Set());
 
+  // Select/deselect an entire row (all hours for a day)
+  const handleSelectRow = (dayIndex: number) => {
+    const rowKeys = HOURS.map((hour) => getSlotKey(dayIndex, hour));
+    const allSelected = rowKeys.every((key) => selectedSlots.has(key));
+    
+    const newSelected = new Set(selectedSlots);
+    if (allSelected) {
+      // Deselect all in this row
+      rowKeys.forEach((key) => newSelected.delete(key));
+    } else {
+      // Select all in this row
+      rowKeys.forEach((key) => newSelected.add(key));
+    }
+    setSelectedSlots(newSelected);
+  };
+
+  // Select/deselect an entire column (all days for an hour)
+  const handleSelectColumn = (hour: number) => {
+    const colKeys = DAYS_FR.map((_, dayIndex) => getSlotKey(dayIndex, hour));
+    const allSelected = colKeys.every((key) => selectedSlots.has(key));
+    
+    const newSelected = new Set(selectedSlots);
+    if (allSelected) {
+      // Deselect all in this column
+      colKeys.forEach((key) => newSelected.delete(key));
+    } else {
+      // Select all in this column
+      colKeys.forEach((key) => newSelected.add(key));
+    }
+    setSelectedSlots(newSelected);
+  };
+
+  // Check if entire row is selected
+  const isRowSelected = (dayIndex: number) => {
+    return HOURS.every((hour) => selectedSlots.has(getSlotKey(dayIndex, hour)));
+  };
+
+  // Check if entire column is selected
+  const isColumnSelected = (hour: number) => {
+    return DAYS_FR.every((_, dayIndex) => selectedSlots.has(getSlotKey(dayIndex, hour)));
+  };
+
   return (
     <TooltipProvider>
       <Card>
@@ -389,16 +431,31 @@ export function CapacityGrid({ terminalId }: CapacityGridProps) {
           {/* Grid */}
           <div className="overflow-x-auto">
             <div className="min-w-[800px]">
-              {/* Header row - hours */}
+              {/* Header row - hours (clickable to select column) */}
               <div className="flex">
                 <div className="w-16 shrink-0" /> {/* Empty corner */}
                 {HOURS.map((hour) => (
-                  <div
-                    key={hour}
-                    className="flex-1 min-w-8 text-center text-xs text-muted-foreground font-medium py-1"
-                  >
-                    {hour.toString().padStart(2, "0")}
-                  </div>
+                  <Tooltip key={hour}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectColumn(hour)}
+                        className={cn(
+                          "flex-1 min-w-8 text-center text-xs font-medium py-1 rounded-t transition-colors",
+                          "hover:bg-muted cursor-pointer",
+                          "focus:outline-none focus:ring-1 focus:ring-ring",
+                          isColumnSelected(hour)
+                            ? "bg-primary/20 text-primary"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        {hour.toString().padStart(2, "0")}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Cliquez pour sélectionner {hour}h00</p>
+                    </TooltipContent>
+                  </Tooltip>
                 ))}
               </div>
 
