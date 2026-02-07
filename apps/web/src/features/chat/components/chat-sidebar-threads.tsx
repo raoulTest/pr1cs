@@ -1,5 +1,6 @@
 "use client";
 
+import { Link, useParams } from "@tanstack/react-router";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircleIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,10 +27,9 @@ export function ChatSidebarThreads() {
   const user = useCurrentUser();
   const { threads, isLoading } = useThreads(user?._id);
 
-  // Get current thread ID from URL search params
-  const currentThreadId = typeof window !== "undefined" 
-    ? new URLSearchParams(window.location.search).get("thread") 
-    : null;
+  // Get current thread ID from route params
+  const params = useParams({ strict: false });
+  const currentThreadId = (params as { threadId?: string }).threadId;
 
   // Transform threads for grouping (add createdAt from _creationTime)
   const threadsWithDate: ThreadWithDate[] = threads.map((thread) => ({
@@ -75,9 +75,10 @@ export function ChatSidebarThreads() {
             </h3>
             <div className="space-y-1">
               {groupThreads.map((thread: ThreadWithDate) => (
-                <a
+                <Link
                   key={thread._id}
-                  href={`/ai-booking?thread=${thread._id}`}
+                  to="/$threadId"
+                  params={{ threadId: thread._id }}
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 rounded-md text-sm",
                     "hover:bg-muted transition-colors",
@@ -89,7 +90,7 @@ export function ChatSidebarThreads() {
                   <span className="truncate">
                     {thread.title || "Nouvelle conversation"}
                   </span>
-                </a>
+                </Link>
               ))}
             </div>
           </div>

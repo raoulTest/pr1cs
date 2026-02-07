@@ -25,6 +25,7 @@ import { Route as AdminTrucksRouteImport } from './routes/admin/trucks'
 import { Route as AdminTerminalsRouteImport } from './routes/admin/terminals'
 import { Route as AdminGatesRouteImport } from './routes/admin/gates'
 import { Route as AdminCarriersRouteImport } from './routes/admin/carriers'
+import { Route as ChatThreadIdRouteImport } from './routes/_chat/$threadId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const OperatorRoute = OperatorRouteImport.update({
@@ -106,6 +107,11 @@ const AdminCarriersRoute = AdminCarriersRouteImport.update({
   path: '/admin/carriers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
+  id: '/$threadId',
+  path: '/$threadId',
+  getParentRoute: () => ChatRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/carrier': typeof CarrierRouteWithChildren
   '/login': typeof LoginRoute
   '/operator': typeof OperatorRouteWithChildren
+  '/$threadId': typeof ChatThreadIdRoute
   '/admin/carriers': typeof AdminCarriersRoute
   '/admin/gates': typeof AdminGatesRoute
   '/admin/terminals': typeof AdminTerminalsRoute
@@ -133,6 +140,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/carrier': typeof CarrierRouteWithChildren
   '/login': typeof LoginRoute
+  '/$threadId': typeof ChatThreadIdRoute
   '/admin/carriers': typeof AdminCarriersRoute
   '/admin/gates': typeof AdminGatesRoute
   '/admin/terminals': typeof AdminTerminalsRoute
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/carrier': typeof CarrierRouteWithChildren
   '/login': typeof LoginRoute
   '/operator': typeof OperatorRouteWithChildren
+  '/_chat/$threadId': typeof ChatThreadIdRoute
   '/admin/carriers': typeof AdminCarriersRoute
   '/admin/gates': typeof AdminGatesRoute
   '/admin/terminals': typeof AdminTerminalsRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/carrier'
     | '/login'
     | '/operator'
+    | '/$threadId'
     | '/admin/carriers'
     | '/admin/gates'
     | '/admin/terminals'
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
   to:
     | '/carrier'
     | '/login'
+    | '/$threadId'
     | '/admin/carriers'
     | '/admin/gates'
     | '/admin/terminals'
@@ -209,6 +220,7 @@ export interface FileRouteTypes {
     | '/carrier'
     | '/login'
     | '/operator'
+    | '/_chat/$threadId'
     | '/admin/carriers'
     | '/admin/gates'
     | '/admin/terminals'
@@ -350,6 +362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCarriersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_chat/$threadId': {
+      id: '/_chat/$threadId'
+      path: '/$threadId'
+      fullPath: '/$threadId'
+      preLoaderRoute: typeof ChatThreadIdRouteImport
+      parentRoute: typeof ChatRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -361,10 +380,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface ChatRouteChildren {
+  ChatThreadIdRoute: typeof ChatThreadIdRoute
   ChatIndexRoute: typeof ChatIndexRoute
 }
 
 const ChatRouteChildren: ChatRouteChildren = {
+  ChatThreadIdRoute: ChatThreadIdRoute,
   ChatIndexRoute: ChatIndexRoute,
 }
 

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAction, useQuery } from "convex/react";
 import { api } from "@microhack/backend/convex/_generated/api";
 import { type MessageDoc } from "@convex-dev/agent";
@@ -32,6 +32,11 @@ export function useThread({
   const [status, setStatus] = useState<
     "ready" | "submitted" | "streaming" | "error"
   >("ready");
+
+  // Sync threadId state with prop changes (for navigation)
+  useEffect(() => {
+    setThreadId(initialThreadId);
+  }, [initialThreadId]);
 
   // Actions
   const createThreadAction = useAction(api.ai.chat.createThread);
