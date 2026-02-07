@@ -690,8 +690,17 @@ export const getAvailableSlots = internalQuery({
 export const getUserRole = internalQuery({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
-    const role = await getUserRoleHelper(ctx, args.userId);
-    return { role };
+    const authUser = await authComponent.getAnyUserById(
+      ctx as unknown as GenericCtx<DataModel>,
+      args.userId
+    );
+    if (!authUser) return null;
+    
+    return { 
+      role: (authUser as unknown as { role: string }).role ?? null,
+      name: authUser.name ?? null,
+      email: authUser.email ?? null,
+    };
   },
 });
 

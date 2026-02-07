@@ -21,13 +21,65 @@ import { google } from "@ai-sdk/google";
 // HELPER FUNCTIONS
 // ============================================================================
 
+interface UserInfo {
+  name?: string | null;
+  email?: string | null;
+}
+
+/**
+ * Build global context with current date/time in Morocco timezone.
+ */
+function buildGlobalContext(userInfo?: UserInfo): string {
+  const now = new Date();
+  
+  // Format for human readability (French)
+  const formatter = new Intl.DateTimeFormat('fr-FR', {
+    timeZone: 'Africa/Casablanca',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const dateTimeStr = formatter.format(now);
+  
+  // ISO date for tool calls
+  const isoFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Casablanca',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const isoDate = isoFormatter.format(now);
+  
+  let context = "=== CONTEXTE GLOBAL ===\n";
+  context += `Date et heure actuelles: ${dateTimeStr}\n`;
+  context += `Date ISO (pour les outils): ${isoDate}\n`;
+  
+  if (userInfo?.name) {
+    context += `Utilisateur: ${userInfo.name}\n`;
+  }
+  if (userInfo?.email) {
+    context += `Email: ${userInfo.email}\n`;
+  }
+  
+  context += "=== FIN CONTEXTE GLOBAL ===\n\n";
+  
+  return context;
+}
+
 /**
  * Build user context string with role and available tools.
  * This is prepended to the user's prompt so the AI knows what it can suggest.
  */
-function buildUserContext(role: ApcsRole | null): string {
+function buildUserContext(role: ApcsRole | null, userInfo?: UserInfo): string {
+  // Always start with global context (date/time/user)
+  let context = buildGlobalContext(userInfo);
+  
   if (!role) {
     return (
+      context +
       "USER CONTEXT:\n" +
       "- Role: unknown (no role assigned)\n" +
       "- Available Tools: none\n" +
@@ -67,6 +119,7 @@ function buildUserContext(role: ApcsRole | null): string {
   }
 
   return (
+    context +
     "USER CONTEXT:\n" +
     "- Role: " +
     role +
@@ -120,13 +173,16 @@ export const initiateStream = action({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    // Fetch user role and build context
+    // Fetch user role and profile
     const profile = await ctx.runQuery(
       internal.ai.internalQueries.getUserRole,
       { userId: args.userId },
     );
     const role = profile?.role as ApcsRole | null;
-    const context = buildUserContext(role);
+    const context = buildUserContext(role, {
+      name: profile?.name,
+      email: profile?.email,
+    });
 
     // Stream text — deltas are saved to the component's messages table
     // so the frontend query picks them up in real time.
@@ -168,13 +224,16 @@ export const generateResponse = action({
   },
   returns: v.string(),
   handler: async (ctx, args) => {
-    // Fetch user role and build context
+    // Fetch user role and profile
     const profile = await ctx.runQuery(
       internal.ai.internalQueries.getUserRole,
       { userId: args.userId },
     );
     const role = profile?.role as ApcsRole | null;
-    const context = buildUserContext(role);
+    const context = buildUserContext(role, {
+      name: profile?.name,
+      email: profile?.email,
+    });
 
     // Use system parameter for context to keep user message clean
     const result = await apcsAgent.generateText(
