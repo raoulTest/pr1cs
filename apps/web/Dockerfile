@@ -41,8 +41,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Copy built output from builder
-COPY --from=builder /app/apps/web/.output ./.output
+# Copy built output from builder (client and server)
+COPY --from=builder /app/apps/web/dist ./dist
 COPY --from=builder /app/apps/web/package.json ./
 
 # Expose the port
@@ -53,4 +53,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
 
 # Run the server
-CMD ["bun", "run", ".output/server/index.mjs"]
+CMD ["bun", "run", "dist/server/server.js"]
