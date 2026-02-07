@@ -19,7 +19,7 @@ export const createGateSchema = z.object({
     .min(2, "Code must be at least 2 characters")
     .regex(/^[A-Z0-9-]+$/, "Code must be uppercase letters, numbers, or hyphens"),
   description: z.string().optional(),
-  defaultCapacity: z.number().min(1, "Capacity must be at least 1"),
+  // Note: defaultCapacity was removed - capacity is now at terminal level
   allowedTruckTypes: z.array(truckTypeSchema).min(1, "Select at least one truck type"),
   allowedTruckClasses: z.array(truckClassSchema).min(1, "Select at least one truck class"),
 });

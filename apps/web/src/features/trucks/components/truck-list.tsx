@@ -1,5 +1,4 @@
 import { api } from "@microhack/backend/convex/_generated/api";
-import type { Id } from "@microhack/backend/convex/_generated/dataModel";
 import { useQuery } from "convex/react";
 import { RiAddLine } from "@remixicon/react";
 
@@ -29,11 +28,14 @@ interface TruckListProps {
 export function TruckList({ onCreateClick }: TruckListProps) {
   const [selectedCarrierId, setSelectedCarrierId] = useState<string>("");
 
-  const carriers = useQuery(api.carriers.queries.list, {});
+  // Use listCarriers for admin view - returns carriers with their stats
+  const carriers = useQuery(api.carriers.queries.listCarriers, { limit: 100 });
+  
+  // Use listByOwner to get trucks for selected carrier
   const trucks = useQuery(
-    api.trucks.queries.listByCompany,
+    api.trucks.queries.listByOwner,
     selectedCarrierId
-      ? { carrierCompanyId: selectedCarrierId as Id<"carrierCompanies"> }
+      ? { ownerId: selectedCarrierId }
       : "skip"
   );
 
@@ -54,20 +56,18 @@ export function TruckList({ onCreateClick }: TruckListProps) {
     );
   }
 
-  const activeCarriers = carriers.filter((c) => c.isActive);
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Trucks</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Camions</h2>
           <p className="text-muted-foreground">
-            Manage trucks in carrier fleets
+            Gérer les camions de la flotte des transporteurs
           </p>
         </div>
         <Button onClick={onCreateClick}>
           <RiAddLine className="mr-2 size-4" />
-          Add Truck
+          Ajouter un camion
         </Button>
       </div>
 
@@ -75,12 +75,12 @@ export function TruckList({ onCreateClick }: TruckListProps) {
         <div className="w-64">
           <Select value={selectedCarrierId} onValueChange={setSelectedCarrierId}>
             <SelectTrigger>
-              <SelectValue placeholder="Select a carrier to view trucks" />
+              <SelectValue placeholder="Sélectionner un transporteur" />
             </SelectTrigger>
             <SelectContent>
-              {activeCarriers.map((carrier) => (
-                <SelectItem key={carrier._id} value={carrier._id}>
-                  {carrier.name} ({carrier.code})
+              {carriers.map((carrier) => (
+                <SelectItem key={carrier.userId} value={carrier.userId}>
+                  {carrier.userId} ({carrier.truckCount} camions)
                 </SelectItem>
               ))}
             </SelectContent>
@@ -92,7 +92,7 @@ export function TruckList({ onCreateClick }: TruckListProps) {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <p className="text-muted-foreground">
-              Select a carrier company above to view its trucks
+              Sélectionnez un transporteur ci-dessus pour voir ses camions
             </p>
           </CardContent>
         </Card>
@@ -106,11 +106,11 @@ export function TruckList({ onCreateClick }: TruckListProps) {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <p className="text-muted-foreground mb-4">
-              No trucks found for this carrier
+              Aucun camion trouvé pour ce transporteur
             </p>
             <Button onClick={onCreateClick}>
               <RiAddLine className="mr-2 size-4" />
-              Register first truck
+              Enregistrer le premier camion
             </Button>
           </CardContent>
         </Card>
@@ -127,12 +127,12 @@ export function TruckList({ onCreateClick }: TruckListProps) {
                     <CardDescription className="text-xs">
                       {truck.make && truck.model
                         ? `${truck.make} ${truck.model}`
-                        : truck.make || truck.model || "Unknown make/model"}
+                        : truck.make || truck.model || "Marque/modèle inconnu"}
                       {truck.year ? ` (${truck.year})` : ""}
                     </CardDescription>
                   </div>
                   <Badge variant={truck.isActive ? "default" : "secondary"}>
-                    {truck.isActive ? "Active" : "Inactive"}
+                    {truck.isActive ? "Actif" : "Inactif"}
                   </Badge>
                 </div>
               </CardHeader>

@@ -17,7 +17,6 @@ import {
 import {
   Field,
   FieldContent,
-  FieldDescription,
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
@@ -38,25 +37,27 @@ export function CreateGateForm({ terminalId, onSuccess, onCancel }: CreateGateFo
 
   const form = useForm({
     defaultValues: {
-      terminalId: terminalId ?? "",
+      terminalId: (terminalId ?? "") as string,
       name: "",
       code: "",
       description: "",
-      defaultCapacity: 10,
       allowedTruckTypes: [] as string[],
       allowedTruckClasses: [] as string[],
     },
-    validators: {
-      onSubmit: createGateSchema,
-    },
     onSubmit: async ({ value }) => {
+      // Validate with Zod
+      const result = createGateSchema.safeParse(value);
+      if (!result.success) {
+        toast.error(result.error.issues[0]?.message ?? "Validation failed");
+        return;
+      }
+      
       try {
         await createGate({
           terminalId: value.terminalId as Id<"terminals">,
           name: value.name,
           code: value.code,
           description: value.description || undefined,
-          defaultCapacity: value.defaultCapacity,
           allowedTruckTypes: value.allowedTruckTypes as (
             | "container"
             | "flatbed"
@@ -97,7 +98,7 @@ export function CreateGateForm({ terminalId, onSuccess, onCancel }: CreateGateFo
             <FieldContent>
               <Select
                 value={field.state.value}
-                onValueChange={(value) => field.handleChange(value)}
+                onValueChange={(value: string) => field.handleChange(value)}
                 disabled={!!terminalId}
               >
                 <SelectTrigger className="w-full">
@@ -162,33 +163,11 @@ export function CreateGateForm({ terminalId, onSuccess, onCancel }: CreateGateFo
             <FieldContent>
               <Input
                 id={field.name}
-                value={field.state.value}
+                value={field.state.value ?? ""}
                 onChange={(e) => field.handleChange(e.target.value)}
                 onBlur={field.handleBlur}
                 placeholder="Main container gate for large trucks"
               />
-            </FieldContent>
-          </Field>
-        )}
-      </form.Field>
-
-      <form.Field name="defaultCapacity">
-        {(field) => (
-          <Field data-invalid={field.state.meta.errors.length > 0}>
-            <FieldLabel htmlFor={field.name}>Default Capacity *</FieldLabel>
-            <FieldContent>
-              <Input
-                id={field.name}
-                type="number"
-                min={1}
-                value={field.state.value}
-                onChange={(e) => field.handleChange(parseInt(e.target.value) || 1)}
-                onBlur={field.handleBlur}
-              />
-              <FieldDescription>
-                Maximum trucks per time slot (can be overridden per slot)
-              </FieldDescription>
-              <FieldError errors={field.state.meta.errors} />
             </FieldContent>
           </Field>
         )}
@@ -205,7 +184,7 @@ export function CreateGateForm({ terminalId, onSuccess, onCancel }: CreateGateFo
                     <Checkbox
                       id={`truck-type-${type.value}`}
                       checked={field.state.value.includes(type.value)}
-                      onCheckedChange={(checked) => {
+                      onCheckedChange={(checked: boolean) => {
                         if (checked) {
                           field.handleChange([...field.state.value, type.value]);
                         } else {
@@ -238,7 +217,7 @@ export function CreateGateForm({ terminalId, onSuccess, onCancel }: CreateGateFo
                     <Checkbox
                       id={`truck-class-${cls.value}`}
                       checked={field.state.value.includes(cls.value)}
-                      onCheckedChange={(checked) => {
+                      onCheckedChange={(checked: boolean) => {
                         if (checked) {
                           field.handleChange([...field.state.value, cls.value]);
                         } else {

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { MessageDoc } from "@convex-dev/agent";
 import { ChatMessageItem } from "./chat-message-item";
-import { Shimmer } from "@/components/ai-elements/shimmer";
+import { Skeleton } from "@/components/ui/skeleton";
+import { type MessageDoc } from "@convex-dev/agent";
 
 interface ChatMessagesProps {
   messages: MessageDoc[];
@@ -11,7 +11,11 @@ interface ChatMessagesProps {
   isStreaming?: boolean;
 }
 
-export function ChatMessages({ messages, isLoading, isStreaming }: ChatMessagesProps) {
+export function ChatMessages({
+  messages,
+  isLoading,
+  isStreaming,
+}: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -25,7 +29,7 @@ export function ChatMessages({ messages, isLoading, isStreaming }: ChatMessagesP
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <Shimmer className="h-4 w-32" />
+        <Skeleton className="h-4 w-32" />
       </div>
     );
   }
@@ -37,7 +41,8 @@ export function ChatMessages({ messages, isLoading, isStreaming }: ChatMessagesP
     >
       {messages.map((message, index) => {
         const isLastMessage = index === messages.length - 1;
-        const isStreamingThisMessage = isStreaming && isLastMessage && message.role === "assistant";
+        const isStreamingThisMessage =
+          isStreaming && isLastMessage && message.message?.role === "assistant";
 
         return (
           <ChatMessageItem
@@ -49,11 +54,13 @@ export function ChatMessages({ messages, isLoading, isStreaming }: ChatMessagesP
       })}
 
       {/* Streaming indicator when waiting for first token */}
-      {isStreaming && messages.length > 0 && messages[messages.length - 1].role === "user" && (
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Shimmer className="h-4 w-48" />
-        </div>
-      )}
+      {isStreaming &&
+        messages.length > 0 &&
+        messages[messages.length - 1].message?.role === "user" && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Skeleton className="h-4 w-48" />
+          </div>
+        )}
 
       <div ref={messagesEndRef} />
     </div>

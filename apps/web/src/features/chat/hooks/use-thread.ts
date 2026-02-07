@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { useAction, useQuery } from "convex/react";
-import { api } from "@repo/backend/convex/_generated/api";
-import type { MessageDoc } from "@convex-dev/agent";
+import { api } from "@microhack/backend/convex/_generated/api";
+import { type MessageDoc } from "@convex-dev/agent";
 
 interface UseThreadOptions {
   userId: string;
@@ -23,10 +23,15 @@ interface UseThreadReturn {
  * Hook for managing a chat thread with the AI assistant.
  * Handles thread creation, message sending, and real-time streaming.
  */
-export function useThread({ userId, threadId: initialThreadId }: UseThreadOptions): UseThreadReturn {
+export function useThread({
+  userId,
+  threadId: initialThreadId,
+}: UseThreadOptions): UseThreadReturn {
   const [threadId, setThreadId] = useState<string | undefined>(initialThreadId);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [status, setStatus] = useState<"ready" | "submitted" | "streaming" | "error">("ready");
+  const [status, setStatus] = useState<
+    "ready" | "submitted" | "streaming" | "error"
+  >("ready");
 
   // Actions
   const createThreadAction = useAction(api.ai.chat.createThread);
@@ -40,10 +45,10 @@ export function useThread({ userId, threadId: initialThreadId }: UseThreadOption
           threadId,
           paginationOpts: { numItems: 50, cursor: null },
         }
-      : "skip"
+      : "skip",
   );
 
-  const messages = (messagesResult?.page ?? []) as MessageDoc[];
+  const messages = (messagesResult?.page ?? []) as unknown as MessageDoc[];
   const isLoading = messagesResult === undefined;
 
   const createThread = useCallback(async (): Promise<string> => {
@@ -83,7 +88,7 @@ export function useThread({ userId, threadId: initialThreadId }: UseThreadOption
         setIsStreaming(false);
       }
     },
-    [threadId, createThread, initiateStreamAction, userId]
+    [threadId, createThread, initiateStreamAction, userId],
   );
 
   const stop = useCallback(() => {

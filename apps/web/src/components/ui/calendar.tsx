@@ -10,7 +10,7 @@ import {
 
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
-import { IconPlaceholder } from "@/app/(create)/components/icon-placeholder"
+import { IconPlaceholder } from "@/components/icon-placeholder"
 
 function Calendar({
   className,
@@ -138,7 +138,7 @@ function Calendar({
           return (
             <div
               data-slot="calendar"
-              ref={rootRef}
+              ref={rootRef as React.Ref<HTMLDivElement>}
               className={cn(className)}
               {...props}
             />

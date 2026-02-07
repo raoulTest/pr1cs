@@ -13,7 +13,7 @@ import {
   InputGroup,
   InputGroupAddon,
 } from "@/components/ui/input-group"
-import { IconPlaceholder } from "@/app/(create)/components/icon-placeholder"
+import { IconPlaceholder } from "@/components/icon-placeholder"
 
 function Command({
   className,

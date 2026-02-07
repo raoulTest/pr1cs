@@ -9,7 +9,7 @@
  * verify ownership and permissions.
  */
 import { internalMutation } from "../_generated/server";
-import { v, ConvexError } from "convex/values";
+import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 
 // ============================================================================

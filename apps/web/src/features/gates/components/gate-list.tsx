@@ -131,10 +131,6 @@ export function GateList({ onCreateClick }: GateListProps) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Capacity:</span>{" "}
-                    <span className="font-medium">{gate.defaultCapacity} trucks/slot</span>
-                  </div>
                   {gate.description && (
                     <div className="text-muted-foreground text-xs">
                       {gate.description}

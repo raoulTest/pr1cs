@@ -1,12 +1,18 @@
 "use client";
 
-import { Link, useParams } from "@tanstack/react-router";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MessageCircleIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { groupThreadsByDate } from "../lib/thread-utils";
-import { useThreads, type Thread } from "../hooks/use-threads";
+import { useThreads } from "../hooks/use-threads";
 import { useCurrentUser } from "@/hooks/use-role";
+
+interface ThreadWithDate {
+  _id: string;
+  _creationTime: number;
+  title?: string;
+  createdAt: number;
+}
 
 const DATE_GROUP_LABELS: Record<string, string> = {
   today: "Aujourd'hui",
@@ -19,11 +25,14 @@ const DATE_GROUP_LABELS: Record<string, string> = {
 export function ChatSidebarThreads() {
   const user = useCurrentUser();
   const { threads, isLoading } = useThreads(user?._id);
-  const params = useParams({ strict: false });
-  const currentThreadId = (params as { threadId?: string }).threadId;
+
+  // Get current thread ID from URL search params
+  const currentThreadId = typeof window !== "undefined" 
+    ? new URLSearchParams(window.location.search).get("thread") 
+    : null;
 
   // Transform threads for grouping (add createdAt from _creationTime)
-  const threadsWithDate = threads.map((thread) => ({
+  const threadsWithDate: ThreadWithDate[] = threads.map((thread) => ({
     ...thread,
     createdAt: thread._creationTime,
   }));
@@ -65,10 +74,10 @@ export function ChatSidebarThreads() {
               {DATE_GROUP_LABELS[group]}
             </h3>
             <div className="space-y-1">
-              {groupThreads.map((thread) => (
-                <Link
+              {groupThreads.map((thread: ThreadWithDate) => (
+                <a
                   key={thread._id}
-                  to={`/_chat/${thread._id}`}
+                  href={`/ai-booking?thread=${thread._id}`}
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 rounded-md text-sm",
                     "hover:bg-muted transition-colors",
@@ -80,7 +89,7 @@ export function ChatSidebarThreads() {
                   <span className="truncate">
                     {thread.title || "Nouvelle conversation"}
                   </span>
-                </Link>
+                </a>
               ))}
             </div>
           </div>

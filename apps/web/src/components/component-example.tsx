@@ -97,9 +97,11 @@ function CardExample() {
         </CardHeader>
         <CardFooter>
           <AlertDialog>
-            <AlertDialogTrigger render={<Button />}>
-              <RiAddLine data-icon="inline-start" />
-              Show Dialog
+            <AlertDialogTrigger asChild>
+              <Button>
+                <RiAddLine data-icon="inline-start" />
+                Show Dialog
+              </Button>
             </AlertDialogTrigger>
             <AlertDialogContent size="sm">
               <AlertDialogHeader>
@@ -159,12 +161,11 @@ function FormExample() {
           <CardDescription>Please fill in your details below</CardDescription>
           <CardAction>
             <DropdownMenu>
-              <DropdownMenuTrigger
-                render={<Button variant="ghost" size="icon" />}
-              >
-                <RiMore2Line
-                />
-                <span className="sr-only">More options</span>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <RiMore2Line />
+                  <span className="sr-only">More options</span>
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuGroup>
@@ -441,7 +442,7 @@ function FormExample() {
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="small-form-role">Role</FieldLabel>
-                  <Select items={roleItems} defaultValue={null}>
+                  <Select defaultValue={undefined}>
                     <SelectTrigger id="small-form-role">
                       <SelectValue />
                     </SelectTrigger>

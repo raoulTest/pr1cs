@@ -3,8 +3,6 @@ import { Link, type LinkProps } from "@tanstack/react-router";
 export default function Header() {
   const links: { to: LinkProps["to"]; label: string }[] = [
     { to: "/", label: "Home" },
-    { to: "/dashboard", label: "Dashboard" },
-    { to: "/convex-showcase", label: "Convex Features" },
   ];
 
   const adminLinks: { to: LinkProps["to"]; label: string }[] = [

@@ -9,35 +9,82 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as ConvexShowcaseRouteImport } from './routes/convex-showcase'
-import { Route as AiBookingRouteImport } from './routes/ai-booking'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as OperatorRouteImport } from './routes/operator'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as CarrierRouteImport } from './routes/carrier'
+import { Route as ChatRouteImport } from './routes/_chat'
+import { Route as OperatorIndexRouteImport } from './routes/operator/index'
+import { Route as ChatIndexRouteImport } from './routes/_chat/index'
+import { Route as OperatorPendingRouteImport } from './routes/operator/pending'
+import { Route as OperatorCapacityRouteImport } from './routes/operator/capacity'
+import { Route as OperatorBookingsRouteImport } from './routes/operator/bookings'
+import { Route as CarrierTrucksRouteImport } from './routes/carrier/trucks'
+import { Route as CarrierContainersRouteImport } from './routes/carrier/containers'
+import { Route as CarrierBookingsRouteImport } from './routes/carrier/bookings'
 import { Route as AdminTrucksRouteImport } from './routes/admin/trucks'
 import { Route as AdminTerminalsRouteImport } from './routes/admin/terminals'
 import { Route as AdminGatesRouteImport } from './routes/admin/gates'
 import { Route as AdminCarriersRouteImport } from './routes/admin/carriers'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const OperatorRoute = OperatorRouteImport.update({
+  id: '/operator',
+  path: '/operator',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ConvexShowcaseRoute = ConvexShowcaseRouteImport.update({
-  id: '/convex-showcase',
-  path: '/convex-showcase',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AiBookingRoute = AiBookingRouteImport.update({
-  id: '/ai-booking',
-  path: '/ai-booking',
+const CarrierRoute = CarrierRouteImport.update({
+  id: '/carrier',
+  path: '/carrier',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const ChatRoute = ChatRouteImport.update({
+  id: '/_chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OperatorIndexRoute = OperatorIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => OperatorRoute,
+} as any)
+const ChatIndexRoute = ChatIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ChatRoute,
+} as any)
+const OperatorPendingRoute = OperatorPendingRouteImport.update({
+  id: '/pending',
+  path: '/pending',
+  getParentRoute: () => OperatorRoute,
+} as any)
+const OperatorCapacityRoute = OperatorCapacityRouteImport.update({
+  id: '/capacity',
+  path: '/capacity',
+  getParentRoute: () => OperatorRoute,
+} as any)
+const OperatorBookingsRoute = OperatorBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => OperatorRoute,
+} as any)
+const CarrierTrucksRoute = CarrierTrucksRouteImport.update({
+  id: '/trucks',
+  path: '/trucks',
+  getParentRoute: () => CarrierRoute,
+} as any)
+const CarrierContainersRoute = CarrierContainersRouteImport.update({
+  id: '/containers',
+  path: '/containers',
+  getParentRoute: () => CarrierRoute,
+} as any)
+const CarrierBookingsRoute = CarrierBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => CarrierRoute,
 } as any)
 const AdminTrucksRoute = AdminTrucksRouteImport.update({
   id: '/admin/trucks',
@@ -66,80 +113,122 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/ai-booking': typeof AiBookingRoute
-  '/convex-showcase': typeof ConvexShowcaseRoute
-  '/dashboard': typeof DashboardRoute
+  '/': typeof ChatIndexRoute
+  '/carrier': typeof CarrierRouteWithChildren
+  '/login': typeof LoginRoute
+  '/operator': typeof OperatorRouteWithChildren
   '/admin/carriers': typeof AdminCarriersRoute
   '/admin/gates': typeof AdminGatesRoute
   '/admin/terminals': typeof AdminTerminalsRoute
   '/admin/trucks': typeof AdminTrucksRoute
+  '/carrier/bookings': typeof CarrierBookingsRoute
+  '/carrier/containers': typeof CarrierContainersRoute
+  '/carrier/trucks': typeof CarrierTrucksRoute
+  '/operator/bookings': typeof OperatorBookingsRoute
+  '/operator/capacity': typeof OperatorCapacityRoute
+  '/operator/pending': typeof OperatorPendingRoute
+  '/operator/': typeof OperatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/ai-booking': typeof AiBookingRoute
-  '/convex-showcase': typeof ConvexShowcaseRoute
-  '/dashboard': typeof DashboardRoute
+  '/carrier': typeof CarrierRouteWithChildren
+  '/login': typeof LoginRoute
   '/admin/carriers': typeof AdminCarriersRoute
   '/admin/gates': typeof AdminGatesRoute
   '/admin/terminals': typeof AdminTerminalsRoute
   '/admin/trucks': typeof AdminTrucksRoute
+  '/carrier/bookings': typeof CarrierBookingsRoute
+  '/carrier/containers': typeof CarrierContainersRoute
+  '/carrier/trucks': typeof CarrierTrucksRoute
+  '/operator/bookings': typeof OperatorBookingsRoute
+  '/operator/capacity': typeof OperatorCapacityRoute
+  '/operator/pending': typeof OperatorPendingRoute
+  '/': typeof ChatIndexRoute
+  '/operator': typeof OperatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/ai-booking': typeof AiBookingRoute
-  '/convex-showcase': typeof ConvexShowcaseRoute
-  '/dashboard': typeof DashboardRoute
+  '/_chat': typeof ChatRouteWithChildren
+  '/carrier': typeof CarrierRouteWithChildren
+  '/login': typeof LoginRoute
+  '/operator': typeof OperatorRouteWithChildren
   '/admin/carriers': typeof AdminCarriersRoute
   '/admin/gates': typeof AdminGatesRoute
   '/admin/terminals': typeof AdminTerminalsRoute
   '/admin/trucks': typeof AdminTrucksRoute
+  '/carrier/bookings': typeof CarrierBookingsRoute
+  '/carrier/containers': typeof CarrierContainersRoute
+  '/carrier/trucks': typeof CarrierTrucksRoute
+  '/operator/bookings': typeof OperatorBookingsRoute
+  '/operator/capacity': typeof OperatorCapacityRoute
+  '/operator/pending': typeof OperatorPendingRoute
+  '/_chat/': typeof ChatIndexRoute
+  '/operator/': typeof OperatorIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/ai-booking'
-    | '/convex-showcase'
-    | '/dashboard'
+    | '/carrier'
+    | '/login'
+    | '/operator'
     | '/admin/carriers'
     | '/admin/gates'
     | '/admin/terminals'
     | '/admin/trucks'
+    | '/carrier/bookings'
+    | '/carrier/containers'
+    | '/carrier/trucks'
+    | '/operator/bookings'
+    | '/operator/capacity'
+    | '/operator/pending'
+    | '/operator/'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
-    | '/ai-booking'
-    | '/convex-showcase'
-    | '/dashboard'
+    | '/carrier'
+    | '/login'
     | '/admin/carriers'
     | '/admin/gates'
     | '/admin/terminals'
     | '/admin/trucks'
+    | '/carrier/bookings'
+    | '/carrier/containers'
+    | '/carrier/trucks'
+    | '/operator/bookings'
+    | '/operator/capacity'
+    | '/operator/pending'
+    | '/'
+    | '/operator'
     | '/api/auth/$'
   id:
     | '__root__'
-    | '/'
-    | '/ai-booking'
-    | '/convex-showcase'
-    | '/dashboard'
+    | '/_chat'
+    | '/carrier'
+    | '/login'
+    | '/operator'
     | '/admin/carriers'
     | '/admin/gates'
     | '/admin/terminals'
     | '/admin/trucks'
+    | '/carrier/bookings'
+    | '/carrier/containers'
+    | '/carrier/trucks'
+    | '/operator/bookings'
+    | '/operator/capacity'
+    | '/operator/pending'
+    | '/_chat/'
+    | '/operator/'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  AiBookingRoute: typeof AiBookingRoute
-  ConvexShowcaseRoute: typeof ConvexShowcaseRoute
-  DashboardRoute: typeof DashboardRoute
+  ChatRoute: typeof ChatRouteWithChildren
+  CarrierRoute: typeof CarrierRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  OperatorRoute: typeof OperatorRouteWithChildren
   AdminCarriersRoute: typeof AdminCarriersRoute
   AdminGatesRoute: typeof AdminGatesRoute
   AdminTerminalsRoute: typeof AdminTerminalsRoute
@@ -149,33 +238,89 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
+    '/operator': {
+      id: '/operator'
+      path: '/operator'
+      fullPath: '/operator'
+      preLoaderRoute: typeof OperatorRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/convex-showcase': {
-      id: '/convex-showcase'
-      path: '/convex-showcase'
-      fullPath: '/convex-showcase'
-      preLoaderRoute: typeof ConvexShowcaseRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/ai-booking': {
-      id: '/ai-booking'
-      path: '/ai-booking'
-      fullPath: '/ai-booking'
-      preLoaderRoute: typeof AiBookingRouteImport
+    '/carrier': {
+      id: '/carrier'
+      path: '/carrier'
+      fullPath: '/carrier'
+      preLoaderRoute: typeof CarrierRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_chat': {
+      id: '/_chat'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/operator/': {
+      id: '/operator/'
+      path: '/'
+      fullPath: '/operator/'
+      preLoaderRoute: typeof OperatorIndexRouteImport
+      parentRoute: typeof OperatorRoute
+    }
+    '/_chat/': {
+      id: '/_chat/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof ChatIndexRouteImport
+      parentRoute: typeof ChatRoute
+    }
+    '/operator/pending': {
+      id: '/operator/pending'
+      path: '/pending'
+      fullPath: '/operator/pending'
+      preLoaderRoute: typeof OperatorPendingRouteImport
+      parentRoute: typeof OperatorRoute
+    }
+    '/operator/capacity': {
+      id: '/operator/capacity'
+      path: '/capacity'
+      fullPath: '/operator/capacity'
+      preLoaderRoute: typeof OperatorCapacityRouteImport
+      parentRoute: typeof OperatorRoute
+    }
+    '/operator/bookings': {
+      id: '/operator/bookings'
+      path: '/bookings'
+      fullPath: '/operator/bookings'
+      preLoaderRoute: typeof OperatorBookingsRouteImport
+      parentRoute: typeof OperatorRoute
+    }
+    '/carrier/trucks': {
+      id: '/carrier/trucks'
+      path: '/trucks'
+      fullPath: '/carrier/trucks'
+      preLoaderRoute: typeof CarrierTrucksRouteImport
+      parentRoute: typeof CarrierRoute
+    }
+    '/carrier/containers': {
+      id: '/carrier/containers'
+      path: '/containers'
+      fullPath: '/carrier/containers'
+      preLoaderRoute: typeof CarrierContainersRouteImport
+      parentRoute: typeof CarrierRoute
+    }
+    '/carrier/bookings': {
+      id: '/carrier/bookings'
+      path: '/bookings'
+      fullPath: '/carrier/bookings'
+      preLoaderRoute: typeof CarrierBookingsRouteImport
+      parentRoute: typeof CarrierRoute
     }
     '/admin/trucks': {
       id: '/admin/trucks'
@@ -215,11 +360,54 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ChatRouteChildren {
+  ChatIndexRoute: typeof ChatIndexRoute
+}
+
+const ChatRouteChildren: ChatRouteChildren = {
+  ChatIndexRoute: ChatIndexRoute,
+}
+
+const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
+
+interface CarrierRouteChildren {
+  CarrierBookingsRoute: typeof CarrierBookingsRoute
+  CarrierContainersRoute: typeof CarrierContainersRoute
+  CarrierTrucksRoute: typeof CarrierTrucksRoute
+}
+
+const CarrierRouteChildren: CarrierRouteChildren = {
+  CarrierBookingsRoute: CarrierBookingsRoute,
+  CarrierContainersRoute: CarrierContainersRoute,
+  CarrierTrucksRoute: CarrierTrucksRoute,
+}
+
+const CarrierRouteWithChildren =
+  CarrierRoute._addFileChildren(CarrierRouteChildren)
+
+interface OperatorRouteChildren {
+  OperatorBookingsRoute: typeof OperatorBookingsRoute
+  OperatorCapacityRoute: typeof OperatorCapacityRoute
+  OperatorPendingRoute: typeof OperatorPendingRoute
+  OperatorIndexRoute: typeof OperatorIndexRoute
+}
+
+const OperatorRouteChildren: OperatorRouteChildren = {
+  OperatorBookingsRoute: OperatorBookingsRoute,
+  OperatorCapacityRoute: OperatorCapacityRoute,
+  OperatorPendingRoute: OperatorPendingRoute,
+  OperatorIndexRoute: OperatorIndexRoute,
+}
+
+const OperatorRouteWithChildren = OperatorRoute._addFileChildren(
+  OperatorRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  AiBookingRoute: AiBookingRoute,
-  ConvexShowcaseRoute: ConvexShowcaseRoute,
-  DashboardRoute: DashboardRoute,
+  ChatRoute: ChatRouteWithChildren,
+  CarrierRoute: CarrierRouteWithChildren,
+  LoginRoute: LoginRoute,
+  OperatorRoute: OperatorRouteWithChildren,
   AdminCarriersRoute: AdminCarriersRoute,
   AdminGatesRoute: AdminGatesRoute,
   AdminTerminalsRoute: AdminTerminalsRoute,

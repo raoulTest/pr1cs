@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { WrenchIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
 
 /**
  * Generic tool renderer for tools without a specific renderer.

@@ -2,7 +2,6 @@ import { api } from "@microhack/backend/convex/_generated/api";
 import { useQuery } from "convex/react";
 import { RiAddLine } from "@remixicon/react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,7 +17,7 @@ interface CarrierListProps {
 }
 
 export function CarrierList({ onCreateClick }: CarrierListProps) {
-  const carriers = useQuery(api.carriers.queries.list, {});
+  const carriers = useQuery(api.carriers.queries.listCarriers, {});
 
   if (carriers === undefined) {
     return (
@@ -40,66 +39,53 @@ export function CarrierList({ onCreateClick }: CarrierListProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Carrier Companies</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Transporteurs</h2>
           <p className="text-muted-foreground">
-            Manage carrier companies and their trucks
+            Liste des transporteurs et leurs statistiques
           </p>
         </div>
-        <Button onClick={onCreateClick}>
-          <RiAddLine className="mr-2 size-4" />
-          Add Carrier
-        </Button>
+        {onCreateClick && (
+          <Button onClick={onCreateClick}>
+            <RiAddLine className="mr-2 size-4" />
+            Ajouter un transporteur
+          </Button>
+        )}
       </div>
 
       {carriers.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="text-muted-foreground mb-4">No carrier companies yet</p>
-            <Button onClick={onCreateClick}>
-              <RiAddLine className="mr-2 size-4" />
-              Create your first carrier
-            </Button>
+            <p className="text-muted-foreground mb-4">Aucun transporteur enregistre</p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {carriers.map((carrier) => (
-            <Card key={carrier._id} className="hover:shadow-md transition-shadow">
+          {carriers.map((carrier: { userId: string; truckCount: number; containerCount: number; bookingCount: number }) => (
+            <Card key={carrier.userId} className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <div>
-                    <CardTitle className="text-lg">{carrier.name}</CardTitle>
-                    <CardDescription className="font-mono text-xs">
-                      {carrier.code}
+                    <CardTitle className="text-lg font-mono">{carrier.userId}</CardTitle>
+                    <CardDescription className="text-xs">
+                      ID Transporteur
                     </CardDescription>
                   </div>
-                  <Badge variant={carrier.isActive ? "default" : "secondary"}>
-                    {carrier.isActive ? "Active" : "Inactive"}
-                  </Badge>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="grid grid-cols-3 gap-2 text-sm">
                   <div>
-                    <span className="text-muted-foreground">Trucks:</span>{" "}
+                    <span className="text-muted-foreground">Camions:</span>{" "}
                     <span className="font-medium">{carrier.truckCount}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">Users:</span>{" "}
-                    <span className="font-medium">{carrier.userCount}</span>
+                    <span className="text-muted-foreground">Conteneurs:</span>{" "}
+                    <span className="font-medium">{carrier.containerCount}</span>
                   </div>
-                  {carrier.email && (
-                    <div className="col-span-2 truncate">
-                      <span className="text-muted-foreground">Email:</span>{" "}
-                      <span className="font-medium">{carrier.email}</span>
-                    </div>
-                  )}
-                  {carrier.phone && (
-                    <div className="col-span-2">
-                      <span className="text-muted-foreground">Phone:</span>{" "}
-                      <span className="font-medium">{carrier.phone}</span>
-                    </div>
-                  )}
+                  <div>
+                    <span className="text-muted-foreground">Reservations:</span>{" "}
+                    <span className="font-medium">{carrier.bookingCount}</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>

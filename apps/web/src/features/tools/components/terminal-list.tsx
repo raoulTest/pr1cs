@@ -4,7 +4,7 @@ import type { ToolRendererProps } from "../index";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BuildingIcon, GateIcon, MapPinIcon, ClockIcon } from "lucide-react";
+import { BuildingIcon, DoorOpenIcon, MapPinIcon, ClockIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Terminal {
@@ -116,7 +116,7 @@ export function TerminalListRenderer({ result, state }: ToolRendererProps<Termin
               )}
               {terminal.gateCount && (
                 <span className="flex items-center gap-1">
-                  <GateIcon className="size-3" />
+                  <DoorOpenIcon className="size-3" />
                   {terminal.gateCount} portail(s)
                 </span>
               )}

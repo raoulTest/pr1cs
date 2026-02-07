@@ -82,14 +82,6 @@ export function BookingDetailsRenderer({ result, state }: ToolRendererProps<Book
     );
   }
 
-  const formatDate = (timestamp?: number) => {
-    if (!timestamp) return null;
-    return new Date(timestamp).toLocaleString("fr-FR", {
-      dateStyle: "short",
-      timeStyle: "short",
-    });
-  };
-
   return (
     <Card className="border-border/50">
       <CardHeader className="pb-3">

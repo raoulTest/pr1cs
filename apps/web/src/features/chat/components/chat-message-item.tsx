@@ -1,7 +1,6 @@
 "use client";
 
 import { memo } from "react";
-import type { MessageDoc } from "@convex-dev/agent";
 import {
   Message,
   MessageContent,
@@ -9,26 +8,38 @@ import {
 } from "@/components/ai-elements/message";
 import { cn } from "@/lib/utils";
 import { BotIcon, UserIcon } from "lucide-react";
+import { type MessageDoc } from "@convex-dev/agent";
 
 interface ChatMessageItemProps {
   message: MessageDoc;
   isStreaming?: boolean;
 }
 
-function ChatMessageItemComponent({ message, isStreaming }: ChatMessageItemProps) {
-  const isUser = message.role === "user";
-  const isAssistant = message.role === "assistant";
+function ChatMessageItemComponent({
+  message,
+  isStreaming,
+}: ChatMessageItemProps) {
+  // Access role from nested message structure
+  const role = message.message?.role;
+  const isUser = role === "user";
 
   // Extract text content from message
-  const textContent = message.message
-    ?.filter((part: any) => part.type === "text")
-    .map((part: any) => part.text)
-    .join("") || "";
+  // content can be a string or an array of parts
+  const content = message.message?.content;
+  const textContent =
+    typeof content === "string"
+      ? content
+      : Array.isArray(content)
+        ? content
+            .filter((part: any) => part.type === "text")
+            .map((part: any) => part.text)
+            .join("")
+        : "";
 
-  // Check for tool calls
-  const toolCalls = message.message?.filter(
-    (part: any) => part.type === "tool-call"
-  ) || [];
+  // Check for tool calls (only in array content)
+  const toolCalls = Array.isArray(content)
+    ? content.filter((part: any) => part.type === "tool-call")
+    : [];
 
   if (!textContent && toolCalls.length === 0) {
     return null;
@@ -38,17 +49,14 @@ function ChatMessageItemComponent({ message, isStreaming }: ChatMessageItemProps
     <Message from={isUser ? "user" : "assistant"}>
       {/* Avatar */}
       <div
-        className={cn(
-          "flex items-center gap-2",
-          isUser && "flex-row-reverse"
-        )}
+        className={cn("flex items-center gap-2", isUser && "flex-row-reverse")}
       >
         <div
           className={cn(
             "flex size-7 shrink-0 items-center justify-center rounded-full",
             isUser
               ? "bg-primary text-primary-foreground"
-              : "bg-muted text-muted-foreground"
+              : "bg-muted text-muted-foreground",
           )}
         >
           {isUser ? (
@@ -65,9 +73,7 @@ function ChatMessageItemComponent({ message, isStreaming }: ChatMessageItemProps
       {/* Message content */}
       <MessageContent>
         {textContent && (
-          <MessageResponse
-            className={cn(isStreaming && "animate-pulse")}
-          >
+          <MessageResponse className={cn(isStreaming && "animate-pulse")}>
             {textContent}
           </MessageResponse>
         )}
@@ -103,7 +109,7 @@ export const ChatMessageItem = memo(
   (prev, next) =>
     prev.message._id === next.message._id &&
     prev.message.text === next.message.text &&
-    prev.isStreaming === next.isStreaming
+    prev.isStreaming === next.isStreaming,
 );
 
 ChatMessageItem.displayName = "ChatMessageItem";

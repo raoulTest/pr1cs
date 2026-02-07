@@ -24,34 +24,35 @@ export interface ToolRendererProps<T = unknown> {
 
 /**
  * Registry of tool renderers by tool name.
+ * eslint-disable-next-line @typescript-eslint/no-explicit-any
  */
-export const TOOL_RENDERERS: Record<string, ComponentType<ToolRendererProps>> = {
+export const TOOL_RENDERERS: Record<string, ComponentType<ToolRendererProps<unknown>>> = {
   // Booking tools
-  listMyBookings: BookingListRenderer,
-  getBookingDetails: BookingDetailsRenderer,
-  listBookingsByTerminal: BookingListRenderer,
-  listBookingsByCarrier: BookingListRenderer,
-  listPendingBookings: BookingListRenderer,
+  listMyBookings: BookingListRenderer as ComponentType<ToolRendererProps<unknown>>,
+  getBookingDetails: BookingDetailsRenderer as ComponentType<ToolRendererProps<unknown>>,
+  listBookingsByTerminal: BookingListRenderer as ComponentType<ToolRendererProps<unknown>>,
+  listBookingsByCarrier: BookingListRenderer as ComponentType<ToolRendererProps<unknown>>,
+  listPendingBookings: BookingListRenderer as ComponentType<ToolRendererProps<unknown>>,
 
   // Terminal tools
-  listTerminals: TerminalListRenderer,
-  getTerminalDetails: TerminalListRenderer,
-  getAvailableSlots: SlotAvailabilityRenderer,
+  listTerminals: TerminalListRenderer as ComponentType<ToolRendererProps<unknown>>,
+  getTerminalDetails: TerminalListRenderer as ComponentType<ToolRendererProps<unknown>>,
+  getAvailableSlots: SlotAvailabilityRenderer as ComponentType<ToolRendererProps<unknown>>,
 
   // Container & Truck tools
-  listMyContainers: ContainerListRenderer,
-  getContainerDetails: ContainerListRenderer,
-  listMyTrucks: TruckListRenderer,
+  listMyContainers: ContainerListRenderer as ComponentType<ToolRendererProps<unknown>>,
+  getContainerDetails: ContainerListRenderer as ComponentType<ToolRendererProps<unknown>>,
+  listMyTrucks: TruckListRenderer as ComponentType<ToolRendererProps<unknown>>,
 
   // Config
-  getSystemConfig: SystemConfigRenderer,
+  getSystemConfig: SystemConfigRenderer as ComponentType<ToolRendererProps<unknown>>,
 
   // Booking mutations
-  createBookingViaAI: BookingConfirmationRenderer,
-  cancelBookingViaAI: BookingConfirmationRenderer,
+  createBookingViaAI: BookingConfirmationRenderer as ComponentType<ToolRendererProps<unknown>>,
+  cancelBookingViaAI: BookingConfirmationRenderer as ComponentType<ToolRendererProps<unknown>>,
 
   // Suggestions
-  suggestOptimalSlots: SlotAvailabilityRenderer,
+  suggestOptimalSlots: SlotAvailabilityRenderer as ComponentType<ToolRendererProps<unknown>>,
 };
 
 /**

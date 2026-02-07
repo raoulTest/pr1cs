@@ -31,13 +31,14 @@ export function ChatSidebarFooter({ user }: ChatSidebarFooterProps) {
 
   const handleSignOut = async () => {
     await authClient.signOut();
-    navigate({ to: "/login" });
+    // Redirect to home after sign out - auth will handle redirect to login if needed
+    navigate({ to: "/" });
   };
 
   if (!user) {
     return (
       <div className="p-4">
-        <Button variant="outline" className="w-full" onClick={() => navigate({ to: "/login" })}>
+        <Button variant="outline" className="w-full" onClick={() => navigate({ to: "/" })}>
           Se connecter
         </Button>
       </div>

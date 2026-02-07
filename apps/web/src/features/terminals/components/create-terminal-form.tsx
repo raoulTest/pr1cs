@@ -37,10 +37,14 @@ export function CreateTerminalForm({ onSuccess, onCancel }: CreateTerminalFormPr
       address: "",
       timezone: "America/New_York",
     },
-    validators: {
-      onSubmit: createTerminalSchema,
-    },
     onSubmit: async ({ value }) => {
+      // Validate with Zod
+      const result = createTerminalSchema.safeParse(value);
+      if (!result.success) {
+        toast.error(result.error.issues[0]?.message ?? "Validation failed");
+        return;
+      }
+      
       try {
         await createTerminal({
           name: value.name,
@@ -128,7 +132,7 @@ export function CreateTerminalForm({ onSuccess, onCancel }: CreateTerminalFormPr
             <FieldContent>
               <Select
                 value={field.state.value}
-                onValueChange={(value) => field.handleChange(value)}
+                onValueChange={(value: string) => field.handleChange(value)}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select timezone" />

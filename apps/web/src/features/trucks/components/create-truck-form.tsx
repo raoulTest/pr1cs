@@ -1,5 +1,4 @@
 import { api } from "@microhack/backend/convex/_generated/api";
-import type { Id } from "@microhack/backend/convex/_generated/dataModel";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
@@ -25,18 +24,24 @@ import { Spinner } from "@/components/ui/spinner";
 import { createTruckSchema, TRUCK_TYPES, TRUCK_CLASSES } from "../schemas";
 
 interface CreateTruckFormProps {
-  carrierCompanyId?: Id<"carrierCompanies">;
+  /** Pre-selected carrier ownerId (for admin creating trucks for a carrier) */
+  ownerId?: string;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
 
-export function CreateTruckForm({ carrierCompanyId, onSuccess, onCancel }: CreateTruckFormProps) {
+export function CreateTruckForm({ ownerId, onSuccess, onCancel }: CreateTruckFormProps) {
   const createTruck = useMutation(api.trucks.mutations.create);
-  const carriers = useQuery(api.carriers.queries.list, {});
+  
+  // Only fetch carriers if we're in admin mode (no pre-selected ownerId)
+  const carriers = useQuery(
+    api.carriers.queries.listCarriers,
+    !ownerId ? { limit: 100 } : "skip"
+  );
 
   const form = useForm({
     defaultValues: {
-      carrierCompanyId: carrierCompanyId ?? "",
+      ownerId: ownerId ?? "",
       licensePlate: "",
       truckType: "" as "container" | "flatbed" | "tanker" | "refrigerated" | "bulk" | "general",
       truckClass: "" as "light" | "medium" | "heavy" | "super_heavy",
@@ -45,13 +50,19 @@ export function CreateTruckForm({ carrierCompanyId, onSuccess, onCancel }: Creat
       year: undefined as number | undefined,
       maxWeight: undefined as number | undefined,
     },
-    validators: {
-      onSubmit: createTruckSchema,
-    },
     onSubmit: async ({ value }) => {
+      // Validate with Zod first
+      const result = createTruckSchema.safeParse(value);
+      if (!result.success) {
+        const errors = result.error.flatten().fieldErrors;
+        const firstError = Object.values(errors)[0]?.[0];
+        toast.error(firstError ?? "Validation failed");
+        return;
+      }
+      
       try {
         await createTruck({
-          carrierCompanyId: value.carrierCompanyId as Id<"carrierCompanies">,
+          ownerId: value.ownerId || undefined, // Backend defaults to current user if not provided
           licensePlate: value.licensePlate,
           truckType: value.truckType,
           truckClass: value.truckClass,
@@ -60,10 +71,10 @@ export function CreateTruckForm({ carrierCompanyId, onSuccess, onCancel }: Creat
           year: value.year,
           maxWeight: value.maxWeight,
         });
-        toast.success("Truck created successfully");
+        toast.success("Camion créé avec succès");
         onSuccess?.();
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to create truck";
+        const message = error instanceof Error ? error.message : "Échec de la création du camion";
         toast.error(message);
       }
     },
@@ -78,37 +89,39 @@ export function CreateTruckForm({ carrierCompanyId, onSuccess, onCancel }: Creat
       }}
       className="space-y-4"
     >
-      <form.Field name="carrierCompanyId">
-        {(field) => (
-          <Field data-invalid={field.state.meta.errors.length > 0}>
-            <FieldLabel>Carrier Company *</FieldLabel>
-            <FieldContent>
-              <Select
-                value={field.state.value}
-                onValueChange={(value) => field.handleChange(value)}
-                disabled={!!carrierCompanyId}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a carrier company" />
-                </SelectTrigger>
-                <SelectContent>
-                  {carriers?.filter((c) => c.isActive).map((carrier) => (
-                    <SelectItem key={carrier._id} value={carrier._id}>
-                      {carrier.name} ({carrier.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FieldError errors={field.state.meta.errors} />
-            </FieldContent>
-          </Field>
-        )}
-      </form.Field>
+      {/* Only show carrier selection for admins */}
+      {!ownerId && carriers !== undefined && (
+        <form.Field name="ownerId">
+          {(field) => (
+            <Field data-invalid={field.state.meta.errors.length > 0}>
+              <FieldLabel>Transporteur *</FieldLabel>
+              <FieldContent>
+                <Select
+                  value={field.state.value}
+                  onValueChange={(value: string) => field.handleChange(value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionner un transporteur" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {carriers.map((carrier) => (
+                      <SelectItem key={carrier.userId} value={carrier.userId}>
+                        {carrier.userId} ({carrier.truckCount} camions)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError errors={field.state.meta.errors} />
+              </FieldContent>
+            </Field>
+          )}
+        </form.Field>
+      )}
 
       <form.Field name="licensePlate">
         {(field) => (
           <Field data-invalid={field.state.meta.errors.length > 0}>
-            <FieldLabel htmlFor={field.name}>License Plate *</FieldLabel>
+            <FieldLabel htmlFor={field.name}>Plaque d'immatriculation *</FieldLabel>
             <FieldContent>
               <Input
                 id={field.name}
@@ -118,7 +131,7 @@ export function CreateTruckForm({ carrierCompanyId, onSuccess, onCancel }: Creat
                 placeholder="ABC-1234"
               />
               <FieldDescription>
-                Must be uppercase letters, numbers, or hyphens
+                Lettres majuscules, chiffres ou tirets uniquement
               </FieldDescription>
               <FieldError errors={field.state.meta.errors} />
             </FieldContent>
@@ -130,14 +143,14 @@ export function CreateTruckForm({ carrierCompanyId, onSuccess, onCancel }: Creat
         <form.Field name="truckType">
           {(field) => (
             <Field data-invalid={field.state.meta.errors.length > 0}>
-              <FieldLabel>Truck Type *</FieldLabel>
+              <FieldLabel>Type de camion *</FieldLabel>
               <FieldContent>
                 <Select
                   value={field.state.value}
-                  onValueChange={(value) => field.handleChange(value as typeof field.state.value)}
+                  onValueChange={(value: string) => field.handleChange(value as typeof field.state.value)}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select truck type" />
+                    <SelectValue placeholder="Sélectionner le type" />
                   </SelectTrigger>
                   <SelectContent>
                     {TRUCK_TYPES.map((type) => (
@@ -156,14 +169,14 @@ export function CreateTruckForm({ carrierCompanyId, onSuccess, onCancel }: Creat
         <form.Field name="truckClass">
           {(field) => (
             <Field data-invalid={field.state.meta.errors.length > 0}>
-              <FieldLabel>Truck Class *</FieldLabel>
+              <FieldLabel>Classe de camion *</FieldLabel>
               <FieldContent>
                 <Select
                   value={field.state.value}
-                  onValueChange={(value) => field.handleChange(value as typeof field.state.value)}
+                  onValueChange={(value: string) => field.handleChange(value as typeof field.state.value)}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select truck class" />
+                    <SelectValue placeholder="Sélectionner la classe" />
                   </SelectTrigger>
                   <SelectContent>
                     {TRUCK_CLASSES.map((cls) => (
@@ -184,14 +197,14 @@ export function CreateTruckForm({ carrierCompanyId, onSuccess, onCancel }: Creat
         <form.Field name="make">
           {(field) => (
             <Field>
-              <FieldLabel htmlFor={field.name}>Make</FieldLabel>
+              <FieldLabel htmlFor={field.name}>Marque</FieldLabel>
               <FieldContent>
                 <Input
                   id={field.name}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
-                  placeholder="e.g., Volvo, Scania"
+                  placeholder="ex: Volvo, Scania"
                 />
               </FieldContent>
             </Field>
@@ -201,14 +214,14 @@ export function CreateTruckForm({ carrierCompanyId, onSuccess, onCancel }: Creat
         <form.Field name="model">
           {(field) => (
             <Field>
-              <FieldLabel htmlFor={field.name}>Model</FieldLabel>
+              <FieldLabel htmlFor={field.name}>Modèle</FieldLabel>
               <FieldContent>
                 <Input
                   id={field.name}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
-                  placeholder="e.g., FH16, R500"
+                  placeholder="ex: FH16, R500"
                 />
               </FieldContent>
             </Field>
@@ -220,7 +233,7 @@ export function CreateTruckForm({ carrierCompanyId, onSuccess, onCancel }: Creat
         <form.Field name="year">
           {(field) => (
             <Field>
-              <FieldLabel htmlFor={field.name}>Year</FieldLabel>
+              <FieldLabel htmlFor={field.name}>Année</FieldLabel>
               <FieldContent>
                 <Input
                   id={field.name}
@@ -233,7 +246,7 @@ export function CreateTruckForm({ carrierCompanyId, onSuccess, onCancel }: Creat
                     field.handleChange(val ? parseInt(val) : undefined);
                   }}
                   onBlur={field.handleBlur}
-                  placeholder="e.g., 2023"
+                  placeholder="ex: 2023"
                 />
               </FieldContent>
             </Field>
@@ -243,7 +256,7 @@ export function CreateTruckForm({ carrierCompanyId, onSuccess, onCancel }: Creat
         <form.Field name="maxWeight">
           {(field) => (
             <Field>
-              <FieldLabel htmlFor={field.name}>Max Weight (kg)</FieldLabel>
+              <FieldLabel htmlFor={field.name}>Poids max (kg)</FieldLabel>
               <FieldContent>
                 <Input
                   id={field.name}
@@ -255,7 +268,7 @@ export function CreateTruckForm({ carrierCompanyId, onSuccess, onCancel }: Creat
                     field.handleChange(val ? parseFloat(val) : undefined);
                   }}
                   onBlur={field.handleBlur}
-                  placeholder="e.g., 18000"
+                  placeholder="ex: 18000"
                 />
               </FieldContent>
             </Field>
@@ -266,14 +279,14 @@ export function CreateTruckForm({ carrierCompanyId, onSuccess, onCancel }: Creat
       <div className="flex justify-end gap-2 pt-4">
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
+            Annuler
           </Button>
         )}
         <form.Subscribe selector={(state) => [state.canSubmit, state.isSubmitting] as const}>
           {([canSubmit, isSubmitting]) => (
             <Button type="submit" disabled={!canSubmit || isSubmitting}>
               {isSubmitting ? <Spinner className="mr-2 size-4" /> : null}
-              {isSubmitting ? "Creating..." : "Create Truck"}
+              {isSubmitting ? "Création..." : "Créer le camion"}
             </Button>
           )}
         </form.Subscribe>

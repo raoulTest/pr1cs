@@ -2,7 +2,7 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { IconPlaceholder } from "@/app/(create)/components/icon-placeholder"
+import { IconPlaceholder } from "@/components/icon-placeholder"
 
 function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
   return (

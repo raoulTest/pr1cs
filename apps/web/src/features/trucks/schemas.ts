@@ -11,8 +11,15 @@ const truckTypeSchema = z.enum([
 
 const truckClassSchema = z.enum(["light", "medium", "heavy", "super_heavy"]);
 
+/**
+ * Schema for creating a truck
+ * Updated: Trucks are now owned by carrier users directly via ownerId
+ * (carrierCompanyId table no longer exists)
+ */
 export const createTruckSchema = z.object({
-  carrierCompanyId: z.string().min(1, "Carrier company is required"),
+  // ownerId is optional for carriers (defaults to current user)
+  // Required for port admins when creating trucks for carriers
+  ownerId: z.string().optional(),
   licensePlate: z
     .string()
     .min(2, "License plate must be at least 2 characters")
