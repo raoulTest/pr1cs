@@ -24,6 +24,11 @@ import authConfig from "./auth.config";
 const siteUrl = process.env.SITE_URL!;
 const nativeAppUrl = process.env.NATIVE_APP_URL || "microhack://";
 
+// Parse additional origins from comma-separated env variable
+const additionalOrigins = process.env.TRUSTED_ORIGINS
+  ? process.env.TRUSTED_ORIGINS.split(",").map((o) => o.trim())
+  : [];
+
 // Required for triggers to work
 const authFunctions: AuthFunctions = internal.auth;
 
@@ -80,6 +85,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
       "exp://**",
       "exp://192.168.*.*:*/**",
       "exp://172.35.1.51:8081",
+      ...additionalOrigins,
     ],
     database: authComponent.adapter(ctx),
     emailAndPassword: {

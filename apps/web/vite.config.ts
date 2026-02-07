@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [tsconfigPaths(), tailwindcss(), tanstackStart(), viteReact()],
   server: {
     port: 3001,
+    allowedHosts: ["app.alpha.openscaler.net"],
   },
   preview: {
     allowedHosts: ["app.alpha.openscaler.net"],
