@@ -53,6 +53,7 @@ import type * as seed_data_gates from "../seed/data/gates.js";
 import type * as seed_data_terminals from "../seed/data/terminals.js";
 import type * as seed_data_trucks from "../seed/data/trucks.js";
 import type * as seed_index from "../seed/index.js";
+import type * as seed_resetAndSeed from "../seed/resetAndSeed.js";
 import type * as seed_seed from "../seed/seed.js";
 import type * as seed_utils_algerianLicensePlates from "../seed/utils/algerianLicensePlates.js";
 import type * as seed_utils_dates from "../seed/utils/dates.js";
@@ -121,6 +122,7 @@ declare const fullApi: ApiFromModules<{
   "seed/data/terminals": typeof seed_data_terminals;
   "seed/data/trucks": typeof seed_data_trucks;
   "seed/index": typeof seed_index;
+  "seed/resetAndSeed": typeof seed_resetAndSeed;
   "seed/seed": typeof seed_seed;
   "seed/utils/algerianLicensePlates": typeof seed_utils_algerianLicensePlates;
   "seed/utils/dates": typeof seed_utils_dates;

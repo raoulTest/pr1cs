@@ -118,9 +118,13 @@ function getStatusReason(status: BookingStatus): string | undefined {
   return randomElement(statusReasons);
 }
 
+// Minimal types for booking generation - only the fields we actually use
+type MinimalTruck = Pick<TruckDefinition, 'licensePlate'>;
+type MinimalContainer = Pick<ContainerDefinition, 'containerNumber' | 'operationType'> & { bookingId?: string };
+
 export function generateBookings(
   terminalCodes: string[],
-  carriers: { id: string; trucks: TruckDefinition[]; containers: ContainerDefinition[] }[],
+  carriers: { id: string; trucks: MinimalTruck[]; containers: MinimalContainer[] }[],
   totalCount: number
 ): BookingDefinition[] {
   const bookings: BookingDefinition[] = [];

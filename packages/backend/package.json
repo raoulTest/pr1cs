@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.52",
+    "@noble/hashes": "^1.7.2",
     "@better-auth/expo": "catalog:",
     "@convex-dev/agent": "^0.3.2",
     "@convex-dev/better-auth": "catalog:",

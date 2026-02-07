@@ -434,27 +434,38 @@ export default mutation({
           });
         }
         
-        // Create notification for the carrier
-        const notificationTitles: Record<typeof bookingDef.status, string> = {
+        // Create notification for the carrier (only for valid notification types)
+        const notificationTypeMap: Record<string, string> = {
+          pending: 'booking_created',
+          confirmed: 'booking_confirmed',
+          rejected: 'booking_rejected',
+          cancelled: 'booking_cancelled',
+          expired: 'booking_expired',
+          // consumed doesn't have a notification type, skip it
+        };
+        
+        const notificationTitles: Record<string, string> = {
           pending: "Réservation créée",
           confirmed: "Réservation confirmée",
           rejected: "Réservation rejetée",
-          consumed: "Réservation terminée",
           cancelled: "Réservation annulée",
           expired: "Réservation expirée",
         };
         
-        await ctx.db.insert("notifications", {
-          userId: bookingDef.carrierId,
-          type: `booking_${bookingDef.status === 'pending' ? 'created' : bookingDef.status}` as any,
-          channel: "in_app",
-          title: notificationTitles[bookingDef.status],
-          body: `Votre réservation ${bookingRef} au terminal ${bookingDef.terminalCode} est ${bookingDef.status}`,
-          relatedEntityType: "booking",
-          relatedEntityId: bookingId,
-          isRead: false,
-          createdAt: now,
-        });
+        const notificationType = notificationTypeMap[bookingDef.status];
+        if (notificationType) {
+          await ctx.db.insert("notifications", {
+            userId: bookingDef.carrierId,
+            type: notificationType as any,
+            channel: "in_app",
+            title: notificationTitles[bookingDef.status],
+            body: `Votre réservation ${bookingRef} au terminal ${bookingDef.terminalCode} est ${bookingDef.status}`,
+            relatedEntityType: "booking",
+            relatedEntityId: bookingId,
+            isRead: false,
+            createdAt: now,
+          });
+        }
         
         stats.bookings++;
       }
