@@ -10,10 +10,12 @@
  */
 import { v } from "convex/values";
 import { action } from "../_generated/server";
-import { internal } from "../_generated/api";
+import { internal, components } from "../_generated/api";
 import { apcsAgent } from "./agent";
 import { getToolNamesForRole } from "./tools/types";
 import type { ApcsRole } from "../lib/validators";
+import { generateText } from "ai";
+import { google } from "@ai-sdk/google";
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -72,7 +74,7 @@ export const createThread = action({
   handler: async (ctx, args) => {
     const { threadId } = await apcsAgent.createThread(ctx, {
       userId: args.userId,
-      title: "New Conversation",
+      title: "",  // Empty, will be set after first message by generateThreadTitle
     });
 
     return threadId;
@@ -104,15 +106,18 @@ export const initiateStream = action({
     );
     const role = profile?.role as ApcsRole | null;
     const context = buildUserContext(role);
-    const fullPrompt = context + "USER MESSAGE: " + args.prompt;
 
     // Stream text — deltas are saved to the component's messages table
     // so the frontend query picks them up in real time.
     // Tools are defined on the agent; each tool checks the user's role internally.
+    // Use system parameter for context to keep user message clean in chat bubbles
     await apcsAgent.streamText(
       ctx,
       { threadId: args.threadId, userId: args.userId },
-      { prompt: fullPrompt },
+      { 
+        prompt: args.prompt,  // Original prompt only
+        system: context,      // Context as system message
+      },
       { saveStreamDeltas: true },
     );
 
@@ -138,14 +143,50 @@ export const generateResponse = action({
     );
     const role = profile?.role as ApcsRole | null;
     const context = buildUserContext(role);
-    const fullPrompt = context + "USER MESSAGE: " + args.prompt;
 
+    // Use system parameter for context to keep user message clean
     const result = await apcsAgent.generateText(
       ctx,
       { threadId: args.threadId, userId: args.userId },
-      { prompt: fullPrompt },
+      { 
+        prompt: args.prompt,  // Original prompt only
+        system: context,      // Context as system message
+      },
     );
 
     return result.text;
+  },
+});
+
+// ============================================================================
+// THREAD TITLE GENERATION
+// ============================================================================
+
+/**
+ * Generate a title for a thread based on the first message.
+ * Called asynchronously after the first message is sent.
+ */
+export const generateThreadTitle = action({
+  args: {
+    threadId: v.string(),
+    firstMessage: v.string(),
+  },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const { text } = await generateText({
+      model: google("gemini-2.0-flash"),
+      prompt: `Generate a very short title (max 5 words, in French) for a conversation that starts with this message: "${args.firstMessage}". Return only the title, no quotes or punctuation.`,
+      maxOutputTokens: 20,
+    });
+    
+    const title = text.trim();
+    
+    // Update thread title using the component's internal mutation
+    await ctx.runMutation(components.agent.threads.updateThread, {
+      threadId: args.threadId,
+      patch: { title },
+    });
+    
+    return title;
   },
 });

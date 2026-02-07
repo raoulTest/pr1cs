@@ -1,7 +1,16 @@
 "use client";
 
-import { MessageSquareIcon, TruckIcon, CalendarIcon, PackageIcon } from "lucide-react";
+import { 
+  MessageSquareIcon, 
+  TruckIcon, 
+  CalendarIcon, 
+  PackageIcon,
+  ClockIcon,
+  BuildingIcon,
+  SettingsIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRole, type ApcsRole } from "@/hooks/use-role";
 
 interface SuggestionProps {
   icon: React.ReactNode;
@@ -30,12 +39,13 @@ function Suggestion({ icon, title, description, onClick }: SuggestionProps) {
   );
 }
 
-interface ChatEmptyStateProps {
-  onSuggestionClick?: (suggestion: string) => void;
-}
-
-export function ChatEmptyState({ onSuggestionClick }: ChatEmptyStateProps) {
-  const suggestions = [
+// Role-specific suggestions (French)
+const ROLE_SUGGESTIONS: Record<ApcsRole, Array<{
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}>> = {
+  carrier: [
     {
       icon: <CalendarIcon className="size-4" />,
       title: "Reserver un creneau",
@@ -53,10 +63,76 @@ export function ChatEmptyState({ onSuggestionClick }: ChatEmptyStateProps) {
     },
     {
       icon: <MessageSquareIcon className="size-4" />,
+      title: "Annuler une reservation",
+      description: "Je veux annuler ma reservation de demain",
+    },
+  ],
+  terminal_operator: [
+    {
+      icon: <CalendarIcon className="size-4" />,
+      title: "Reservations du terminal",
+      description: "Montre-moi toutes les reservations du terminal TC1 pour aujourd'hui",
+    },
+    {
+      icon: <ClockIcon className="size-4" />,
+      title: "Reservations en attente",
+      description: "Quelles reservations sont en attente de validation ?",
+    },
+    {
+      icon: <TruckIcon className="size-4" />,
+      title: "Disponibilite des creneaux",
+      description: "Quels creneaux sont disponibles demain ?",
+    },
+    {
+      icon: <MessageSquareIcon className="size-4" />,
       title: "Aide generale",
       description: "Comment fonctionne le systeme de reservation ?",
     },
-  ];
+  ],
+  port_admin: [
+    {
+      icon: <BuildingIcon className="size-4" />,
+      title: "Vue d'ensemble",
+      description: "Montre-moi un resume de l'activite portuaire aujourd'hui",
+    },
+    {
+      icon: <CalendarIcon className="size-4" />,
+      title: "Toutes les reservations",
+      description: "Liste toutes les reservations en cours sur tous les terminaux",
+    },
+    {
+      icon: <TruckIcon className="size-4" />,
+      title: "Reservations par transporteur",
+      description: "Montre-moi les reservations du transporteur XYZ",
+    },
+    {
+      icon: <SettingsIcon className="size-4" />,
+      title: "Configuration systeme",
+      description: "Quelles sont les politiques de reservation actuelles ?",
+    },
+  ],
+};
+
+// Fallback suggestions for unauthenticated/unknown role
+const DEFAULT_SUGGESTIONS = [
+  {
+    icon: <MessageSquareIcon className="size-4" />,
+    title: "Aide generale",
+    description: "Comment fonctionne le systeme de reservation ?",
+  },
+];
+
+interface ChatEmptyStateProps {
+  onSuggestionClick?: (suggestion: string) => void;
+}
+
+export function ChatEmptyState({ onSuggestionClick }: ChatEmptyStateProps) {
+  const role = useRole();
+  
+  // Get role-specific suggestions or fallback
+  const suggestions = role 
+    ? ROLE_SUGGESTIONS[role] ?? DEFAULT_SUGGESTIONS
+    : DEFAULT_SUGGESTIONS;
 
   return (
     <div className="flex h-full flex-col items-center justify-center px-4">

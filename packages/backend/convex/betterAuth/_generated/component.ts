@@ -1035,4 +1035,36 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         Name
       >;
     };
+    users: {
+      listAll: FunctionReference<
+        "query",
+        "internal",
+        {},
+        Array<{
+          _id: string;
+          banned?: null | boolean;
+          createdAt: number;
+          email: string;
+          emailVerified: boolean;
+          name: string;
+          role: "port_admin" | "terminal_operator" | "carrier";
+          updatedAt: number;
+        }>,
+        Name
+      >;
+      listByRole: FunctionReference<
+        "query",
+        "internal",
+        { role: "port_admin" | "terminal_operator" | "carrier" },
+        Array<{
+          _id: string;
+          createdAt: number;
+          email: string;
+          name: string;
+          role: "port_admin" | "terminal_operator" | "carrier";
+          updatedAt: number;
+        }>,
+        Name
+      >;
+    };
   };

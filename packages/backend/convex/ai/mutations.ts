@@ -10,18 +10,22 @@
  */
 import { internalMutation } from "../_generated/server";
 import { v } from "convex/values";
-import type { Id } from "../_generated/dataModel";
+import type { Id, DataModel } from "../_generated/dataModel";
+import { authComponent } from "../auth";
+import type { GenericCtx } from "@convex-dev/better-auth";
 
 // ============================================================================
 // HELPERS
 // ============================================================================
 
 async function getUserRoleHelper(ctx: { db: any }, userId: string): Promise<string | null> {
-  const authUser = await ctx.db
-    .query("users")
-    .filter((q: any) => q.eq(q.field("_id"), userId))
-    .first();
-  return authUser?.role ?? null;
+  // Use authComponent to query Better Auth user table properly
+  const authUser = await authComponent.getAnyUserById(
+    ctx as unknown as GenericCtx<DataModel>,
+    userId
+  );
+  if (!authUser) return null;
+  return (authUser as unknown as { role: string }).role ?? null;
 }
 
 // ============================================================================

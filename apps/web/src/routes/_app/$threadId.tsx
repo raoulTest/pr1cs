@@ -3,11 +3,15 @@ import { ChatView } from "@/features/chat/components/chat-view";
 import { useThread } from "@/features/chat/hooks/use-thread";
 import { useCurrentUser } from "@/hooks/use-role";
 
-export const Route = createFileRoute("/_chat/")({
-  component: ChatIndexPage,
+/**
+ * Chat thread view - Shows a specific conversation
+ */
+export const Route = createFileRoute("/_app/$threadId")({
+  component: ThreadPage,
 });
 
-function ChatIndexPage() {
+function ThreadPage() {
+  const { threadId } = Route.useParams();
   const user = useCurrentUser();
   const userId = user?._id ?? "";
 
@@ -17,7 +21,7 @@ function ChatIndexPage() {
     status,
     sendMessage,
     stop,
-  } = useThread({ userId });
+  } = useThread({ userId, threadId });
 
   // Don't render until we have a user
   if (!user) {

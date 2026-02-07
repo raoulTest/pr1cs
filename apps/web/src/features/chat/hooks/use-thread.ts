@@ -41,6 +41,7 @@ export function useThread({
   // Actions
   const createThreadAction = useAction(api.ai.chat.createThread);
   const initiateStreamAction = useAction(api.ai.chat.initiateStream);
+  const generateTitleAction = useAction(api.ai.chat.generateThreadTitle);
 
   // Query for messages - reactive subscription for real-time updates
   const messagesResult = useQuery(
@@ -53,7 +54,7 @@ export function useThread({
       : "skip",
   );
 
-  const messages = (messagesResult?.page ?? []) as unknown as MessageDoc[];
+  const messages = ([...(messagesResult?.page ?? [])].reverse()) as unknown as MessageDoc[];
   const isLoading = messagesResult === undefined;
 
   const createThread = useCallback(async (): Promise<string> => {
@@ -71,6 +72,8 @@ export function useThread({
       try {
         // Create thread if needed
         let currentThreadId = threadId;
+        const isNewThread = !currentThreadId;
+        
         if (!currentThreadId) {
           currentThreadId = await createThread();
         }
@@ -85,6 +88,14 @@ export function useThread({
           userId,
         });
 
+        // Generate title for new threads (fire and forget)
+        if (isNewThread) {
+          generateTitleAction({
+            threadId: currentThreadId,
+            firstMessage: message,
+          }).catch(console.error);
+        }
+
         setStatus("ready");
       } catch (error) {
         console.error("Failed to send message:", error);
@@ -93,7 +104,7 @@ export function useThread({
         setIsStreaming(false);
       }
     },
-    [threadId, createThread, initiateStreamAction, userId],
+    [threadId, createThread, initiateStreamAction, generateTitleAction, userId],
   );
 
   const stop = useCallback(() => {

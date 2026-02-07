@@ -9,254 +9,279 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as OperatorRouteImport } from './routes/operator'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as CarrierRouteImport } from './routes/carrier'
-import { Route as ChatRouteImport } from './routes/_chat'
-import { Route as OperatorIndexRouteImport } from './routes/operator/index'
-import { Route as ChatIndexRouteImport } from './routes/_chat/index'
-import { Route as OperatorPendingRouteImport } from './routes/operator/pending'
-import { Route as OperatorCapacityRouteImport } from './routes/operator/capacity'
-import { Route as OperatorBookingsRouteImport } from './routes/operator/bookings'
-import { Route as CarrierTrucksRouteImport } from './routes/carrier/trucks'
-import { Route as CarrierContainersRouteImport } from './routes/carrier/containers'
-import { Route as CarrierBookingsRouteImport } from './routes/carrier/bookings'
-import { Route as AdminTrucksRouteImport } from './routes/admin/trucks'
-import { Route as AdminTerminalsRouteImport } from './routes/admin/terminals'
-import { Route as AdminGatesRouteImport } from './routes/admin/gates'
-import { Route as AdminCarriersRouteImport } from './routes/admin/carriers'
-import { Route as ChatThreadIdRouteImport } from './routes/_chat/$threadId'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppSettingsRouteImport } from './routes/_app/settings'
+import { Route as AppThreadIdRouteImport } from './routes/_app/$threadId'
+import { Route as AppOperatorIndexRouteImport } from './routes/_app/operator/index'
+import { Route as AppAdminIndexRouteImport } from './routes/_app/admin/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AppOperatorPendingRouteImport } from './routes/_app/operator/pending'
+import { Route as AppOperatorCapacityRouteImport } from './routes/_app/operator/capacity'
+import { Route as AppOperatorBookingsRouteImport } from './routes/_app/operator/bookings'
+import { Route as AppCarrierTrucksRouteImport } from './routes/_app/carrier/trucks'
+import { Route as AppCarrierContainersRouteImport } from './routes/_app/carrier/containers'
+import { Route as AppCarrierBookingsRouteImport } from './routes/_app/carrier/bookings'
+import { Route as AppAdminUsersRouteImport } from './routes/_app/admin/users'
+import { Route as AppAdminTrucksRouteImport } from './routes/_app/admin/trucks'
+import { Route as AppAdminTerminalsRouteImport } from './routes/_app/admin/terminals'
+import { Route as AppAdminOperatorsRouteImport } from './routes/_app/admin/operators'
+import { Route as AppAdminGatesRouteImport } from './routes/_app/admin/gates'
+import { Route as AppAdminConfigRouteImport } from './routes/_app/admin/config'
+import { Route as AppAdminCarriersRouteImport } from './routes/_app/admin/carriers'
 
-const OperatorRoute = OperatorRouteImport.update({
-  id: '/operator',
-  path: '/operator',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CarrierRoute = CarrierRouteImport.update({
-  id: '/carrier',
-  path: '/carrier',
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ChatRoute = ChatRouteImport.update({
-  id: '/_chat',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OperatorIndexRoute = OperatorIndexRouteImport.update({
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => OperatorRoute,
+  getParentRoute: () => AppRoute,
 } as any)
-const ChatIndexRoute = ChatIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ChatRoute,
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
 } as any)
-const OperatorPendingRoute = OperatorPendingRouteImport.update({
-  id: '/pending',
-  path: '/pending',
-  getParentRoute: () => OperatorRoute,
-} as any)
-const OperatorCapacityRoute = OperatorCapacityRouteImport.update({
-  id: '/capacity',
-  path: '/capacity',
-  getParentRoute: () => OperatorRoute,
-} as any)
-const OperatorBookingsRoute = OperatorBookingsRouteImport.update({
-  id: '/bookings',
-  path: '/bookings',
-  getParentRoute: () => OperatorRoute,
-} as any)
-const CarrierTrucksRoute = CarrierTrucksRouteImport.update({
-  id: '/trucks',
-  path: '/trucks',
-  getParentRoute: () => CarrierRoute,
-} as any)
-const CarrierContainersRoute = CarrierContainersRouteImport.update({
-  id: '/containers',
-  path: '/containers',
-  getParentRoute: () => CarrierRoute,
-} as any)
-const CarrierBookingsRoute = CarrierBookingsRouteImport.update({
-  id: '/bookings',
-  path: '/bookings',
-  getParentRoute: () => CarrierRoute,
-} as any)
-const AdminTrucksRoute = AdminTrucksRouteImport.update({
-  id: '/admin/trucks',
-  path: '/admin/trucks',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminTerminalsRoute = AdminTerminalsRouteImport.update({
-  id: '/admin/terminals',
-  path: '/admin/terminals',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminGatesRoute = AdminGatesRouteImport.update({
-  id: '/admin/gates',
-  path: '/admin/gates',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminCarriersRoute = AdminCarriersRouteImport.update({
-  id: '/admin/carriers',
-  path: '/admin/carriers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ChatThreadIdRoute = ChatThreadIdRouteImport.update({
+const AppThreadIdRoute = AppThreadIdRouteImport.update({
   id: '/$threadId',
   path: '/$threadId',
-  getParentRoute: () => ChatRoute,
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOperatorIndexRoute = AppOperatorIndexRouteImport.update({
+  id: '/operator/',
+  path: '/operator/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => AppRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppOperatorPendingRoute = AppOperatorPendingRouteImport.update({
+  id: '/operator/pending',
+  path: '/operator/pending',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOperatorCapacityRoute = AppOperatorCapacityRouteImport.update({
+  id: '/operator/capacity',
+  path: '/operator/capacity',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppOperatorBookingsRoute = AppOperatorBookingsRouteImport.update({
+  id: '/operator/bookings',
+  path: '/operator/bookings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCarrierTrucksRoute = AppCarrierTrucksRouteImport.update({
+  id: '/carrier/trucks',
+  path: '/carrier/trucks',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCarrierContainersRoute = AppCarrierContainersRouteImport.update({
+  id: '/carrier/containers',
+  path: '/carrier/containers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCarrierBookingsRoute = AppCarrierBookingsRouteImport.update({
+  id: '/carrier/bookings',
+  path: '/carrier/bookings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminUsersRoute = AppAdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminTrucksRoute = AppAdminTrucksRouteImport.update({
+  id: '/admin/trucks',
+  path: '/admin/trucks',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminTerminalsRoute = AppAdminTerminalsRouteImport.update({
+  id: '/admin/terminals',
+  path: '/admin/terminals',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminOperatorsRoute = AppAdminOperatorsRouteImport.update({
+  id: '/admin/operators',
+  path: '/admin/operators',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminGatesRoute = AppAdminGatesRouteImport.update({
+  id: '/admin/gates',
+  path: '/admin/gates',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminConfigRoute = AppAdminConfigRouteImport.update({
+  id: '/admin/config',
+  path: '/admin/config',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminCarriersRoute = AppAdminCarriersRouteImport.update({
+  id: '/admin/carriers',
+  path: '/admin/carriers',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof ChatIndexRoute
-  '/carrier': typeof CarrierRouteWithChildren
+  '/': typeof AppIndexRoute
   '/login': typeof LoginRoute
-  '/operator': typeof OperatorRouteWithChildren
-  '/$threadId': typeof ChatThreadIdRoute
-  '/admin/carriers': typeof AdminCarriersRoute
-  '/admin/gates': typeof AdminGatesRoute
-  '/admin/terminals': typeof AdminTerminalsRoute
-  '/admin/trucks': typeof AdminTrucksRoute
-  '/carrier/bookings': typeof CarrierBookingsRoute
-  '/carrier/containers': typeof CarrierContainersRoute
-  '/carrier/trucks': typeof CarrierTrucksRoute
-  '/operator/bookings': typeof OperatorBookingsRoute
-  '/operator/capacity': typeof OperatorCapacityRoute
-  '/operator/pending': typeof OperatorPendingRoute
-  '/operator/': typeof OperatorIndexRoute
+  '/$threadId': typeof AppThreadIdRoute
+  '/settings': typeof AppSettingsRoute
+  '/admin/carriers': typeof AppAdminCarriersRoute
+  '/admin/config': typeof AppAdminConfigRoute
+  '/admin/gates': typeof AppAdminGatesRoute
+  '/admin/operators': typeof AppAdminOperatorsRoute
+  '/admin/terminals': typeof AppAdminTerminalsRoute
+  '/admin/trucks': typeof AppAdminTrucksRoute
+  '/admin/users': typeof AppAdminUsersRoute
+  '/carrier/bookings': typeof AppCarrierBookingsRoute
+  '/carrier/containers': typeof AppCarrierContainersRoute
+  '/carrier/trucks': typeof AppCarrierTrucksRoute
+  '/operator/bookings': typeof AppOperatorBookingsRoute
+  '/operator/capacity': typeof AppOperatorCapacityRoute
+  '/operator/pending': typeof AppOperatorPendingRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/admin/': typeof AppAdminIndexRoute
+  '/operator/': typeof AppOperatorIndexRoute
 }
 export interface FileRoutesByTo {
-  '/carrier': typeof CarrierRouteWithChildren
   '/login': typeof LoginRoute
-  '/$threadId': typeof ChatThreadIdRoute
-  '/admin/carriers': typeof AdminCarriersRoute
-  '/admin/gates': typeof AdminGatesRoute
-  '/admin/terminals': typeof AdminTerminalsRoute
-  '/admin/trucks': typeof AdminTrucksRoute
-  '/carrier/bookings': typeof CarrierBookingsRoute
-  '/carrier/containers': typeof CarrierContainersRoute
-  '/carrier/trucks': typeof CarrierTrucksRoute
-  '/operator/bookings': typeof OperatorBookingsRoute
-  '/operator/capacity': typeof OperatorCapacityRoute
-  '/operator/pending': typeof OperatorPendingRoute
-  '/': typeof ChatIndexRoute
-  '/operator': typeof OperatorIndexRoute
+  '/$threadId': typeof AppThreadIdRoute
+  '/settings': typeof AppSettingsRoute
+  '/': typeof AppIndexRoute
+  '/admin/carriers': typeof AppAdminCarriersRoute
+  '/admin/config': typeof AppAdminConfigRoute
+  '/admin/gates': typeof AppAdminGatesRoute
+  '/admin/operators': typeof AppAdminOperatorsRoute
+  '/admin/terminals': typeof AppAdminTerminalsRoute
+  '/admin/trucks': typeof AppAdminTrucksRoute
+  '/admin/users': typeof AppAdminUsersRoute
+  '/carrier/bookings': typeof AppCarrierBookingsRoute
+  '/carrier/containers': typeof AppCarrierContainersRoute
+  '/carrier/trucks': typeof AppCarrierTrucksRoute
+  '/operator/bookings': typeof AppOperatorBookingsRoute
+  '/operator/capacity': typeof AppOperatorCapacityRoute
+  '/operator/pending': typeof AppOperatorPendingRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/admin': typeof AppAdminIndexRoute
+  '/operator': typeof AppOperatorIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/_chat': typeof ChatRouteWithChildren
-  '/carrier': typeof CarrierRouteWithChildren
+  '/_app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
-  '/operator': typeof OperatorRouteWithChildren
-  '/_chat/$threadId': typeof ChatThreadIdRoute
-  '/admin/carriers': typeof AdminCarriersRoute
-  '/admin/gates': typeof AdminGatesRoute
-  '/admin/terminals': typeof AdminTerminalsRoute
-  '/admin/trucks': typeof AdminTrucksRoute
-  '/carrier/bookings': typeof CarrierBookingsRoute
-  '/carrier/containers': typeof CarrierContainersRoute
-  '/carrier/trucks': typeof CarrierTrucksRoute
-  '/operator/bookings': typeof OperatorBookingsRoute
-  '/operator/capacity': typeof OperatorCapacityRoute
-  '/operator/pending': typeof OperatorPendingRoute
-  '/_chat/': typeof ChatIndexRoute
-  '/operator/': typeof OperatorIndexRoute
+  '/_app/$threadId': typeof AppThreadIdRoute
+  '/_app/settings': typeof AppSettingsRoute
+  '/_app/': typeof AppIndexRoute
+  '/_app/admin/carriers': typeof AppAdminCarriersRoute
+  '/_app/admin/config': typeof AppAdminConfigRoute
+  '/_app/admin/gates': typeof AppAdminGatesRoute
+  '/_app/admin/operators': typeof AppAdminOperatorsRoute
+  '/_app/admin/terminals': typeof AppAdminTerminalsRoute
+  '/_app/admin/trucks': typeof AppAdminTrucksRoute
+  '/_app/admin/users': typeof AppAdminUsersRoute
+  '/_app/carrier/bookings': typeof AppCarrierBookingsRoute
+  '/_app/carrier/containers': typeof AppCarrierContainersRoute
+  '/_app/carrier/trucks': typeof AppCarrierTrucksRoute
+  '/_app/operator/bookings': typeof AppOperatorBookingsRoute
+  '/_app/operator/capacity': typeof AppOperatorCapacityRoute
+  '/_app/operator/pending': typeof AppOperatorPendingRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/_app/admin/': typeof AppAdminIndexRoute
+  '/_app/operator/': typeof AppOperatorIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/carrier'
     | '/login'
-    | '/operator'
     | '/$threadId'
+    | '/settings'
     | '/admin/carriers'
+    | '/admin/config'
     | '/admin/gates'
+    | '/admin/operators'
     | '/admin/terminals'
     | '/admin/trucks'
+    | '/admin/users'
     | '/carrier/bookings'
     | '/carrier/containers'
     | '/carrier/trucks'
     | '/operator/bookings'
     | '/operator/capacity'
     | '/operator/pending'
-    | '/operator/'
     | '/api/auth/$'
+    | '/admin/'
+    | '/operator/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/carrier'
     | '/login'
     | '/$threadId'
+    | '/settings'
+    | '/'
     | '/admin/carriers'
+    | '/admin/config'
     | '/admin/gates'
+    | '/admin/operators'
     | '/admin/terminals'
     | '/admin/trucks'
+    | '/admin/users'
     | '/carrier/bookings'
     | '/carrier/containers'
     | '/carrier/trucks'
     | '/operator/bookings'
     | '/operator/capacity'
     | '/operator/pending'
-    | '/'
-    | '/operator'
     | '/api/auth/$'
+    | '/admin'
+    | '/operator'
   id:
     | '__root__'
-    | '/_chat'
-    | '/carrier'
+    | '/_app'
     | '/login'
-    | '/operator'
-    | '/_chat/$threadId'
-    | '/admin/carriers'
-    | '/admin/gates'
-    | '/admin/terminals'
-    | '/admin/trucks'
-    | '/carrier/bookings'
-    | '/carrier/containers'
-    | '/carrier/trucks'
-    | '/operator/bookings'
-    | '/operator/capacity'
-    | '/operator/pending'
-    | '/_chat/'
-    | '/operator/'
+    | '/_app/$threadId'
+    | '/_app/settings'
+    | '/_app/'
+    | '/_app/admin/carriers'
+    | '/_app/admin/config'
+    | '/_app/admin/gates'
+    | '/_app/admin/operators'
+    | '/_app/admin/terminals'
+    | '/_app/admin/trucks'
+    | '/_app/admin/users'
+    | '/_app/carrier/bookings'
+    | '/_app/carrier/containers'
+    | '/_app/carrier/trucks'
+    | '/_app/operator/bookings'
+    | '/_app/operator/capacity'
+    | '/_app/operator/pending'
     | '/api/auth/$'
+    | '/_app/admin/'
+    | '/_app/operator/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  ChatRoute: typeof ChatRouteWithChildren
-  CarrierRoute: typeof CarrierRouteWithChildren
+  AppRoute: typeof AppRouteWithChildren
   LoginRoute: typeof LoginRoute
-  OperatorRoute: typeof OperatorRouteWithChildren
-  AdminCarriersRoute: typeof AdminCarriersRoute
-  AdminGatesRoute: typeof AdminGatesRoute
-  AdminTerminalsRoute: typeof AdminTerminalsRoute
-  AdminTrucksRoute: typeof AdminTrucksRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/operator': {
-      id: '/operator'
-      path: '/operator'
-      fullPath: '/operator'
-      preLoaderRoute: typeof OperatorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -264,110 +289,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/carrier': {
-      id: '/carrier'
-      path: '/carrier'
-      fullPath: '/carrier'
-      preLoaderRoute: typeof CarrierRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_chat': {
-      id: '/_chat'
+    '/_app': {
+      id: '/_app'
       path: ''
       fullPath: '/'
-      preLoaderRoute: typeof ChatRouteImport
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/operator/': {
-      id: '/operator/'
-      path: '/'
-      fullPath: '/operator/'
-      preLoaderRoute: typeof OperatorIndexRouteImport
-      parentRoute: typeof OperatorRoute
-    }
-    '/_chat/': {
-      id: '/_chat/'
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof ChatIndexRouteImport
-      parentRoute: typeof ChatRoute
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/operator/pending': {
-      id: '/operator/pending'
-      path: '/pending'
-      fullPath: '/operator/pending'
-      preLoaderRoute: typeof OperatorPendingRouteImport
-      parentRoute: typeof OperatorRoute
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
     }
-    '/operator/capacity': {
-      id: '/operator/capacity'
-      path: '/capacity'
-      fullPath: '/operator/capacity'
-      preLoaderRoute: typeof OperatorCapacityRouteImport
-      parentRoute: typeof OperatorRoute
-    }
-    '/operator/bookings': {
-      id: '/operator/bookings'
-      path: '/bookings'
-      fullPath: '/operator/bookings'
-      preLoaderRoute: typeof OperatorBookingsRouteImport
-      parentRoute: typeof OperatorRoute
-    }
-    '/carrier/trucks': {
-      id: '/carrier/trucks'
-      path: '/trucks'
-      fullPath: '/carrier/trucks'
-      preLoaderRoute: typeof CarrierTrucksRouteImport
-      parentRoute: typeof CarrierRoute
-    }
-    '/carrier/containers': {
-      id: '/carrier/containers'
-      path: '/containers'
-      fullPath: '/carrier/containers'
-      preLoaderRoute: typeof CarrierContainersRouteImport
-      parentRoute: typeof CarrierRoute
-    }
-    '/carrier/bookings': {
-      id: '/carrier/bookings'
-      path: '/bookings'
-      fullPath: '/carrier/bookings'
-      preLoaderRoute: typeof CarrierBookingsRouteImport
-      parentRoute: typeof CarrierRoute
-    }
-    '/admin/trucks': {
-      id: '/admin/trucks'
-      path: '/admin/trucks'
-      fullPath: '/admin/trucks'
-      preLoaderRoute: typeof AdminTrucksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/terminals': {
-      id: '/admin/terminals'
-      path: '/admin/terminals'
-      fullPath: '/admin/terminals'
-      preLoaderRoute: typeof AdminTerminalsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/gates': {
-      id: '/admin/gates'
-      path: '/admin/gates'
-      fullPath: '/admin/gates'
-      preLoaderRoute: typeof AdminGatesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/carriers': {
-      id: '/admin/carriers'
-      path: '/admin/carriers'
-      fullPath: '/admin/carriers'
-      preLoaderRoute: typeof AdminCarriersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_chat/$threadId': {
-      id: '/_chat/$threadId'
+    '/_app/$threadId': {
+      id: '/_app/$threadId'
       path: '/$threadId'
       fullPath: '/$threadId'
-      preLoaderRoute: typeof ChatThreadIdRouteImport
-      parentRoute: typeof ChatRoute
+      preLoaderRoute: typeof AppThreadIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/operator/': {
+      id: '/_app/operator/'
+      path: '/operator'
+      fullPath: '/operator/'
+      preLoaderRoute: typeof AppOperatorIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/': {
+      id: '/_app/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AppAdminIndexRouteImport
+      parentRoute: typeof AppRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -376,63 +338,147 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/operator/pending': {
+      id: '/_app/operator/pending'
+      path: '/operator/pending'
+      fullPath: '/operator/pending'
+      preLoaderRoute: typeof AppOperatorPendingRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/operator/capacity': {
+      id: '/_app/operator/capacity'
+      path: '/operator/capacity'
+      fullPath: '/operator/capacity'
+      preLoaderRoute: typeof AppOperatorCapacityRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/operator/bookings': {
+      id: '/_app/operator/bookings'
+      path: '/operator/bookings'
+      fullPath: '/operator/bookings'
+      preLoaderRoute: typeof AppOperatorBookingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/carrier/trucks': {
+      id: '/_app/carrier/trucks'
+      path: '/carrier/trucks'
+      fullPath: '/carrier/trucks'
+      preLoaderRoute: typeof AppCarrierTrucksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/carrier/containers': {
+      id: '/_app/carrier/containers'
+      path: '/carrier/containers'
+      fullPath: '/carrier/containers'
+      preLoaderRoute: typeof AppCarrierContainersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/carrier/bookings': {
+      id: '/_app/carrier/bookings'
+      path: '/carrier/bookings'
+      fullPath: '/carrier/bookings'
+      preLoaderRoute: typeof AppCarrierBookingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/users': {
+      id: '/_app/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AppAdminUsersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/trucks': {
+      id: '/_app/admin/trucks'
+      path: '/admin/trucks'
+      fullPath: '/admin/trucks'
+      preLoaderRoute: typeof AppAdminTrucksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/terminals': {
+      id: '/_app/admin/terminals'
+      path: '/admin/terminals'
+      fullPath: '/admin/terminals'
+      preLoaderRoute: typeof AppAdminTerminalsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/operators': {
+      id: '/_app/admin/operators'
+      path: '/admin/operators'
+      fullPath: '/admin/operators'
+      preLoaderRoute: typeof AppAdminOperatorsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/gates': {
+      id: '/_app/admin/gates'
+      path: '/admin/gates'
+      fullPath: '/admin/gates'
+      preLoaderRoute: typeof AppAdminGatesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/config': {
+      id: '/_app/admin/config'
+      path: '/admin/config'
+      fullPath: '/admin/config'
+      preLoaderRoute: typeof AppAdminConfigRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/carriers': {
+      id: '/_app/admin/carriers'
+      path: '/admin/carriers'
+      fullPath: '/admin/carriers'
+      preLoaderRoute: typeof AppAdminCarriersRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
-interface ChatRouteChildren {
-  ChatThreadIdRoute: typeof ChatThreadIdRoute
-  ChatIndexRoute: typeof ChatIndexRoute
+interface AppRouteChildren {
+  AppThreadIdRoute: typeof AppThreadIdRoute
+  AppSettingsRoute: typeof AppSettingsRoute
+  AppIndexRoute: typeof AppIndexRoute
+  AppAdminCarriersRoute: typeof AppAdminCarriersRoute
+  AppAdminConfigRoute: typeof AppAdminConfigRoute
+  AppAdminGatesRoute: typeof AppAdminGatesRoute
+  AppAdminOperatorsRoute: typeof AppAdminOperatorsRoute
+  AppAdminTerminalsRoute: typeof AppAdminTerminalsRoute
+  AppAdminTrucksRoute: typeof AppAdminTrucksRoute
+  AppAdminUsersRoute: typeof AppAdminUsersRoute
+  AppCarrierBookingsRoute: typeof AppCarrierBookingsRoute
+  AppCarrierContainersRoute: typeof AppCarrierContainersRoute
+  AppCarrierTrucksRoute: typeof AppCarrierTrucksRoute
+  AppOperatorBookingsRoute: typeof AppOperatorBookingsRoute
+  AppOperatorCapacityRoute: typeof AppOperatorCapacityRoute
+  AppOperatorPendingRoute: typeof AppOperatorPendingRoute
+  AppAdminIndexRoute: typeof AppAdminIndexRoute
+  AppOperatorIndexRoute: typeof AppOperatorIndexRoute
 }
 
-const ChatRouteChildren: ChatRouteChildren = {
-  ChatThreadIdRoute: ChatThreadIdRoute,
-  ChatIndexRoute: ChatIndexRoute,
+const AppRouteChildren: AppRouteChildren = {
+  AppThreadIdRoute: AppThreadIdRoute,
+  AppSettingsRoute: AppSettingsRoute,
+  AppIndexRoute: AppIndexRoute,
+  AppAdminCarriersRoute: AppAdminCarriersRoute,
+  AppAdminConfigRoute: AppAdminConfigRoute,
+  AppAdminGatesRoute: AppAdminGatesRoute,
+  AppAdminOperatorsRoute: AppAdminOperatorsRoute,
+  AppAdminTerminalsRoute: AppAdminTerminalsRoute,
+  AppAdminTrucksRoute: AppAdminTrucksRoute,
+  AppAdminUsersRoute: AppAdminUsersRoute,
+  AppCarrierBookingsRoute: AppCarrierBookingsRoute,
+  AppCarrierContainersRoute: AppCarrierContainersRoute,
+  AppCarrierTrucksRoute: AppCarrierTrucksRoute,
+  AppOperatorBookingsRoute: AppOperatorBookingsRoute,
+  AppOperatorCapacityRoute: AppOperatorCapacityRoute,
+  AppOperatorPendingRoute: AppOperatorPendingRoute,
+  AppAdminIndexRoute: AppAdminIndexRoute,
+  AppOperatorIndexRoute: AppOperatorIndexRoute,
 }
 
-const ChatRouteWithChildren = ChatRoute._addFileChildren(ChatRouteChildren)
-
-interface CarrierRouteChildren {
-  CarrierBookingsRoute: typeof CarrierBookingsRoute
-  CarrierContainersRoute: typeof CarrierContainersRoute
-  CarrierTrucksRoute: typeof CarrierTrucksRoute
-}
-
-const CarrierRouteChildren: CarrierRouteChildren = {
-  CarrierBookingsRoute: CarrierBookingsRoute,
-  CarrierContainersRoute: CarrierContainersRoute,
-  CarrierTrucksRoute: CarrierTrucksRoute,
-}
-
-const CarrierRouteWithChildren =
-  CarrierRoute._addFileChildren(CarrierRouteChildren)
-
-interface OperatorRouteChildren {
-  OperatorBookingsRoute: typeof OperatorBookingsRoute
-  OperatorCapacityRoute: typeof OperatorCapacityRoute
-  OperatorPendingRoute: typeof OperatorPendingRoute
-  OperatorIndexRoute: typeof OperatorIndexRoute
-}
-
-const OperatorRouteChildren: OperatorRouteChildren = {
-  OperatorBookingsRoute: OperatorBookingsRoute,
-  OperatorCapacityRoute: OperatorCapacityRoute,
-  OperatorPendingRoute: OperatorPendingRoute,
-  OperatorIndexRoute: OperatorIndexRoute,
-}
-
-const OperatorRouteWithChildren = OperatorRoute._addFileChildren(
-  OperatorRouteChildren,
-)
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  ChatRoute: ChatRouteWithChildren,
-  CarrierRoute: CarrierRouteWithChildren,
+  AppRoute: AppRouteWithChildren,
   LoginRoute: LoginRoute,
-  OperatorRoute: OperatorRouteWithChildren,
-  AdminCarriersRoute: AdminCarriersRoute,
-  AdminGatesRoute: AdminGatesRoute,
-  AdminTerminalsRoute: AdminTerminalsRoute,
-  AdminTrucksRoute: AdminTrucksRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

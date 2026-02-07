@@ -8,15 +8,20 @@ import {
   getOptionalAuthenticatedUser,
   requireRole,
 } from "../lib/permissions";
-import { apcsRoleValidator, languageValidator, notificationChannelValidator } from "../lib/validators";
+import {
+  apcsRoleValidator,
+  languageValidator,
+  notificationChannelValidator,
+} from "../lib/validators";
 import { authComponent } from "../auth";
+import { components } from "../_generated/api";
 
 /** Better Auth role validator (includes "user" as default) */
 const betterAuthRoleValidator = v.union(
   v.literal("port_admin"),
   v.literal("terminal_operator"),
   v.literal("carrier"),
-  v.literal("user")
+  v.literal("user"),
 );
 
 /**
@@ -34,7 +39,7 @@ export const getMyProfile = query({
       notificationChannel: v.optional(notificationChannelValidator),
       phone: v.optional(v.string()),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx) => {
     const user = await getOptionalAuthenticatedUser(ctx);
@@ -75,7 +80,7 @@ export const getProfile = query({
       createdAt: v.optional(v.number()),
       updatedAt: v.optional(v.number()),
     }),
-    v.null()
+    v.null(),
   ),
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
@@ -95,7 +100,11 @@ export const getProfile = query({
       userId: authUser._id,
       email: authUser.email,
       name: authUser.name,
-      role: (authUser as unknown as { role: string }).role as "port_admin" | "terminal_operator" | "carrier" | "user",
+      role: (authUser as unknown as { role: string }).role as
+        | "port_admin"
+        | "terminal_operator"
+        | "carrier"
+        | "user",
       preferredLanguage: profile?.preferredLanguage,
       notificationChannel: profile?.notificationChannel,
       phone: profile?.phone,
@@ -118,7 +127,7 @@ export const listOperators = query({
       userId: v.string(),
       apcsRole: v.union(apcsRoleValidator, v.null()),
       assignedTerminals: v.array(v.id("terminals")),
-    })
+    }),
   ),
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
@@ -130,8 +139,8 @@ export const listOperators = query({
       // Filter by specific terminal
       assignments = await ctx.db
         .query("terminalOperatorAssignments")
-        .withIndex("by_terminal_and_active", (q) => 
-          q.eq("terminalId", args.terminalId!).eq("isActive", true)
+        .withIndex("by_terminal_and_active", (q) =>
+          q.eq("terminalId", args.terminalId!).eq("isActive", true),
         )
         .collect();
     } else {
@@ -155,19 +164,20 @@ export const listOperators = query({
     const result = await Promise.all(
       Array.from(userTerminals.entries()).map(async ([userId, terminals]) => {
         const authUser = await authComponent.getAnyUserById(ctx, userId);
-        const role = authUser 
-          ? (authUser as unknown as { role: string }).role 
+        const role = authUser
+          ? (authUser as unknown as { role: string }).role
           : null;
-        
+
         // Only include if role is terminal_operator
-        const apcsRole = role === "terminal_operator" ? "terminal_operator" as const : null;
-        
+        const apcsRole =
+          role === "terminal_operator" ? ("terminal_operator" as const) : null;
+
         return {
           userId,
           apcsRole,
           assignedTerminals: Array.from(terminals) as any[],
         };
-      })
+      }),
     );
 
     // Filter to only terminal operators
@@ -189,23 +199,24 @@ export const listByRole = query({
       role: betterAuthRoleValidator,
       preferredLanguage: v.optional(languageValidator),
       createdAt: v.optional(v.number()),
-    })
+    }),
   ),
   handler: async (ctx, args) => {
     const user = await getAuthenticatedUser(ctx);
     requireRole(user, ["port_admin"]);
 
     // Get all userProfiles to find user IDs
-    const profiles = await ctx.db
-      .query("userProfiles")
-      .collect();
+    const profiles = await ctx.db.query("userProfiles").collect();
 
     // Filter users by role from Better Auth
     const result = await Promise.all(
       profiles.map(async (profile) => {
-        const authUser = await authComponent.getAnyUserById(ctx, profile.userId);
+        const authUser = await authComponent.getAnyUserById(
+          ctx,
+          profile.userId,
+        );
         if (!authUser) return null;
-        
+
         const userRole = (authUser as unknown as { role: string }).role;
         if (userRole !== args.role) return null;
 
@@ -213,13 +224,77 @@ export const listByRole = query({
           userId: profile.userId,
           email: authUser.email,
           name: authUser.name,
-          role: userRole as "port_admin" | "terminal_operator" | "carrier" | "user",
+          role: userRole as
+            | "port_admin"
+            | "terminal_operator"
+            | "carrier"
+            | "user",
           preferredLanguage: profile.preferredLanguage,
           createdAt: profile.createdAt,
         };
-      })
+      }),
     );
 
     return result.filter((r): r is NonNullable<typeof r> => r !== null);
+  },
+});
+
+/**
+ * List ALL users from Better Auth component
+ * This fetches directly from the Better Auth user table
+ */
+export const listAllUsers = query({
+  args: {},
+  returns: v.array(
+    v.object({
+      userId: v.string(),
+      email: v.string(),
+      name: v.string(),
+      role: betterAuthRoleValidator,
+      createdAt: v.number(),
+      updatedAt: v.number(),
+      emailVerified: v.boolean(),
+      banned: v.optional(v.union(v.null(), v.boolean())),
+      // Profile data (optional, may not exist yet)
+      preferredLanguage: v.optional(languageValidator),
+      notificationChannel: v.optional(notificationChannelValidator),
+      phone: v.optional(v.string()),
+    }),
+  ),
+  handler: async (ctx) => {
+    const user = await getAuthenticatedUser(ctx);
+    requireRole(user, ["port_admin"]);
+
+    // Fetch all users from Better Auth component
+    const authUsers = await ctx.runQuery(
+      components.betterAuth.users.listAll,
+      {},
+    );
+
+    // Get all userProfiles for preferences
+    const profiles = await ctx.db.query("userProfiles").collect();
+    const profileMap = new Map(profiles.map((p) => [p.userId, p]));
+
+    // Combine auth users with profile data
+    return authUsers.map((authUser) => {
+      const profile = profileMap.get(authUser._id);
+      return {
+        userId: authUser._id,
+        email: authUser.email,
+        name: authUser.name,
+        role: authUser.role as
+          | "port_admin"
+          | "terminal_operator"
+          | "carrier"
+          | "user",
+        createdAt: authUser.createdAt,
+        updatedAt: authUser.updatedAt,
+        emailVerified: authUser.emailVerified,
+        banned: authUser.banned,
+        preferredLanguage: profile?.preferredLanguage,
+        notificationChannel: profile?.notificationChannel,
+        phone: profile?.phone,
+      };
+    });
   },
 });

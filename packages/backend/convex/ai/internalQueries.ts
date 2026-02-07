@@ -18,7 +18,9 @@
  */
 import { internalQuery } from "../_generated/server";
 import { v } from "convex/values";
-import type { Id, Doc } from "../_generated/dataModel";
+import type { Id, Doc, DataModel } from "../_generated/dataModel";
+import { authComponent } from "../auth";
+import type { GenericCtx } from "@convex-dev/better-auth";
 
 // ============================================================================
 // HELPERS
@@ -35,17 +37,15 @@ async function getUserProfile(ctx: { db: any }, userId: string) {
  * Get user role from Better Auth user record
  */
 async function getUserRoleHelper(ctx: { db: any }, userId: string): Promise<string | null> {
-  // Try to get from userProfiles first (cached role)
-  const profile = await getUserProfile(ctx, userId);
-  if (profile?.preferredLanguage) {
-    // Profile exists, now check betterAuth user table for role
-    const authUser = await ctx.db
-      .query("users")
-      .filter((q: any) => q.eq(q.field("_id"), userId))
-      .first();
-    return authUser?.role ?? null;
-  }
-  return null;
+  // Use authComponent to query Better Auth user table properly
+  const authUser = await authComponent.getAnyUserById(
+    ctx as unknown as GenericCtx<DataModel>,
+    userId
+  );
+  if (!authUser) return null;
+  
+  // Role is on the authUser object (cast needed due to Better Auth typing)
+  return (authUser as unknown as { role: string }).role ?? null;
 }
 
 /**
