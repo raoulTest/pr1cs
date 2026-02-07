@@ -462,10 +462,28 @@ export function CapacityGrid({ terminalId }: CapacityGridProps) {
               {/* Day rows */}
               {DAYS_FR.map((dayName, dayIndex) => (
                 <div key={dayIndex} className="flex">
-                  {/* Day label */}
-                  <div className="w-16 shrink-0 flex items-center text-sm font-medium pr-2">
-                    {dayName}
-                  </div>
+                  {/* Day label (clickable to select row) */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectRow(dayIndex)}
+                        className={cn(
+                          "w-16 shrink-0 flex items-center text-sm font-medium pr-2 rounded-l transition-colors",
+                          "hover:bg-muted cursor-pointer",
+                          "focus:outline-none focus:ring-1 focus:ring-ring",
+                          isRowSelected(dayIndex)
+                            ? "bg-primary/20 text-primary"
+                            : ""
+                        )}
+                      >
+                        {dayName}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Cliquez pour sélectionner {DAYS_FULL_FR[dayIndex]}</p>
+                    </TooltipContent>
+                  </Tooltip>
 
                   {/* Hour cells */}
                   {HOURS.map((hour) => {
