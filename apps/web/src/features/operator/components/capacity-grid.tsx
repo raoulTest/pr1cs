@@ -44,14 +44,13 @@ interface SlotTemplate {
 
 export function CapacityGrid({ terminalId }: CapacityGridProps) {
   const templates = useQuery(
-    api.slotTemplates.listByTerminal,
+    api.slotTemplates.queries.listByTerminal,
     terminalId ? { terminalId } : "skip"
   );
-  const updateTemplate = useMutation(api.slotTemplates.update);
-  const bulkUpdate = useMutation(api.slotTemplates.bulkUpdate);
+  const updateTemplate = useMutation(api.slotTemplates.mutations.update);
+  const bulkUpdate = useMutation(api.slotTemplates.mutations.bulkUpdate);
 
   const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set());
-  const [isSelecting, setIsSelecting] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [bulkCapacity, setBulkCapacity] = useState<number>(10);
   const [isProcessing, setIsProcessing] = useState(false);

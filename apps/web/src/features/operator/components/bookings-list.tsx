@@ -54,7 +54,7 @@ export function BookingsList({ terminalId }: BookingsListProps) {
   const [dateFilter, setDateFilter] = useState<string>("");
 
   const bookings = useQuery(
-    api.bookings.listByTerminal,
+    api.bookings.queries.listByTerminal,
     terminalId
       ? {
           terminalId,
@@ -80,7 +80,7 @@ export function BookingsList({ terminalId }: BookingsListProps) {
         <div className="flex items-center gap-2">
           <Select
             value={statusFilter}
-            onValueChange={(value) => setStatusFilter(value as BookingStatus | "all")}
+            onValueChange={(value: string) => setStatusFilter(value as BookingStatus | "all")}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filtrer par statut" />

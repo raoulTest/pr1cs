@@ -68,7 +68,7 @@ export function BookingCalendar() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
-  const bookings = useQuery(api.bookings.listMyBookings, { limit: 100 });
+  const bookings = useQuery(api.bookings.queries.listMyBookings, { limit: 100 });
 
   // Group bookings by date
   const bookingsByDate = useMemo(() => {
@@ -187,8 +187,6 @@ export function BookingCalendar() {
               const dateKey = formatDateKey(date);
               const dayBookings = bookingsByDate.get(dateKey) || [];
               const hasBookings = dayBookings.length > 0;
-              const hasConfirmed = dayBookings.some((b) => b.status === "confirmed");
-              const hasPending = dayBookings.some((b) => b.status === "pending");
 
               return (
                 <button

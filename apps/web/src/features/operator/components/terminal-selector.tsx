@@ -41,7 +41,7 @@ export function TerminalSelector({
   return (
     <Select
       value={selectedTerminalId ?? undefined}
-      onValueChange={(value) => onSelect(value as Id<"terminals">)}
+      onValueChange={(value: string) => onSelect(value as Id<"terminals">)}
       disabled={disabled}
     >
       <SelectTrigger className="w-[200px]">

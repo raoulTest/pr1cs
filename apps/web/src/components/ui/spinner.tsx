@@ -1,9 +1,19 @@
 import { cn } from "@/lib/utils"
-import { RiLoaderLine } from "@remixicon/react"
+import { IconPlaceholder } from "@/app/(create)/components/icon-placeholder"
 
 function Spinner({ className, ...props }: React.ComponentProps<"svg">) {
   return (
-    <RiLoaderLine role="status" aria-label="Loading" className={cn("size-4 animate-spin", className)} {...props} />
+    <IconPlaceholder
+      lucide="Loader2Icon"
+      tabler="IconLoader"
+      hugeicons="Loading03Icon"
+      phosphor="SpinnerIcon"
+      remixicon="RiLoaderLine"
+      role="status"
+      aria-label="Loading"
+      className={cn("size-4 animate-spin", className)}
+      {...props}
+    />
   )
 }
 

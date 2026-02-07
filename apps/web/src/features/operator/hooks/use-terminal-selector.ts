@@ -8,7 +8,7 @@ import type { Id } from "@microhack/backend/convex/_generated/dataModel";
  * Persists selection in localStorage
  */
 export function useTerminalSelector() {
-  const terminals = useQuery(api.terminals.list, { activeOnly: true });
+  const terminals = useQuery(api.terminals.queries.list, { activeOnly: true });
   const [selectedTerminalId, setSelectedTerminalId] = useState<Id<"terminals"> | null>(null);
 
   // Load from localStorage on mount

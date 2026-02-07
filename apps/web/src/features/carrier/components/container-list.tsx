@@ -16,16 +16,17 @@ import { ContainerIcon, BoxIcon, PackageIcon } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
-type ContainerType = "standard" | "reefer" | "open_top" | "flat_rack" | "tank";
+type ContainerType = "dry" | "reefer" | "open_top" | "flat_rack" | "tank" | "hazardous";
 type ContainerDimensions = "20ft" | "40ft" | "40ft_hc" | "45ft";
 type ContainerOperation = "pick_up" | "drop_off";
 
 const CONTAINER_TYPE_LABELS: Record<ContainerType, string> = {
-  standard: "Standard",
+  dry: "Standard",
   reefer: "Frigorifique",
   open_top: "Toit ouvert",
   flat_rack: "Flat rack",
   tank: "Citerne",
+  hazardous: "Matieres dangereuses",
 };
 
 const CONTAINER_DIM_LABELS: Record<ContainerDimensions, string> = {
@@ -43,11 +44,11 @@ const OPERATION_LABELS: Record<ContainerOperation, string> = {
 export function ContainerList() {
   const [operationFilter, setOperationFilter] = useState<ContainerOperation | "all">("all");
   
-  const containers = useQuery(api.containers.listMy, {
+  const containers = useQuery(api.containers.queries.listMy, {
     operationType: operationFilter === "all" ? undefined : operationFilter,
     limit: 100,
   });
-  const counts = useQuery(api.containers.countByOperation, {});
+  const counts = useQuery(api.containers.queries.countByOperation, {});
 
   if (containers === undefined) {
     return (
@@ -104,7 +105,7 @@ export function ContainerList() {
       <div className="flex items-center gap-4 mb-6">
         <Select
           value={operationFilter}
-          onValueChange={(v) => setOperationFilter(v as ContainerOperation | "all")}
+          onValueChange={(v: string) => setOperationFilter(v as ContainerOperation | "all")}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Filtrer par operation" />

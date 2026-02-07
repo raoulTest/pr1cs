@@ -38,10 +38,16 @@ export const CommitHeader = ({
   children,
   ...props
 }: CommitHeaderProps) => (
-  <CollapsibleTrigger {...props} render={<div className={cn(
-            "group flex cursor-pointer items-center justify-between gap-4 p-3 text-left transition-colors hover:opacity-80",
-            className
-          )} />} nativeButton={false}>{children}</CollapsibleTrigger>
+  <CollapsibleTrigger asChild {...props}>
+    <div
+      className={cn(
+        "group flex cursor-pointer items-center justify-between gap-4 p-3 text-left transition-colors hover:opacity-80",
+        className
+      )}
+    >
+      {children}
+    </div>
+  </CollapsibleTrigger>
 );
 
 export type CommitHashProps = HTMLAttributes<HTMLSpanElement>;

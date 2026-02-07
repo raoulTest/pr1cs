@@ -122,7 +122,7 @@ export function DataTable<TData, TValue>({
                 (table.getColumn(filterColumn)?.getFilterValue() as string) ??
                 ""
               }
-              onValueChange={(value) =>
+              onValueChange={(value: string) =>
                 table
                   .getColumn(filterColumn)
                   ?.setFilterValue(value === "all" ? "" : value)
@@ -224,7 +224,7 @@ export function DataTable<TData, TValue>({
             <p className="text-sm font-medium">Lignes par page</p>
             <Select
               value={`${table.getState().pagination.pageSize}`}
-              onValueChange={(value) => {
+              onValueChange={(value: string) => {
                 table.setPageSize(Number(value));
               }}
             >

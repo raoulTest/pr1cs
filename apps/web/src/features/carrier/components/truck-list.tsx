@@ -29,15 +29,16 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Id } from "@microhack/backend/convex/_generated/dataModel";
 
-type TruckType = "standard" | "refrigerated" | "hazmat" | "oversized" | "flatbed";
+type TruckType = "container" | "flatbed" | "tanker" | "refrigerated" | "bulk" | "general";
 type TruckClass = "light" | "medium" | "heavy" | "super_heavy";
 
 const TRUCK_TYPE_LABELS: Record<TruckType, string> = {
-  standard: "Standard",
-  refrigerated: "Frigorifique",
-  hazmat: "Matieres dangereuses",
-  oversized: "Hors gabarit",
+  container: "Porte-conteneur",
   flatbed: "Plateau",
+  tanker: "Citerne",
+  refrigerated: "Frigorifique",
+  bulk: "Vrac",
+  general: "General",
 };
 
 const TRUCK_CLASS_LABELS: Record<TruckClass, string> = {
@@ -61,10 +62,10 @@ interface Truck {
 }
 
 export function TruckList() {
-  const trucks = useQuery(api.trucks.listMyTrucks, {});
-  const createTruck = useMutation(api.trucks.create);
-  const updateTruck = useMutation(api.trucks.update);
-  const deleteTruck = useMutation(api.trucks.remove);
+  const trucks = useQuery(api.trucks.queries.listMyTrucks, {});
+  const createTruck = useMutation(api.trucks.mutations.create);
+  const updateTruck = useMutation(api.trucks.mutations.update);
+  const deactivateTruck = useMutation(api.trucks.mutations.deactivate);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editTruck, setEditTruck] = useState<Truck | null>(null);
@@ -73,14 +74,14 @@ export function TruckList() {
 
   // Form state
   const [licensePlate, setLicensePlate] = useState("");
-  const [truckType, setTruckType] = useState<TruckType>("standard");
+  const [truckType, setTruckType] = useState<TruckType>("container");
   const [truckClass, setTruckClass] = useState<TruckClass>("medium");
   const [make, setMake] = useState("");
   const [model, setModel] = useState("");
 
   const resetForm = () => {
     setLicensePlate("");
-    setTruckType("standard");
+    setTruckType("container");
     setTruckClass("medium");
     setMake("");
     setModel("");
@@ -141,15 +142,15 @@ export function TruckList() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeactivate = async () => {
     if (!deleteTruckId) return;
     setIsProcessing(true);
     try {
-      await deleteTruck({ truckId: deleteTruckId });
-      toast.success("Camion supprime");
+      await deactivateTruck({ truckId: deleteTruckId });
+      toast.success("Camion desactive");
       setDeleteTruckId(null);
     } catch (error) {
-      toast.error("Erreur lors de la suppression");
+      toast.error("Erreur lors de la desactivation");
     } finally {
       setIsProcessing(false);
     }
@@ -307,21 +308,21 @@ export function TruckList() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* Deactivate Confirmation */}
       <Dialog open={!!deleteTruckId} onOpenChange={() => setDeleteTruckId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Supprimer le camion?</DialogTitle>
+            <DialogTitle>Desactiver le camion?</DialogTitle>
             <DialogDescription>
-              Cette action est irreversible. Le camion sera definitivement supprime.
+              Le camion sera desactive et ne pourra plus etre utilise pour de nouvelles reservations.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTruckId(null)} disabled={isProcessing}>
               Annuler
             </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isProcessing}>
-              {isProcessing ? "Suppression..." : "Supprimer"}
+            <Button variant="destructive" onClick={handleDeactivate} disabled={isProcessing}>
+              {isProcessing ? "Desactivation..." : "Desactiver"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -370,7 +371,7 @@ function TruckForm({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label>Type de camion</Label>
-          <Select value={truckType} onValueChange={(v) => setTruckType(v as TruckType)}>
+          <Select value={truckType} onValueChange={(v: string) => setTruckType(v as TruckType)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -386,7 +387,7 @@ function TruckForm({
 
         <div className="space-y-2">
           <Label>Classe</Label>
-          <Select value={truckClass} onValueChange={(v) => setTruckClass(v as TruckClass)}>
+          <Select value={truckClass} onValueChange={(v: string) => setTruckClass(v as TruckClass)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>

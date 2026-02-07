@@ -19,7 +19,7 @@ interface DashboardStatsProps {
 
 export function DashboardStats({ terminalId }: DashboardStatsProps) {
   const stats = useQuery(
-    api.bookings.countByStatus,
+    api.bookings.queries.countByStatus,
     terminalId ? { terminalId } : "skip"
   );
 

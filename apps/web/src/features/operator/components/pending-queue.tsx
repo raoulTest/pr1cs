@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@microhack/backend/convex/_generated/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -34,11 +34,11 @@ interface PendingQueueProps {
 
 export function PendingQueue({ terminalId }: PendingQueueProps) {
   const pendingBookings = useQuery(
-    api.bookings.listPendingForOperator,
+    api.bookings.queries.listPendingForOperator,
     terminalId ? { terminalId, limit: 20 } : "skip"
   );
-  const confirmBooking = useMutation(api.bookings.confirm);
-  const rejectBooking = useMutation(api.bookings.reject);
+  const confirmBooking = useMutation(api.bookings.mutations.confirm);
+  const rejectBooking = useMutation(api.bookings.mutations.reject);
 
   const [selectedBookingId, setSelectedBookingId] = useState<Id<"bookings"> | null>(null);
   const [rejectReason, setRejectReason] = useState("");
